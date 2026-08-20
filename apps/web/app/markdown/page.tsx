@@ -68,6 +68,15 @@ const SANAD = `---
 const x: number = 1; // بلوکِ کد همیشه LTR است
 \`\`\`
 
+## امنیت
+
+لینکِ [ظاهراً بی‌خطر](javascript:alert(1)) که باید مسدود شود، و
+[لینکِ سالم](https://example.com).
+
+<script>window.__XSS__ = true;</script>
+
+<img src="x" onerror="window.__XSS2__ = true">
+
 ## جدول
 
 | ماده | وضعیت | تاریخ |

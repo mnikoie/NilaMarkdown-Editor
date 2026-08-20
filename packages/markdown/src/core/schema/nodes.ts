@@ -1,5 +1,6 @@
 import type { NodeSpec } from "prosemirror-model";
 import { tableNodes } from "./tables.js";
+import { isSafeImageSrc } from "../security.js";
 
 /**
  * گره‌های سند.
@@ -176,7 +177,14 @@ const image: NodeSpec = {
       }),
     },
   ],
-  toDOM: (n) => ["img", n.attrs],
+  // تصویرِ با `src`ِ ناامن رندر نمی‌شود، ولی گره در سند می‌ماند تا
+  // رفت‌وبرگشت نشکند.
+  toDOM: (n) => [
+    "img",
+    isSafeImageSrc((n.attrs.src as string) ?? "")
+      ? n.attrs
+      : { ...n.attrs, src: "", "data-blocked": "true" },
+  ],
 };
 
 const hard_break: NodeSpec = {

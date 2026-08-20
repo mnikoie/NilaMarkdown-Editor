@@ -5,6 +5,8 @@ import { MarkCardView } from "./MarkCard.js";
 import { CodeBlockView } from "./CodeBlock.js";
 import { MathBlockView, MathInlineView } from "./Math.js";
 import { MermaidView } from "./Mermaid.js";
+import { HtmlBlockView } from "./HtmlBlock.js";
+import type { HtmlMode } from "../core/security.js";
 
 export interface Features {
   /**
@@ -36,6 +38,13 @@ export interface Features {
    * به Web Worker (بندِ ۱۳ پرامپت).
    */
   highlight?: boolean;
+
+  /**
+   * رفتار با HTMLِ خام. پیش‌فرض `escape` — امن.
+   *
+   * حالتِ ناامن (`raw`) باید انتخابِ صریح باشد، نه پیش‌فرض.
+   */
+  html?: HtmlMode;
 }
 
 type NodeViewConstructor = (
@@ -55,7 +64,7 @@ export function createNodeViews(
   registry: MarkRegistry,
   features: Features = {},
 ): Record<string, NodeViewConstructor> {
-  const { math = true, mermaid = false, highlight = false } = features;
+  const { math = true, mermaid = false, highlight = false, html = "escape" } = features;
 
   const views: Record<string, NodeViewConstructor> = {
     directive_block: (node, view, getPos) => new MarkCardView(node, view, getPos, registry),
@@ -72,6 +81,8 @@ export function createNodeViews(
     };
   }
 
+  views.html_block = (node, view, getPos) => new HtmlBlockView(node, view, getPos, html);
+
   if (math) {
     views.math_block = (node, view, getPos) => new MathBlockView(node, view, getPos);
     views.math_inline = (node, view, getPos) => new MathInlineView(node, view, getPos);
@@ -84,3 +95,4 @@ export { MarkCardView, markCardViews } from "./MarkCard.js";
 export { CodeBlockView } from "./CodeBlock.js";
 export { MathBlockView, MathInlineView } from "./Math.js";
 export { MermaidView } from "./Mermaid.js";
+export { HtmlBlockView } from "./HtmlBlock.js";

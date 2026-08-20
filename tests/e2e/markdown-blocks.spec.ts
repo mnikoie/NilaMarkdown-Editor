@@ -96,3 +96,23 @@ test("★ جدول رندر و ویرایش می‌شود", async ({ page }) => 
   await page.keyboard.type("Y");
   await expect(table.locator("td").nth(1)).toContainText("Y");
 });
+
+test("★★ XSS: هیچ اسکریپتی اجرا نمی‌شود", async ({ page }) => {
+  // سند حاوی <script> و onerror است — هیچ‌کدام نباید اجرا شوند.
+  const xss = await page.evaluate(() => ({
+    script: (window as unknown as Record<string, unknown>).__XSS__ ?? null,
+    onerror: (window as unknown as Record<string, unknown>).__XSS2__ ?? null,
+  }));
+  expect(xss).toEqual({ script: null, onerror: null });
+
+  // لینکِ javascript: مسدود شده
+  const bad = page.locator('.tm-editor a', { hasText: "ظاهراً بی‌خطر" });
+  await expect(bad).toHaveAttribute("href", "#blocked");
+
+  // لینکِ سالم دست‌نخورده
+  const good = page.locator('.tm-editor a', { hasText: "لینکِ سالم" });
+  await expect(good).toHaveAttribute("href", "https://example.com");
+
+  // HTMLِ خام به‌صورتِ متن نشان داده شده، نه رندرشده
+  await expect(page.locator(".tm-html-source").first()).toContainText("script");
+});

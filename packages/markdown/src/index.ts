@@ -30,6 +30,17 @@ export {
   isInTable,
 } from "./core/commands/table.js";
 
+export {
+  isSafeHref,
+  isSafeImageSrc,
+  safeHref,
+  sanitizeHtml,
+  escapeHtml,
+  processHtml,
+  linkAttributes,
+} from "./core/security.js";
+export type { HtmlMode } from "./core/security.js";
+
 export { inputRulesPlugin } from "./core/plugins/input-rules.js";
 export { keymapPlugin, insertZWNJ, toggleHeading } from "./core/plugins/keymap.js";
 export type { KeymapOptions } from "./core/plugins/keymap.js";

@@ -1,4 +1,5 @@
 import type { MarkSpec } from "prosemirror-model";
+import { safeHref } from "../security.js";
 
 /**
  * نشانه‌های درون‌خطی.
@@ -46,7 +47,14 @@ const link: MarkSpec = {
       }),
     },
   ],
-  toDOM: (m) => ["a", { href: m.attrs.href as string, title: m.attrs.title as string }, 0],
+  // ★ `safeHref` اینجا و نه فقط در sanitize: لینکِ `javascript:` ممکن
+  // است از مارک‌داونِ عادی بیاید (`[x](javascript:alert(1))`)، نه از
+  // HTMLِ خام. پس فیلتر باید سرِ راهِ رندر باشد.
+  toDOM: (m) => [
+    "a",
+    { href: safeHref((m.attrs.href as string) ?? ""), title: m.attrs.title as string },
+    0,
+  ],
 };
 
 export const marks = { strong, em, strike, code, link };
