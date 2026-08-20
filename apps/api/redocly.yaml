@@ -1,0 +1,7 @@
+extends:
+  - recommended
+rules:
+  # انتخابِ لایسنس تصمیمِ صاحبِ پروژه است، نه این ابزار.
+  info-license-strict: off
+  # پروژهٔ نوساخته واقعاً روی localhost اجرا می‌شود؛ این آدرسِ نمونه نیست.
+  no-server-example.com: off

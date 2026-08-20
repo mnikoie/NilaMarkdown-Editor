@@ -1,0 +1,41 @@
+openapi: 3.1.0
+info:
+  title: API
+  version: 0.1.0
+  description: نقشهٔ رسمیِ این API. هر مسیرِ نو را اینجا هم بنویس.
+  license:
+    name: UNLICENSED
+servers:
+  - url: http://localhost:4000
+    description: اجرای محلی
+components:
+  schemas:
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+# پیش‌فرض: هیچ مسیری احراز هویت نمی‌خواهد. وقتی احرازِ هویت را انتخاب کردی،
+# securitySchemes را اینجا اضافه کن و مسیرهای لازم را security بده.
+security: []
+paths:
+  /health:
+    get:
+      operationId: getHealth
+      summary: زنده بودنِ سرویس
+      responses:
+        "200":
+          description: سرویس بالاست
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+        "500":
+          description: خطای داخلی
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"

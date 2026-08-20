@@ -15,7 +15,7 @@
     "search": "meilisearch",
     "storage": "minio",
     "auth": null,
-    "apiStyle": null,
+    "apiStyle": "rest-openapi",
     "e2e": null,
     "monitoring": null,
     "uiKit": "shadcn-ui",
