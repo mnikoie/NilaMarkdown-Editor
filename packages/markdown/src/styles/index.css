@@ -289,6 +289,146 @@
     resize: vertical;
   }
 
+  /* ── بلوکِ کد ── */
+  .tm-code,
+  .tm-mermaid {
+    position: relative;
+    border: 1px solid var(--tm-border);
+    border-radius: 0.5rem;
+    background: var(--tm-code-bg);
+    margin-block: 1rem;
+    overflow: hidden;
+  }
+
+  .tm-code-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.25rem 0.625rem;
+    border-block-end: 1px solid var(--tm-border);
+    /* هدر همیشه LTR است چون نامِ زبان انگلیسی است. */
+    direction: ltr;
+  }
+
+  .tm-code-lang {
+    font-family: var(--tm-font-mono);
+    font-size: 0.75rem;
+    color: var(--tm-muted);
+  }
+
+  .tm-code-copy {
+    font-size: 0.75rem;
+    color: var(--tm-muted);
+    background: none;
+    border: 1px solid var(--tm-border);
+    border-radius: 0.25rem;
+    padding: 0.125rem 0.5rem;
+    cursor: pointer;
+  }
+
+  .tm-code-copy:hover {
+    color: var(--tm-fg);
+  }
+
+  .tm-code pre,
+  .tm-mermaid pre {
+    margin: 0;
+    padding: 0.75rem;
+    overflow-x: auto;
+    font-size: 0.875rem;
+    line-height: 1.6;
+  }
+
+  /*
+   * لایهٔ رنگ‌آمیزی زیرِ متنِ قابلِ ویرایش می‌نشیند و دقیقاً روی آن منطبق
+   * است. متنِ رویی شفاف می‌شود تا فقط رنگِ زیرین دیده شود — ولی مکان‌نما
+   * و انتخاب همچنان روی متنِ واقعی کار می‌کنند.
+   */
+  .tm-code-highlight {
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline-start: 0;
+    inline-size: 100%;
+    pointer-events: none;
+    overflow: hidden;
+  }
+
+  .tm-code-highlight pre {
+    margin: 0;
+    padding: 0.75rem;
+    background: transparent !important;
+  }
+
+  .tm-code[data-highlighted="true"] > pre > code {
+    color: transparent;
+    caret-color: var(--tm-fg);
+  }
+
+  /* رنگ‌آمیزی نشده (Shiki نیست) → متن با رنگِ عادی دیده شود. */
+  .tm-code:not([data-highlighted="true"]) > pre > code {
+    color: var(--tm-fg);
+  }
+
+  /* ── ریاضی ── */
+  .tm-math-block {
+    display: block;
+    text-align: center;
+    padding-block: 0.5rem;
+    /* فرمول همیشه LTR است، حتی در سندِ فارسی. */
+    direction: ltr;
+  }
+
+  .tm-math-inline {
+    direction: ltr;
+    display: inline-block;
+  }
+
+  .tm-math-block[data-rendered="false"],
+  .tm-math-inline[data-rendered="false"] {
+    font-family: var(--tm-font-mono);
+    color: var(--tm-muted);
+    background: var(--tm-code-bg);
+    border-radius: 0.25rem;
+    padding-inline: 0.25rem;
+  }
+
+  .tm-math-block[data-empty="true"],
+  .tm-math-inline[data-empty="true"] {
+    color: var(--tm-muted);
+    font-style: italic;
+  }
+
+  .tm-math-editor {
+    inline-size: 100%;
+    font-family: var(--tm-font-mono);
+    font-size: 0.875rem;
+    color: var(--tm-fg);
+    background: var(--tm-code-bg);
+    border: 1px solid var(--tm-accent);
+    border-radius: 0.25rem;
+    padding: 0.25rem;
+    direction: ltr;
+  }
+
+  /* ── نمودار ── */
+  .tm-mermaid-preview {
+    padding: 1rem;
+    text-align: center;
+    overflow-x: auto;
+  }
+
+  .tm-mermaid-preview svg {
+    max-inline-size: 100%;
+    height: auto;
+  }
+
+  .tm-mermaid[data-rendered="false"] .tm-mermaid-preview,
+  .tm-mermaid[data-rendered="off"] .tm-mermaid-preview {
+    font-size: 0.8125rem;
+    color: var(--tm-muted);
+  }
+
   /* ── درختِ ساختار (پنلِ کناری) ── */
   .tm-outline {
     font-size: 0.875rem;

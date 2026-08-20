@@ -13,7 +13,8 @@ import { livePreviewPlugin } from "../core/plugins/live-preview.js";
 import { foldPlugin } from "../core/plugins/fold.js";
 import { inputRulesPlugin } from "../core/plugins/input-rules.js";
 import { keymapPlugin } from "../core/plugins/keymap.js";
-import { markCardViews } from "../node-views/MarkCard.js";
+import { createNodeViews } from "../node-views/index.js";
+import type { Features } from "../node-views/index.js";
 import { buildOutline } from "../core/outline/build.js";
 import { BUILTIN_MARKS } from "../core/directives/builtin.js";
 import type { MarkRegistry } from "../core/directives/types.js";
@@ -30,6 +31,8 @@ export interface UseEditorOptions {
   foldedIds?: string[];
   onFoldChange?: (ids: string[]) => void;
   onToggleSource?: () => void;
+  /** روشن/خاموش‌کردنِ بلوک‌های سنگین. */
+  features?: Features;
 }
 
 export interface EditorHandle {
@@ -67,6 +70,7 @@ export function useEditor(options: UseEditorOptions): {
     foldedIds,
     onFoldChange,
     onToggleSource,
+    features,
   } = options;
 
   const viewRef = useRef<EditorView | null>(null);
@@ -114,7 +118,7 @@ export function useEditor(options: UseEditorOptions): {
     const view = new EditorView(mount, {
       state,
       editable: () => !readOnly,
-      nodeViews: markCardViews(directives),
+      nodeViews: createNodeViews(directives, features),
       attributes: {
         role: "textbox",
         "aria-multiline": "true",
@@ -148,7 +152,7 @@ export function useEditor(options: UseEditorOptions): {
     };
     // `value` عمداً در وابستگی‌ها نیست — تغییرش سند را بازسازی نمی‌کند.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [directives, debounceMs, readOnly]);
+  }, [directives, debounceMs, readOnly, features]);
 
   /** حالتِ کنترل‌شده — فقط وقتی `value` از بیرون واقعاً فرق کرده. */
   useEffect(() => {

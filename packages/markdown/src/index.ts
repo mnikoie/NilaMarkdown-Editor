@@ -39,7 +39,16 @@ export type {
   MarkVariant,
 } from "./core/directives/types.js";
 
-export { MarkCardView, markCardViews } from "./node-views/MarkCard.js";
+export {
+  MarkCardView,
+  markCardViews,
+  CodeBlockView,
+  MathBlockView,
+  MathInlineView,
+  MermaidView,
+  createNodeViews,
+} from "./node-views/index.js";
+export type { Features } from "./node-views/index.js";
 export { OutlineTree } from "./react/Outline/OutlineTree.js";
 export type { OutlineTreeProps } from "./react/Outline/OutlineTree.js";
 

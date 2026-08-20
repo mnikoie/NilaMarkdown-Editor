@@ -8,6 +8,7 @@ import { foldKey, toggleFold } from "../core/plugins/fold.js";
 import { BUILTIN_MARKS } from "../core/directives/builtin.js";
 import type { MarkRegistry } from "../core/directives/types.js";
 import type { OutlineNode } from "../core/outline/types.js";
+import type { Features } from "../node-views/index.js";
 
 export interface MarkdownEditorProps {
   /** حالتِ کنترل‌شده. */
@@ -28,6 +29,12 @@ export interface MarkdownEditorProps {
 
   /** پنلِ ساختار. */
   outline?: boolean;
+
+  /**
+   * بلوک‌های سنگین. `mermaid` پیش‌فرض خاموش است — کدِ دلخواه اجرا
+   * می‌کند و اگر محتوا از کاربرِ دیگری بیاید، خطرِ امنیتی است.
+   */
+  features?: Features;
 
   /** لنگرهای بسته در آغاز، و اطلاع از تغییرشان — برای ذخیره. */
   foldedIds?: string[];
@@ -55,6 +62,7 @@ export function MarkdownEditor({
   dir = "auto",
   directives = BUILTIN_MARKS,
   outline = false,
+  features,
   foldedIds,
   onFoldChange,
   className,
@@ -81,6 +89,7 @@ export function MarkdownEditor({
     debounceMs,
     readOnly,
     directives,
+    features,
     foldedIds,
     onFoldChange: (ids) => {
       setFolded(new Set(ids));

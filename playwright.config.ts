@@ -8,7 +8,9 @@ export default defineConfig({
   reporter: [["list"]],
   use: {
     ...devices["Desktop Chrome"],
-    baseURL: process.env.E2E_BASE_URL ?? "http://127.0.0.1:3000",
+    // `localhost` و نه `127.0.0.1`: سرورِ Next روی نامِ میزبان گوش می‌دهد و
+    // در ویندوز این دو همیشه یکی resolve نمی‌شوند.
+    baseURL: process.env.E2E_BASE_URL ?? "http://localhost:3000",
     locale: "fa-IR",
     screenshot: "only-on-failure",
   },
