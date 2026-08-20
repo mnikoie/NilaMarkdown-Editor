@@ -12,7 +12,7 @@
     "aiServiceLanguage": null,
     "backgroundJobs": "bullmq",
     "database": "postgres",
-    "search": null,
+    "search": "meilisearch",
     "storage": null,
     "auth": null,
     "apiStyle": null,

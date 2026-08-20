@@ -25,7 +25,18 @@ services:
       POSTGRES_DB: app
     volumes:
       - postgres_data:/var/lib/postgresql/data
+  meilisearch:
+    image: getmeili/meilisearch:v1.11
+    restart: unless-stopped
+    ports:
+      - "${MEILI_PORT:-7700}:7700"
+    environment:
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY}
+      MEILI_NO_ANALYTICS: "true"
+    volumes:
+      - meilisearch_data:/meili_data
 
 volumes:
   redis_data:
   postgres_data:
+  meilisearch_data:
