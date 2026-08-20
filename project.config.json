@@ -18,6 +18,7 @@
     "apiStyle": null,
     "e2e": null,
     "monitoring": null,
-    "uiKit": "shadcn-ui"
+    "uiKit": "shadcn-ui",
+    "dataFetching": "tanstack-query"
   }
 }
