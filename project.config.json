@@ -11,7 +11,7 @@
     "backendFramework": "nestjs",
     "aiServiceLanguage": null,
     "backgroundJobs": "bullmq",
-    "database": null,
+    "database": "postgres",
     "search": null,
     "storage": null,
     "auth": null,
