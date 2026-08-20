@@ -1,0 +1,19 @@
+# ساختهٔ PackageBuilder — دست‌نویس ویرایش نکن
+# محتوایش از تصمیم‌های ثبت‌شده در project.config.json ساخته می‌شود.
+#
+# «name» دامنهٔ Docker را تعیین می‌کند، نه مسیرِ پوشه. اگر دو کپی از این
+# پروژه نامِ یکسان داشته باشند، وضعیتِ هم را نشان می‌دهند — پس این نام
+# باید یکتا بماند.
+name: 27-taminlibrary
+
+services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+
+volumes:
+  redis_data:

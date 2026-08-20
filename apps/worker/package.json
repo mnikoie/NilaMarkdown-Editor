@@ -1,0 +1,14 @@
+{
+  "name": "worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "node src/main.js"
+  },
+  "dependencies": {
+    "bullmq": "^6.1.2",
+    "ioredis": "^6.0.0"
+  }
+}

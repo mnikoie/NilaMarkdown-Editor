@@ -10,7 +10,7 @@
     "frontendFramework": "nextjs",
     "backendFramework": "nestjs",
     "aiServiceLanguage": null,
-    "backgroundJobs": null,
+    "backgroundJobs": "bullmq",
     "database": null,
     "search": null,
     "storage": null,

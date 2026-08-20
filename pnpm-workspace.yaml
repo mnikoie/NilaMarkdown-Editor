@@ -3,6 +3,7 @@ packages:
   - "packages/*"
 
 allowBuilds:
+  msgpackr-extract: set this to true or false
   unrs-resolver: set this to true or false
 
 # pnpm ۱۱ به‌طورِ پیش‌فرض، اگر اسکریپتِ بیلدِ یک پکیج بی‌اجازه رد شود، کلِ
