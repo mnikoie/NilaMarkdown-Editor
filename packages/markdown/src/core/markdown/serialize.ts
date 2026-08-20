@@ -149,9 +149,16 @@ function blockOf(node: PMNode): MdastNode[] {
         out.push({ type: "paragraph", children: inlineOf(child) });
         break;
 
-      case "heading":
-        out.push({ type: "heading", depth: child.attrs.level, children: inlineOf(child) });
+      case "heading": {
+        const kids = inlineOf(child);
+        // لنگرِ صریح دوباره به انتهای عنوان برمی‌گردد. بی این، `{#fasl-4}`
+        // بعدِ اولین ذخیره گم می‌شود و همهٔ ارجاع‌های واردشونده می‌شکنند.
+        if (child.attrs.id) {
+          kids.push({ type: "text", value: ` {#${child.attrs.id as string}}` });
+        }
+        out.push({ type: "heading", depth: child.attrs.level, children: kids });
         break;
+      }
 
       case "blockquote":
         out.push({ type: "blockquote", children: blockOf(child) });

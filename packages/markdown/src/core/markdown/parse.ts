@@ -148,13 +148,15 @@ function block(node: MdastNode, ctx: Ctx): PMNode[] {
       return [schema.nodes.paragraph.create(null, inlineChildren(node.children, [], ctx))];
 
     case "heading": {
-      // لنگرِ صریح `{#id}` را remark-directive به‌صورتِ صفتِ گرهِ بعدی
-      // نمی‌دهد؛ اینجا از متن جدا می‌شود تا در سریالایز دوباره ساخته شود.
-      const kids = inlineChildren(node.children, [], ctx);
+      // لنگرِ صریحِ `{#id}` را هیچ افزونه‌ای نمی‌فهمد — نه remark-parse نه
+      // remark-directive. برای remark فقط متنِ عادی است. پس خودمان از
+      // انتهای آخرین گرهِ متنی جدا می‌کنیم و در `attrs.id` می‌گذاریم تا
+      // در سریالایز دوباره ساخته شود.
+      const { id, children } = extractHeadingId(node.children ?? []);
       return [
         schema.nodes.heading.create(
-          { level: node.depth ?? 1, id: (node.data as { id?: string })?.id ?? null },
-          kids,
+          { level: node.depth ?? 1, id },
+          inlineChildren(children, [], ctx),
         ),
       ];
     }
@@ -247,6 +249,32 @@ function block(node: MdastNode, ctx: Ctx): PMNode[] {
         ? [schema.nodes.html_block.create({ value: String(node.value) })]
         : [];
   }
+}
+
+/**
+ * `# عنوان {#لنگر}` — لنگر را از انتهای عنوان جدا می‌کند.
+ *
+ * فقط وقتی جدا می‌شود که در **انتهای آخرین** گرهِ متنی باشد. اگر کاربر
+ * `{#x}` را وسطِ جمله نوشته باشد، متنِ عادی است و دست نمی‌خورد.
+ */
+function extractHeadingId(children: MdastNode[]): {
+  id: string | null;
+  children: MdastNode[];
+} {
+  const last = children[children.length - 1];
+  if (!last || last.type !== "text" || typeof last.value !== "string") {
+    return { id: null, children };
+  }
+
+  const m = /^([\s\S]*?)\s*\{#([^}\s]+)\}$/.exec(last.value);
+  if (!m) return { id: null, children };
+
+  const rest = m[1]!;
+  const trimmed = [...children.slice(0, -1)];
+  // اگر بعد از برداشتنِ لنگر چیزی از این گره نماند، خودِ گره حذف می‌شود.
+  if (rest.length > 0) trimmed.push({ ...last, value: rest });
+
+  return { id: m[2]!, children: trimmed };
 }
 
 /**
