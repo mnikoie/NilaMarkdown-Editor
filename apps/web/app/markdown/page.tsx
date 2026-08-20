@@ -145,6 +145,8 @@ export default function MarkdownDemoPage() {
         onChange={setMarkdown}
         directives={MARKS}
         outline
+        toolbar
+        stats
         dir="rtl"
         placeholder="بنویسید…"
       />

@@ -116,3 +116,47 @@ test("★★ XSS: هیچ اسکریپتی اجرا نمی‌شود", async ({ pa
   // HTMLِ خام به‌صورتِ متن نشان داده شده، نه رندرشده
   await expect(page.locator(".tm-html-source").first()).toContainText("script");
 });
+
+test("★ نوارِ ابزار — کلیک و دسترس‌پذیری", async ({ page }) => {
+  const toolbar = page.locator('[role="toolbar"]');
+  await expect(toolbar).toBeVisible();
+
+  // ★ کلِ نوار یک توقفِ Tab است — نه یکی به‌ازای هر دکمه
+  const tabbable = toolbar.locator('button[tabindex="0"]');
+  await expect(tabbable).toHaveCount(1);
+
+  // انتخابِ متن و پررنگ‌کردن.
+  // انتخاب با کلیدِ جهت در RTL قابلِ اتکا نیست (Home و ArrowRight
+  // بسته به جهت رفتارِ متفاوت دارند)، پس با دابل‌کلیک یک کلمه را
+  // انتخاب می‌کنیم — همان کاری که کاربر می‌کند.
+  const p = page.locator(".tm-editor p", { hasText: "جریمه" }).first();
+  await p.click();
+
+  // انتخاب را با Selection API روی متنِ واقعی می‌گذاریم. کلیدهای جهت در
+  // RTL قابلِ اتکا نیستند و dblclick هم روی متنِ فارسی همیشه کلمه را
+  // نمی‌گیرد.
+  await page.evaluate(() => {
+    const el = [...document.querySelectorAll(".tm-editor p")].find((e) =>
+      e.textContent?.includes("جریمه"),
+    )!;
+    const textNode = el.firstChild!;
+    const range = document.createRange();
+    range.setStart(textNode, 0);
+    range.setEnd(textNode, 5);
+    const sel = window.getSelection()!;
+    sel.removeAllRanges();
+    sel.addRange(range);
+  });
+  await expect
+    .poll(async () => page.evaluate(() => window.getSelection()?.toString().trim().length ?? 0))
+    .toBeGreaterThan(0);
+
+  await toolbar.getByRole("button", { name: /پررنگ/ }).click();
+  await expect(p.locator("strong")).toHaveCount(1);
+});
+
+test("★ نوارِ آمار، کلمه‌ها را می‌شمارد", async ({ page }) => {
+  const stats = page.locator(".tm-stats");
+  await expect(stats).toContainText("کلمه");
+  await expect(stats).toContainText("دقیقه خواندن");
+});

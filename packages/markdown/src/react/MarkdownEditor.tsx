@@ -4,6 +4,8 @@ import { useCallback, useRef, useState } from "react";
 import { Selection } from "prosemirror-state";
 import { useEditor } from "./useEditor.js";
 import { OutlineTree } from "./Outline/OutlineTree.js";
+import { Toolbar } from "./Toolbar/Toolbar.js";
+import { computeStats } from "../core/stats.js";
 import { foldKey, toggleFold } from "../core/plugins/fold.js";
 import { BUILTIN_MARKS } from "../core/directives/builtin.js";
 import type { MarkRegistry } from "../core/directives/types.js";
@@ -29,6 +31,12 @@ export interface MarkdownEditorProps {
 
   /** پنلِ ساختار. */
   outline?: boolean;
+
+  /** نوارِ ابزار. */
+  toolbar?: boolean;
+
+  /** شمارشِ کلمه و زمانِ خواندن. */
+  stats?: boolean;
 
   /**
    * بلوک‌های سنگین. `mermaid` پیش‌فرض خاموش است — کدِ دلخواه اجرا
@@ -62,6 +70,8 @@ export function MarkdownEditor({
   dir = "auto",
   directives = BUILTIN_MARKS,
   outline = false,
+  toolbar = false,
+  stats = false,
   features,
   foldedIds,
   onFoldChange,
@@ -145,6 +155,14 @@ export function MarkdownEditor({
       ) : null}
 
       <div className="tm-main">
+        {toolbar ? (
+          <Toolbar
+            view={handle.view}
+            onToggleSource={toggleSource}
+            sourceMode={mode === "source"}
+          />
+        ) : null}
+
         {/* حالتِ سورس: یک textarea با فونتِ mono کافی است — CodeMirror لازم نیست. */}
         {mode === "source" ? (
           <textarea
@@ -164,7 +182,23 @@ export function MarkdownEditor({
           data-placeholder={placeholder}
           hidden={mode === "source"}
         />
+
+        {stats ? <StatsBar view={handle.view} /> : null}
       </div>
+    </div>
+  );
+}
+
+/** نوارِ آمار — کلمه، کاراکتر، زمانِ خواندن. */
+function StatsBar({ view }: { view: import("prosemirror-view").EditorView | null }) {
+  const s = view ? computeStats(view.state.doc) : null;
+  if (!s) return null;
+  const fa = (n: number) => n.toLocaleString("fa-IR");
+  return (
+    <div className="tm-stats" aria-live="polite">
+      <span>{fa(s.words)} کلمه</span>
+      <span>{fa(s.characters)} کاراکتر</span>
+      <span>~{fa(s.readingMinutes)} دقیقه خواندن</span>
     </div>
   );
 }

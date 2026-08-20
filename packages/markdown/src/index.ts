@@ -75,6 +75,11 @@ export {
   createNodeViews,
 } from "./node-views/index.js";
 export type { Features } from "./node-views/index.js";
+export { computeStats, countWords } from "./core/stats.js";
+export type { Stats } from "./core/stats.js";
+
+export { Toolbar } from "./react/Toolbar/Toolbar.js";
+export type { ToolbarProps } from "./react/Toolbar/Toolbar.js";
 export { OutlineTree } from "./react/Outline/OutlineTree.js";
 export type { OutlineTreeProps } from "./react/Outline/OutlineTree.js";
 
