@@ -1,0 +1,8 @@
+{
+  "name": "@workspace/shared-types",
+  "version": "0.0.0",
+  "private": true,
+  "description": "تایپ‌های مشترکِ بینِ فرانت و بک‌اند",
+  "main": "src/index.ts",
+  "types": "src/index.ts"
+}
