@@ -15,6 +15,21 @@ export {
 } from "./core/plugins/live-preview.js";
 export type { LivePreviewState, LivePreviewOptions } from "./core/plugins/live-preview.js";
 
+export {
+  tableEditingPlugin,
+  insertTable,
+  setColumnAlign,
+  addColumnAfter,
+  addColumnBefore,
+  addRowAfter,
+  addRowBefore,
+  deleteColumn,
+  deleteRow,
+  deleteTable,
+  goToNextCell,
+  isInTable,
+} from "./core/commands/table.js";
+
 export { inputRulesPlugin } from "./core/plugins/input-rules.js";
 export { keymapPlugin, insertZWNJ, toggleHeading } from "./core/plugins/keymap.js";
 export type { KeymapOptions } from "./core/plugins/keymap.js";

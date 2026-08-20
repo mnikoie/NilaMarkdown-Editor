@@ -13,6 +13,7 @@ import { livePreviewPlugin } from "../core/plugins/live-preview.js";
 import { foldPlugin } from "../core/plugins/fold.js";
 import { inputRulesPlugin } from "../core/plugins/input-rules.js";
 import { keymapPlugin } from "../core/plugins/keymap.js";
+import { tableEditingPlugin } from "../core/commands/table.js";
 import { createNodeViews } from "../node-views/index.js";
 import type { Features } from "../node-views/index.js";
 import { buildOutline } from "../core/outline/build.js";
@@ -110,6 +111,7 @@ export function useEditor(options: UseEditorOptions): {
           initial: foldedIds,
           onChange: (ids) => onFoldChangeRef.current?.(ids),
         }),
+        tableEditingPlugin(),
         dropCursor(),
         gapCursor(),
       ],

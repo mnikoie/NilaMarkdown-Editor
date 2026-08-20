@@ -113,3 +113,50 @@ describe("نیم‌فاصله", () => {
     expect(serialize(parse(md))).toContain("‌");
   });
 });
+
+describe("جدول", () => {
+  /**
+   * ★ جدول تنها جایی است که خروجی **عیناً** ورودی نیست.
+   *
+   * remark ردیفِ جداکننده را به کمینه‌اش نرمال می‌کند (`| - | - |`). همین
+   * شکل، شکلِ متعارفِ خودش است — یعنی بارِ دوم دیگر عوض نمی‌شود. پس شرطِ
+   * واقعی «پایداری» است نه «هم‌سانیِ بایتی»: سندی که یک‌بار ذخیره شده،
+   * دفعهٔ بعد دست نمی‌خورد. محتوا و تراز کاملاً حفظ می‌شوند.
+   */
+  const cases: Record<string, string> = {
+    ساده: "| الف | ب |\n| - | - |\n| ۱ | ۲ |\n",
+    با_تراز: "| چپ | وسط | راست |\n| :- | :-: | -: |\n| ۱ | ۲ | ۳ |\n",
+    // سلولِ خالی بی فاصلهٔ اضافی نوشته می‌شود — شکلِ متعارفِ remark.
+    سلولِ_خالی: "| الف | ب |\n| - | - |\n| ۱ | |\n",
+    فارسی: "| نام | مقدار |\n| - | - |\n| ماده ۵۰ | معتبر |\n",
+    با_تأکید: "| الف | ب |\n| - | - |\n| **پررنگ** | *کج* |\n",
+  };
+  for (const [name, md] of Object.entries(cases)) {
+    it(`${name} — پایدار است`, () => {
+      expect(serialize(parse(md))).toBe(md);
+    });
+  }
+
+  it("★ جدولِ با فاصله‌گذاریِ دیگر، بارِ دوم دیگر عوض نمی‌شود", () => {
+    const original = "| الف | ب |\n| --- | --- |\n| ۱ | ۲ |\n";
+    const once = serialize(parse(original));
+    const twice = serialize(parse(once));
+    expect(twice).toBe(once);
+  });
+
+  it("تراز در رفت‌وبرگشت حفظ می‌شود", () => {
+    const doc = parse("| چپ | وسط | راست |\n| :- | :-: | -: |\n| ۱ | ۲ | ۳ |\n");
+    const header = doc.child(0).child(0);
+    expect([0, 1, 2].map((i) => header.child(i).attrs.align)).toEqual([
+      "left",
+      "center",
+      "right",
+    ]);
+  });
+
+  it("سلولِ ردیفِ اول header است، بقیه cell", () => {
+    const doc = parse("| الف |\n| - |\n| ۱ |\n");
+    expect(doc.child(0).child(0).child(0).type.name).toBe("table_header");
+    expect(doc.child(0).child(1).child(0).type.name).toBe("table_cell");
+  });
+});

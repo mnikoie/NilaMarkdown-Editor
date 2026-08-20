@@ -207,6 +207,23 @@ function block(node: MdastNode, ctx: Ctx): PMNode[] {
       ];
     }
 
+    case "table": {
+      // mdast تراز را به‌ازای هر **ستون** می‌دهد؛ ProseMirror روی هر
+      // **سلول** می‌خواهد. اینجا پخش می‌شود.
+      const align = (node.align as (string | null)[] | undefined) ?? [];
+      const rows = (node.children ?? []).map((row, rowIndex) => {
+        const cells = ((row as MdastNode).children ?? []).map((cell, colIndex) => {
+          const type = rowIndex === 0 ? schema.nodes.table_header : schema.nodes.table_cell;
+          return type.create(
+            { align: align[colIndex] ?? null },
+            inlineChildren((cell as MdastNode).children, [], ctx),
+          );
+        });
+        return schema.nodes.table_row.create(null, cells);
+      });
+      return [schema.nodes.table.create(null, rows)];
+    }
+
     case "containerDirective":
       return [
         schema.nodes.directive_block.create(

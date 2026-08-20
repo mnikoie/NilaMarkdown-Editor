@@ -74,3 +74,25 @@ test("★ تایپ کار می‌کند و خروجی به‌روز می‌شو�
   await page.waitForTimeout(600); // debounce ۳۰۰ms
   await expect(page.locator("pre").last()).toContainText("آزمایش");
 });
+
+test("★ جدول رندر و ویرایش می‌شود", async ({ page }) => {
+  const table = page.locator(".tm-editor table");
+  await expect(table).toHaveCount(1);
+  await expect(table.locator("th")).toHaveCount(3);
+  await expect(table.locator("td")).toHaveCount(6);
+
+  // تراز از مارک‌داون خوانده شده
+  await expect(table.locator("th").nth(1)).toHaveCSS("text-align", "center");
+  await expect(table.locator("th").nth(2)).toHaveCSS("text-align", "right");
+
+  // تایپ داخلِ سلول
+  const cell = table.locator("td").first();
+  await cell.click();
+  await page.keyboard.type("X");
+  await expect(cell).toContainText("X");
+
+  // Tab به سلولِ بعدی می‌رود
+  await page.keyboard.press("Tab");
+  await page.keyboard.type("Y");
+  await expect(table.locator("td").nth(1)).toContainText("Y");
+});

@@ -11,6 +11,7 @@ import { undo, redo } from "prosemirror-history";
 import { undoInputRule } from "prosemirror-inputrules";
 import type { Plugin, Command } from "prosemirror-state";
 import { schema } from "../schema/index.js";
+import { goToNextCell, isInTable } from "../commands/table.js";
 
 /**
  * میان‌برها.
@@ -68,8 +69,17 @@ export function keymapPlugin(options: KeymapOptions = {}): Plugin {
     "Mod-Shift-7": wrapInList(schema.nodes.ordered_list),
 
     Enter: chainCommands(splitListItem(schema.nodes.list_item), baseKeymap.Enter!),
-    Tab: sinkListItem(schema.nodes.list_item),
-    "Shift-Tab": liftListItem(schema.nodes.list_item),
+
+    // Tab بسته به جا معنیِ متفاوت دارد: در جدول «سلولِ بعدی»، در فهرست
+    // «تورفتگی». ترتیب مهم است — جدول اول چک می‌شود چون خاص‌تر است.
+    Tab: chainCommands(
+      (state, dispatch) => (isInTable(state) ? goToNextCell(1)(state, dispatch) : false),
+      sinkListItem(schema.nodes.list_item),
+    ),
+    "Shift-Tab": chainCommands(
+      (state, dispatch) => (isInTable(state) ? goToNextCell(-1)(state, dispatch) : false),
+      liftListItem(schema.nodes.list_item),
+    ),
 
     "Mod-Shift-k": setBlockType(schema.nodes.code_block),
     "Shift-Mod-\\": exitCode,

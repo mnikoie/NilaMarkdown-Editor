@@ -1,4 +1,5 @@
 import type { NodeSpec } from "prosemirror-model";
+import { tableNodes } from "./tables.js";
 
 /**
  * گره‌های سند.
@@ -222,6 +223,7 @@ const math_inline: NodeSpec = {
 
 export const nodes = {
   doc,
+  ...tableNodes,
   front_matter,
   paragraph,
   heading,

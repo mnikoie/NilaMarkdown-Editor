@@ -55,8 +55,16 @@ function otherBullet(bullet: string): "-" | "*" {
   return bullet === "-" ? "*" : "-";
 }
 
+/**
+ * گزینه‌های جدول به `remark-gfm` می‌روند، نه `remark-stringify`.
+ *
+ * پیش‌فرضِ remark ردیفِ جداکننده را فشرده می‌کند (`| --- | - |`) که با
+ * چیزی که کاربر نوشته یکی نیست و کلِ جدول را در diff می‌آورد.
+ */
+const GFM_OPTIONS = { tablePipeAlign: false, tableCellPadding: true } as const;
+
 const processor = unified()
-  .use(remarkGfm)
+  .use(remarkGfm, GFM_OPTIONS)
   .use(remarkMath)
   .use(remarkFrontmatter, ["yaml"])
   .use(directiveWriter)
@@ -198,6 +206,26 @@ function blockOf(node: PMNode): MdastNode[] {
         break;
       }
 
+      case "table": {
+        // تراز از ردیفِ اول بازسازی می‌شود — mdast آن را به‌ازای ستون
+        // می‌خواهد، نه سلول.
+        const first = child.firstChild;
+        const align: (string | null)[] = [];
+        first?.forEach((cell) => align.push((cell.attrs.align as string) ?? null));
+
+        const rows: MdastNode[] = [];
+        child.forEach((row) => {
+          const cells: MdastNode[] = [];
+          row.forEach((cell) => {
+            cells.push({ type: "tableCell", children: inlineOf(cell) });
+          });
+          rows.push({ type: "tableRow", children: cells });
+        });
+
+        out.push({ type: "table", align, children: rows });
+        break;
+      }
+
       case "directive_block": {
         const children = blockOf(child);
         if (child.attrs.label) {
@@ -259,7 +287,7 @@ export function toMdastFromDoc(doc: PMNode): MdastNode {
  */
 function stringifyWith(tree: MdastNode, overrides: Record<string, unknown>): string {
   const p = unified()
-    .use(remarkGfm)
+    .use(remarkGfm, GFM_OPTIONS)
     .use(remarkMath)
     .use(remarkFrontmatter, ["yaml"])
     .use(directiveWriter)

@@ -429,6 +429,56 @@
     color: var(--tm-muted);
   }
 
+  /* ── جدول ── */
+  .tm-editor table {
+    border-collapse: collapse;
+    inline-size: 100%;
+    margin-block: 1rem;
+    table-layout: fixed;
+    overflow: hidden;
+  }
+
+  .tm-editor th,
+  .tm-editor td {
+    border: 1px solid var(--tm-border);
+    padding: 0.375rem 0.625rem;
+    vertical-align: top;
+    position: relative;
+    /* بی این، سلولِ خالی ارتفاع صفر می‌گیرد و کلیک‌ناپذیر می‌شود. */
+    min-inline-size: 3rem;
+  }
+
+  .tm-editor th {
+    background: var(--tm-code-bg);
+    font-weight: 600;
+    text-align: inherit;
+  }
+
+  /*
+   * انتخابِ سلول — `prosemirror-tables` این کلاس را می‌گذارد.
+   * `::after` به‌جای `background` تا رنگِ خودِ سلول پنهان نشود.
+   */
+  .tm-editor .selectedCell::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: color-mix(in oklab, var(--tm-accent) 18%, transparent);
+    pointer-events: none;
+  }
+
+  .tm-editor .column-resize-handle {
+    position: absolute;
+    inset-block: 0;
+    inset-inline-end: -2px;
+    inline-size: 4px;
+    background: var(--tm-accent);
+    cursor: col-resize;
+  }
+
+  .tm-editor.resize-cursor {
+    cursor: col-resize;
+  }
+
   /* ── درختِ ساختار (پنلِ کناری) ── */
   .tm-outline {
     font-size: 0.875rem;
