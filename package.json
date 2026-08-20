@@ -10,5 +10,9 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
-  "type": "commonjs"
+  "type": "commonjs",
+  "packageManager": "pnpm@11.22.0",
+  "devDependencies": {
+    "turbo": "^2.10.11"
+  }
 }

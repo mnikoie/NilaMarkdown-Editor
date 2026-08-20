@@ -6,7 +6,7 @@
   "stack": {
     "language": "node",
     "packageManager": "pnpm",
-    "monorepoTool": null,
+    "monorepoTool": "turborepo",
     "frontendFramework": null,
     "backendFramework": null,
     "aiServiceLanguage": null,
