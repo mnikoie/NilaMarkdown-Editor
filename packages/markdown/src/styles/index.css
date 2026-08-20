@@ -1,0 +1,259 @@
+/*
+ * استایلِ پکیج.
+ *
+ * دو تصمیمِ تأییدشده با کامپایلِ واقعیِ tailwind 4.3.3:
+ *
+ * ۱. فقط `theme` و `utilities` وارد می‌شوند — `preflight.css` عمداً نیست.
+ *    اگر ریست منتشر شود، استایلِ صفحهٔ میزبان خراب می‌شود.
+ *
+ * ۲. پیشوند در نسخهٔ ۴ با «:» است نه «-»: خروجی `.tm\:flex` می‌شود، پس
+ *    در کد `class="tm:flex"` می‌نویسیم. کلاسِ بی‌پیشوند اصلاً تولید
+ *    نمی‌شود، یعنی جداسازی از Tailwindِ مصرف‌کننده تضمین است.
+ */
+@layer theme, components, utilities;
+
+@import "tailwindcss/theme.css" layer(theme) prefix(tm);
+@import "tailwindcss/utilities.css" layer(utilities) prefix(tm);
+
+@layer components {
+  /* ── توکن‌ها ── بخشِ ۹ پرامپت: هیچ رنگی هارد-کد نمی‌شود. */
+  .tm-root {
+    --tm-font-body: Vazirmatn, system-ui, sans-serif;
+    --tm-font-mono: ui-monospace, "Cascadia Code", Consolas, monospace;
+    --tm-font-size: 16px;
+    --tm-line-height: 1.75;
+    --tm-measure: 68ch;
+
+    --tm-bg: #ffffff;
+    --tm-fg: #1f2328;
+    --tm-muted: #656d76;
+    --tm-accent: #0969da;
+    --tm-border: #d1d9e0;
+    --tm-code-bg: #f6f8fa;
+    --tm-selection: #b6dcff;
+    --tm-syntax-marker: #b8bfc7;
+
+    color: var(--tm-fg);
+    background: var(--tm-bg);
+    font-family: var(--tm-font-body);
+    font-size: var(--tm-font-size);
+    line-height: var(--tm-line-height);
+  }
+
+  .tm-root[data-theme="dark"] {
+    --tm-bg: #0d1117;
+    --tm-fg: #e6edf3;
+    --tm-muted: #8d96a0;
+    --tm-accent: #4493f8;
+    --tm-border: #3d444d;
+    --tm-code-bg: #161b22;
+    --tm-selection: #1f4b7a;
+    --tm-syntax-marker: #545d68;
+  }
+
+  /* مصرف‌کننده ممکن است `data-theme` نگذارد و فقط به تمِ سیستم تکیه کند. */
+  @media (prefers-color-scheme: dark) {
+    .tm-root:not([data-theme="light"]) {
+      --tm-bg: #0d1117;
+      --tm-fg: #e6edf3;
+      --tm-muted: #8d96a0;
+      --tm-accent: #4493f8;
+      --tm-border: #3d444d;
+      --tm-code-bg: #161b22;
+      --tm-selection: #1f4b7a;
+      --tm-syntax-marker: #545d68;
+    }
+  }
+
+  /* ── کارتِ مارکِ سفارشی ──
+   *
+   * ★ کاربر فقط یک رنگ می‌دهد (`--tm-mark-base`). بقیه با `color-mix`
+   * ساخته می‌شوند. چرا: اگر شش رنگ از کاربر بگیریم، در تمِ تاریک ترکیبِ
+   * ناخوانا می‌سازد. با یک رنگ، هر دو تم خودکار درست درمی‌آیند.
+   *
+   * `in oklab` و نه `in srgb`: در فضای srgb ترکیبِ رنگ‌های اشباع، خاکستریِ
+   * گل‌آلود می‌دهد.
+   */
+  .tm-mark {
+    --tm-mark-base: var(--tm-accent);
+    --tm-mark-bg: color-mix(in oklab, var(--tm-mark-base) 10%, var(--tm-bg));
+    --tm-mark-border: color-mix(in oklab, var(--tm-mark-base) 40%, var(--tm-bg));
+    --tm-mark-fg: color-mix(in oklab, var(--tm-mark-base) 75%, var(--tm-fg));
+
+    background: var(--tm-mark-bg);
+    border-radius: 0.5rem;
+    margin-block: 1rem;
+  }
+
+  .tm-mark-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    color: var(--tm-mark-fg);
+    font-weight: 600;
+    font-size: 0.875rem;
+  }
+
+  .tm-mark-body {
+    padding: 0 0.75rem 0.75rem;
+  }
+
+  .tm-mark-body > :first-child {
+    margin-block-start: 0;
+  }
+
+  /* شکل‌ها */
+  .tm-mark[data-variant="نوار"] {
+    border-inline-start: 3px solid var(--tm-mark-border);
+  }
+
+  .tm-mark[data-variant="کادر"] {
+    border: 1px solid var(--tm-mark-border);
+  }
+
+  .tm-mark[data-variant="ساده"] {
+    background: transparent;
+    padding-inline-start: 0;
+  }
+
+  .tm-mark-inline {
+    --tm-mark-base: var(--tm-accent);
+    color: color-mix(in oklab, var(--tm-mark-base) 80%, var(--tm-fg));
+    background: color-mix(in oklab, var(--tm-mark-base) 12%, var(--tm-bg));
+    border-radius: 0.25rem;
+    padding-inline: 0.25rem;
+  }
+
+  /* وضعیتِ منسوخ — باید دیده شود بی اینکه متن ناخوانا شود. */
+  .tm-mark[data-status="منسوخ"] .tm-mark-header::after {
+    content: "منسوخ";
+    font-size: 0.75rem;
+    padding-inline: 0.375rem;
+    border-radius: 999px;
+    background: color-mix(in oklab, #dc2626 18%, var(--tm-bg));
+    color: color-mix(in oklab, #dc2626 80%, var(--tm-fg));
+  }
+
+  /* شماره‌گذاریِ خودکار — `counter: true` در تعریفِ مارک. */
+  .tm-root {
+    counter-reset: tm-mark;
+  }
+
+  .tm-mark[data-counter="true"] {
+    counter-increment: tm-mark;
+  }
+
+  .tm-mark[data-counter="true"] .tm-mark-title::after {
+    content: " " counter(tm-mark);
+  }
+
+  /* ── تاشدن ── */
+  .tm-folded-hidden {
+    display: none;
+  }
+
+  .tm-fold-summary {
+    display: inline-block;
+    font-size: 0.8125rem;
+    color: var(--tm-muted);
+    background: var(--tm-code-bg);
+    border: 1px dashed var(--tm-border);
+    border-radius: 999px;
+    padding: 0.125rem 0.625rem;
+    margin-block: 0.25rem;
+    cursor: pointer;
+  }
+
+  .tm-fold-toggle {
+    background: none;
+    border: 0;
+    cursor: pointer;
+    color: var(--tm-muted);
+    padding: 0 0.25rem;
+    line-height: 1;
+  }
+
+  .tm-fold-toggle[aria-expanded="false"] .tm-fold-chevron {
+    /* در RTL جهتِ بسته برعکس است. */
+    transform: rotate(var(--tm-chevron-closed, -90deg));
+  }
+
+  .tm-root[dir="rtl"] {
+    --tm-chevron-closed: 90deg;
+  }
+
+  .tm-fold-chevron {
+    display: inline-block;
+    transition: transform 120ms;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .tm-fold-chevron {
+      transition: none;
+    }
+  }
+
+  /* ── درختِ ساختار (پنلِ کناری) ── */
+  .tm-outline {
+    font-size: 0.875rem;
+    line-height: 1.6;
+  }
+
+  .tm-outline-item {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    width: 100%;
+    text-align: start;
+    border-radius: 0.375rem;
+    padding: 0.125rem 0.375rem;
+    color: var(--tm-fg);
+    background: none;
+    border: 0;
+    cursor: pointer;
+  }
+
+  .tm-outline-item:hover {
+    background: var(--tm-code-bg);
+  }
+
+  .tm-outline-item[aria-current="true"] {
+    background: color-mix(in oklab, var(--tm-accent) 14%, var(--tm-bg));
+    color: var(--tm-accent);
+  }
+
+  .tm-outline-item:focus-visible {
+    outline: 2px solid var(--tm-accent);
+    outline-offset: 1px;
+  }
+
+  /* تورفتگیِ سلسله‌مراتب — با متغیر تا در RTL هم درست بیفتد. */
+  .tm-outline-children {
+    padding-inline-start: 0.875rem;
+    border-inline-start: 1px solid var(--tm-border);
+    margin-inline-start: 0.375rem;
+  }
+
+  .tm-outline-badge {
+    font-size: 0.6875rem;
+    color: var(--tm-muted);
+    flex-shrink: 0;
+  }
+
+  /* ── راست‌به‌چپ ──
+   * بلوکِ کد همیشه LTR است، حتی داخلِ سندِ فارسی — وگرنه `if (x) {` وارونه
+   * دیده می‌شود.
+   */
+  .tm-root pre,
+  .tm-root code {
+    direction: ltr;
+    text-align: start;
+    font-family: var(--tm-font-mono);
+  }
+
+  .tm-root[dir="rtl"] pre,
+  .tm-root[dir="rtl"] code {
+    text-align: left;
+  }
+}
