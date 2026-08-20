@@ -14,7 +14,7 @@
     "database": "postgres",
     "search": "meilisearch",
     "storage": "minio",
-    "auth": "authjs",
+    "auth": null,
     "apiStyle": "rest-openapi",
     "e2e": "playwright",
     "monitoring": null,
