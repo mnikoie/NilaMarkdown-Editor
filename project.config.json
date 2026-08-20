@@ -17,6 +17,7 @@
     "auth": null,
     "apiStyle": null,
     "e2e": null,
-    "monitoring": null
+    "monitoring": null,
+    "uiKit": "shadcn-ui"
   }
 }
