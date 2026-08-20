@@ -16,7 +16,7 @@
     "storage": "minio",
     "auth": "authjs",
     "apiStyle": "rest-openapi",
-    "e2e": null,
+    "e2e": "playwright",
     "monitoring": null,
     "uiKit": "shadcn-ui",
     "dataFetching": "tanstack-query",
