@@ -148,6 +148,45 @@
     content: " " counter(tm-mark);
   }
 
+  /* ── پیش‌نمایشِ زنده ──
+   *
+   * حالتِ ۳ از پنج حالتِ لبه‌ای: پیداشدنِ `**` عرض را عوض می‌کند و متن
+   * می‌پرد. راهِ حل: نشانه‌ها از جریانِ متن بیرون‌اند (`position: absolute`)
+   * پس ظاهرشدنشان چیدمان را جابه‌جا نمی‌کند.
+   *
+   * `user-select: none` چون نشانه متنِ واقعی نیست؛ اگر کاربر متن را
+   * انتخاب و کپی کند، `**` نباید در کلیپ‌بورد بیاید.
+   */
+  .tm-marker {
+    position: absolute;
+    color: var(--tm-syntax-marker);
+    font-family: var(--tm-font-mono);
+    user-select: none;
+    pointer-events: none;
+    white-space: pre;
+    /* عرضِ ثابت تا `#` و `##` جای یکسانی بگیرند. */
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* نشانهٔ عنوان در حاشیه می‌نشیند، نه داخلِ متن. */
+  .tm-root h1 .tm-marker,
+  .tm-root h2 .tm-marker,
+  .tm-root h3 .tm-marker,
+  .tm-root h4 .tm-marker,
+  .tm-root h5 .tm-marker,
+  .tm-root h6 .tm-marker {
+    transform: translateX(-100%);
+  }
+
+  .tm-root[dir="rtl"] h1 .tm-marker,
+  .tm-root[dir="rtl"] h2 .tm-marker,
+  .tm-root[dir="rtl"] h3 .tm-marker,
+  .tm-root[dir="rtl"] h4 .tm-marker,
+  .tm-root[dir="rtl"] h5 .tm-marker,
+  .tm-root[dir="rtl"] h6 .tm-marker {
+    transform: translateX(100%);
+  }
+
   /* ── تاشدن ── */
   .tm-folded-hidden {
     display: none;
@@ -192,6 +231,62 @@
     .tm-fold-chevron {
       transition: none;
     }
+  }
+
+  /* ── چیدمانِ ادیتور ── */
+  .tm-root {
+    display: flex;
+    gap: 1.5rem;
+    align-items: flex-start;
+  }
+
+  .tm-sidebar {
+    flex: 0 0 15rem;
+    position: sticky;
+    top: 0;
+    max-height: 100vh;
+    overflow-y: auto;
+  }
+
+  .tm-main {
+    flex: 1 1 auto;
+    min-width: 0; /* بی این، بلوکِ کدِ طولانی کلِ چیدمان را می‌کشد */
+  }
+
+  .tm-editor {
+    /* نشانه‌ها `position: absolute`اند و به این لنگر نیاز دارند. */
+    position: relative;
+    max-width: var(--tm-measure);
+    outline: none;
+    padding-block: 1rem;
+  }
+
+  .tm-editor:focus-visible {
+    /* حلقهٔ فوکوس باید دیده شود — `outline: none` بی جایگزین ممنوع. */
+    outline: 2px solid var(--tm-accent);
+    outline-offset: 4px;
+  }
+
+  .tm-editor p.is-empty:first-child::before {
+    content: attr(data-placeholder);
+    color: var(--tm-muted);
+    pointer-events: none;
+    height: 0;
+    float: inline-start;
+  }
+
+  .tm-source {
+    width: 100%;
+    min-height: 24rem;
+    font-family: var(--tm-font-mono);
+    font-size: 0.9375rem;
+    line-height: 1.7;
+    color: var(--tm-fg);
+    background: var(--tm-code-bg);
+    border: 1px solid var(--tm-border);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    resize: vertical;
   }
 
   /* ── درختِ ساختار (پنلِ کناری) ── */

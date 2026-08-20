@@ -9,6 +9,17 @@ export { slugify, makeUnique } from "./core/outline/slug.js";
 export type { OutlineNode, OutlineOptions } from "./core/outline/types.js";
 
 export {
+  livePreviewPlugin,
+  livePreviewKey,
+  activeBlocks,
+} from "./core/plugins/live-preview.js";
+export type { LivePreviewState, LivePreviewOptions } from "./core/plugins/live-preview.js";
+
+export { inputRulesPlugin } from "./core/plugins/input-rules.js";
+export { keymapPlugin, insertZWNJ, toggleHeading } from "./core/plugins/keymap.js";
+export type { KeymapOptions } from "./core/plugins/keymap.js";
+
+export {
   foldPlugin,
   foldKey,
   toggleFold,
@@ -31,3 +42,8 @@ export type {
 export { MarkCardView, markCardViews } from "./node-views/MarkCard.js";
 export { OutlineTree } from "./react/Outline/OutlineTree.js";
 export type { OutlineTreeProps } from "./react/Outline/OutlineTree.js";
+
+export { MarkdownEditor } from "./react/MarkdownEditor.js";
+export type { MarkdownEditorProps } from "./react/MarkdownEditor.js";
+export { useEditor } from "./react/useEditor.js";
+export type { UseEditorOptions, EditorHandle } from "./react/useEditor.js";
