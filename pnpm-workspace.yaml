@@ -3,6 +3,10 @@ packages:
   - "packages/*"
 
 allowBuilds:
+  # esbuild و @parcel/watcher بی اجرای اسکریپتِ بیلد هم کار می‌کنند
+  # (تأیید شد: esbuild --version جواب می‌دهد و tsup بیلد می‌گیرد).
+  '@parcel/watcher': false
+  esbuild: false
   msgpackr-extract: set this to true or false
   unrs-resolver: set this to true or false
 
