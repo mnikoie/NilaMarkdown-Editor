@@ -19,6 +19,7 @@
     "e2e": null,
     "monitoring": null,
     "uiKit": "shadcn-ui",
-    "dataFetching": "tanstack-query"
+    "dataFetching": "tanstack-query",
+    "stateManagement": "redux-toolkit"
   }
 }
