@@ -8,7 +8,7 @@
     "packageManager": "pnpm",
     "monorepoTool": "turborepo",
     "frontendFramework": "nextjs",
-    "backendFramework": null,
+    "backendFramework": "nestjs",
     "aiServiceLanguage": null,
     "backgroundJobs": null,
     "database": null,
