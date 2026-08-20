@@ -1,0 +1,14 @@
+{
+  "name": "27--taminlibrary",
+  "version": "1.0.0",
+  "description": "> یک‌خط بنویس این پروژه چه کاری انجام می‌دهد. (هنوز پر نشده.)",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "type": "commonjs"
+}
