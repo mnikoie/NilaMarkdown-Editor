@@ -21,6 +21,7 @@
     "uiKit": "shadcn-ui",
     "dataFetching": "tanstack-query",
     "stateManagement": "redux-toolkit",
-    "sharedPackages": "workspace-packages"
+    "sharedPackages": "workspace-packages",
+    "aiService": "fastapi"
   }
 }
