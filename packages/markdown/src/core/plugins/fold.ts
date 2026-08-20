@@ -49,13 +49,21 @@ export interface FoldOptions {
   onChange?: (folded: string[]) => void;
 }
 
-/** متنِ خلاصهٔ چیزی که پنهان شده: «۱۲ بند پنهان». */
-function summaryText(doc: PMNode, node: OutlineNode): string {
+/**
+ * متنِ خلاصهٔ چیزی که پنهان شده: «۱۲ بلوکِ پنهان».
+ *
+ * فقط بلوک‌های **سطحِ اول** شمرده می‌شوند — همان‌هایی که واقعاً پنهان
+ * شده‌اند. شمردنِ تودرتو عددِ بی‌معنی می‌دهد: یک کارت با سه پاراگراف
+ * داخلش، چهار بار شمرده می‌شود و کاربر «۳۴ بلوک» می‌بیند در حالی که
+ * ۱۰ تا پنهان شده.
+ */
+function summaryText(doc: PMNode, range: { from: number; to: number }): string {
   let blocks = 0;
-  doc.nodesBetween(node.from, node.to, (child, pos) => {
-    if (pos <= node.from) return true;
-    if (child.isBlock) blocks++;
-    return true;
+  doc.nodesBetween(range.from, range.to, (child, pos) => {
+    if (pos < range.from || pos + child.nodeSize > range.to) return true;
+    if (!child.isBlock) return false;
+    blocks++;
+    return false; // داخلِ این بلوک نرو
   });
   return blocks > 0 ? `${toFa(blocks)} بلوکِ پنهان` : "پنهان";
 }
@@ -133,7 +141,7 @@ function buildDecorations(
           const el = document.createElement("button");
           el.type = "button";
           el.className = "tm-fold-summary";
-          el.textContent = summaryText(doc, { ...node, to: end });
+          el.textContent = summaryText(doc, range);
           el.setAttribute("data-fold-id", node.id);
           el.setAttribute("aria-label", `بازکردنِ ${node.title}`);
           return el;

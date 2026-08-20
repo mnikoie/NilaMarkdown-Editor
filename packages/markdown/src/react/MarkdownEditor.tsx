@@ -82,7 +82,10 @@ export function MarkdownEditor({
     readOnly,
     directives,
     foldedIds,
-    onFoldChange,
+    onFoldChange: (ids) => {
+      setFolded(new Set(ids));
+      onFoldChange?.(ids);
+    },
     onToggleSource: toggleSource,
   });
 
@@ -101,13 +104,19 @@ export function MarkdownEditor({
     view.focus();
   }, []);
 
+  /**
+   * حالتِ تاشدگی داخلِ ProseMirror زندگی می‌کند، نه در React. پس React
+   * از تغییرش خبردار نمی‌شود و پنلِ کناری با `aria-expanded`ِ کهنه
+   * می‌ماند. این نسخهٔ آینه‌ایِ آن است تا رندرِ دوباره اتفاق بیفتد.
+   */
+  const [folded, setFolded] = useState<ReadonlySet<string>>(() => new Set(foldedIds ?? []));
+
   const onToggleFoldNode = useCallback((node: OutlineNode) => {
     const view = handleRef.current.view;
     if (!view) return;
     toggleFold(node.id)(view.state, view.dispatch);
+    setFolded(new Set(foldKey.getState(view.state)?.folded ?? []));
   }, []);
-
-  const foldedSet = handle.view ? foldKey.getState(handle.view.state)?.folded : undefined;
 
   return (
     <div
@@ -119,7 +128,7 @@ export function MarkdownEditor({
         <aside className="tm-sidebar" aria-label="پنلِ ساختار">
           <OutlineTree
             nodes={handle.outline}
-            folded={foldedSet}
+            folded={folded}
             onNavigate={onNavigate}
             onToggleFold={onToggleFoldNode}
           />

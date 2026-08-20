@@ -99,6 +99,30 @@ describe("تاشدن", () => {
     }
   });
 
+  it("★ شمارشِ خلاصه، بلوکِ تودرتو را چندبار نمی‌شمارد", () => {
+    // بخشِ «فصل» شاملِ یک پاراگراف و یک کارت است (کارت خودش دو پاراگرافِ
+    // تودرتو دارد). پنهان‌شده‌ها ۲ بلوکِ سطحِ اول‌اند — نه ۴ یا ۵ که با
+    // شمارشِ تودرتو در می‌آمد. خودِ سرفصل پنهان نمی‌شود.
+    const md =
+      "# فصل\n\nیک\n\n:::نکته\nدو\n\nسه\n:::\n\n# فصلِ بعد\n\nبیرون\n";
+    let state = makeState(md);
+    // مکان‌نما بیرونِ بخشِ اول تا خودکار باز نشود
+    state = state.apply(
+      state.tr.setSelection(TextSelection.create(state.doc, state.doc.content.size - 2)),
+    );
+    toggleFold("فصل")(state, (tr) => (state = state.apply(tr)));
+
+    const widget = foldKey
+      .getState(state)!
+      .decorations.find()
+      .find((d) => (d.spec as { key?: string }).key?.startsWith("fold-"));
+    expect(widget).toBeDefined();
+
+    const toDOM = (widget as unknown as { type: { toDOM: unknown } }).type.toDOM;
+    const el = typeof toDOM === "function" ? (toDOM as () => HTMLElement)() : (toDOM as HTMLElement);
+    expect(el.textContent).toBe("۲ بلوکِ پنهان");
+  });
+
   it("لنگرِ ناموجود خطا نمی‌دهد", () => {
     let state = makeState();
     toggleFold("یک-لنگرِ-کاملاً-ناموجود")(state, (tr) => (state = state.apply(tr)));
