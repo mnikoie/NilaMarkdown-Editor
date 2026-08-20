@@ -13,7 +13,7 @@
     "backgroundJobs": "bullmq",
     "database": "postgres",
     "search": "meilisearch",
-    "storage": null,
+    "storage": "minio",
     "auth": null,
     "apiStyle": null,
     "e2e": null,
