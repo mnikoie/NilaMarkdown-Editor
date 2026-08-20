@@ -7,7 +7,7 @@
     "language": "node",
     "packageManager": "pnpm",
     "monorepoTool": "turborepo",
-    "frontendFramework": null,
+    "frontendFramework": "nextjs",
     "backendFramework": null,
     "aiServiceLanguage": null,
     "backgroundJobs": null,

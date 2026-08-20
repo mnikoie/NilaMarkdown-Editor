@@ -2,6 +2,9 @@ packages:
   - "apps/*"
   - "packages/*"
 
+allowBuilds:
+  unrs-resolver: set this to true or false
+
 # pnpm ۱۱ به‌طورِ پیش‌فرض، اگر اسکریپتِ بیلدِ یک پکیج بی‌اجازه رد شود، کلِ
 # نصب را با خطا شکست می‌دهد ([ERR_PNPM_IGNORED_BUILDS]). مشکلش این است که
 # اسکافولدرهای رسمی (NestJS، Next) وابستگی‌های فرعی‌ای می‌آورند که از قبل
