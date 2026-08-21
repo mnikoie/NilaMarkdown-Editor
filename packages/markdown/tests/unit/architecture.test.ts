@@ -61,10 +61,17 @@ describe("معماری", () => {
   });
 
   it("هیچ رنگی در TS هارد-کد نشده", () => {
-    // بندِ ۹: همهٔ رنگ‌ها از متغیرِ CSS. استثنا: builtin.ts که رنگِ پایهٔ
-    // مارک‌های پیش‌فرض را تعریف می‌کند — همان‌ها هم به CSS variable می‌روند.
+    // بندِ ۹: همهٔ رنگ‌ها از متغیرِ CSS.
+    //
+    // دو استثنا:
+    //  - `builtin.ts` رنگِ **پایهٔ** مارک‌های پیش‌فرض را تعریف می‌کند و
+    //    همان‌ها هم به `--tm-mark-base` می‌روند.
+    //  - `export-html.ts` یک CSSِ **مستقل** برای فایلِ صادرشده دارد؛
+    //    آن فایل باید بی هیچ وابستگی و در ایمیل و چاپ هم کار کند، پس
+    //    مقدارِ اولیهٔ متغیرها باید داخلش باشد.
+    const EXCEPTIONS = ["builtin.ts", "export-html.ts"];
     for (const file of filesIn("src")) {
-      if (file.includes("builtin.ts")) continue;
+      if (EXCEPTIONS.some((e) => file.includes(e))) continue;
       // توضیحات مستثنا هستند: مثالِ رنگ در JSDoc، رنگِ هارد-کد نیست.
       const hex = stripComments(readFileSync(file, "utf8")).match(/#[0-9a-fA-F]{6}\b/g) ?? [];
       expect(hex, file).toEqual([]);

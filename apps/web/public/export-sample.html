@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>بخشنامهٔ نمونه</title>
+<style>
+:root {
+  --tm-bg: #ffffff;
+  --tm-fg: #1f2328;
+  --tm-muted: #656d76;
+  --tm-accent: #0969da;
+  --tm-border: #d1d9e0;
+  --tm-code-bg: #f6f8fa;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --tm-bg: #0d1117; --tm-fg: #e6edf3; --tm-muted: #8d96a0;
+    --tm-accent: #4493f8; --tm-border: #3d444d; --tm-code-bg: #161b22;
+  }
+}
+body {
+  max-width: 68ch; margin: 2rem auto; padding: 0 1rem;
+  font-family: Vazirmatn, system-ui, sans-serif;
+  line-height: 1.75; color: var(--tm-fg); background: var(--tm-bg);
+}
+pre, code { font-family: ui-monospace, Consolas, monospace; direction: ltr; }
+pre { background: var(--tm-code-bg); padding: .75rem; border-radius: .5rem; overflow-x: auto; }
+code { background: var(--tm-code-bg); padding: .1em .3em; border-radius: .25rem; }
+pre code { background: none; padding: 0; }
+table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+th, td { border: 1px solid var(--tm-border); padding: .375rem .625rem; }
+th { background: var(--tm-code-bg); }
+blockquote { border-inline-start: 3px solid var(--tm-border); margin-inline: 0; padding-inline-start: 1rem; color: var(--tm-muted); }
+a { color: var(--tm-accent); }
+img { max-width: 100%; height: auto; }
+.tm-mark {
+  --tm-mark-base: var(--tm-accent);
+  background: color-mix(in oklab, var(--tm-mark-base) 10%, var(--tm-bg));
+  border-inline-start: 3px solid color-mix(in oklab, var(--tm-mark-base) 40%, var(--tm-bg));
+  border-radius: .5rem; margin: 1rem 0;
+}
+.tm-mark-header {
+  padding: .5rem .75rem; font-weight: 600; font-size: .875rem;
+  color: color-mix(in oklab, var(--tm-mark-base) 75%, var(--tm-fg));
+}
+.tm-mark-body { padding: 0 .75rem .75rem; }
+.tm-mark-body > :first-child { margin-top: 0; }
+.tm-mark[data-status="منسوخ"] .tm-mark-header::after {
+  content: " (منسوخ)"; color: #dc2626; font-weight: 400;
+}
+.tm-fn-ref, .tm-fn-num { color: var(--tm-accent); font-size: .75em; unicode-bidi: isolate; }
+.tm-fn-def { display: flex; gap: .5rem; font-size: .875rem; color: var(--tm-muted); }
+.tm-fn-def > :first-child { margin-top: 0; }
+.tm-toc { background: var(--tm-code-bg); border-radius: .5rem; padding: 1rem 1.5rem; }
+.tm-toc ul { margin: 0; padding-inline-start: 1.25rem; }
+@media print {
+  body { max-width: none; }
+  .tm-mark { break-inside: avoid; background: none; }
+  a[href^="http"]::after { content: " (" attr(href) ")"; font-size: .8em; color: #666; }
+}
+</style>
+</head>
+<body>
+<nav class="tm-toc" aria-label="فهرستِ مطالب">
+<strong>فهرست</strong>
+<ul>
+<li><a href="#fasl-1">فصل اول: کلیات</a><ul>
+<li><a href="#ماده-38">ماده ۳۸</a><ul>
+<li><a href="#تبصره-1">تبصره ۱</a></li>
+</ul>
+</li>
+<li><a href="#ماده-39">ماده ۳۹</a></li>
+</ul>
+</li>
+</ul>
+</nav>
+<h1 id="fasl-1">فصل اول: کلیات</h1>
+<p>این بخشنامه <strong>مهم</strong> است و به <a href="https://example.com" rel="noopener noreferrer">سایت</a> لینک دارد.</p>
+<section class="tm-mark" data-mark="نکته" style="--tm-mark-base: #f59e0b">
+  <div class="tm-mark-header">نکتهٔ نویسنده</div>
+  <div class="tm-mark-body">
+    <p>یادداشتِ نویسنده — باید کارتِ نارنجی شود.</p>
+  </div>
+</section>
+<section class="tm-mark" data-mark="ماده" data-status="معتبر" style="--tm-mark-base: #2563eb">
+  <div class="tm-mark-header">ماده ۳۸</div>
+  <div class="tm-mark-body">
+    <p>کارفرما مکلف است حق بیمه را بپردازد.</p>
+    <section class="tm-mark" data-mark="تبصره" style="--tm-mark-base: #7c3aed">
+      <div class="tm-mark-header">تبصره ۱</div>
+      <div class="tm-mark-body">
+        <p>در صورتِ تأخیر جریمه دارد.</p>
+      </div>
+    </section>
+  </div>
+</section>
+<section class="tm-mark" data-mark="ماده" data-status="منسوخ" style="--tm-mark-base: #2563eb">
+  <div class="tm-mark-header">ماده ۳۹</div>
+  <div class="tm-mark-body">
+    <p>این ماده جایگزین شد.</p>
+  </div>
+</section>
+<table>
+  <tr>
+    <th style="text-align: left">ماده</th>
+    <th style="text-align: right">وضعیت</th>
+  </tr>
+  <tr>
+    <td style="text-align: left">۳۸</td>
+    <td style="text-align: right">معتبر</td>
+  </tr>
+  <tr>
+    <td style="text-align: left">۳۹</td>
+    <td style="text-align: right">منسوخ</td>
+  </tr>
+</table>
+<ul>
+  <li>یک</li>
+  <li><input type="checkbox" disabled checked> انجام‌شده</li>
+</ul>
+<blockquote>
+  <p>نقلِ قول</p>
+</blockquote>
+<pre><code class="language-ts">const x = 1;</code></pre>
+<p>این ادعا منبع دارد<sup class="tm-fn-ref" id="fnref-۱"><a href="#fn-۱">[۱]</a></sup>.</p>
+<div class="tm-fn-def" id="fn-۱">
+  <span class="tm-fn-num">[۱]</span>
+  <p>بخشنامهٔ ۶۲۲۸۵۳۶۰</p>
+  <a href="#fnref-۱" class="tm-fn-back">↩</a>
+</div>
+&lt;script&gt;window.__EXPORT_XSS__ = true;&lt;/script&gt;
+</body>
+</html>

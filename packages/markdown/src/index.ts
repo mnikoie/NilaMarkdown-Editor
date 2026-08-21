@@ -116,6 +116,9 @@ export {
   createNodeViews,
 } from "./node-views/index.js";
 export type { Features } from "./node-views/index.js";
+export { exportHtml, exportStats } from "./core/export-html.js";
+export type { ExportHtmlOptions } from "./core/export-html.js";
+
 export { computeStats, countWords } from "./core/stats.js";
 export type { Stats } from "./core/stats.js";
 
