@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Selection } from "prosemirror-state";
 import { useEditor } from "./useEditor.js";
 import { OutlineTree } from "./Outline/OutlineTree.js";
@@ -8,6 +8,9 @@ import { Toolbar } from "./Toolbar/Toolbar.js";
 import { SearchPanel } from "./SearchPanel/SearchPanel.js";
 import { SlashMenu } from "./SlashMenu/SlashMenu.js";
 import { computeStats } from "../core/stats.js";
+import { exportPdf, type ExportPdfOptions } from "../core/export-pdf.js";
+import { useFullscreen } from "./useFullscreen.js";
+import type { PasteImageOptions } from "../core/plugins/paste-image.js";
 import { foldKey, toggleFold } from "../core/plugins/fold.js";
 import { BUILTIN_MARKS } from "../core/directives/builtin.js";
 import type { MarkRegistry } from "../core/directives/types.js";
@@ -56,6 +59,30 @@ export interface MarkdownEditorProps {
   foldedIds?: string[];
   onFoldChange?: (ids: string[]) => void;
 
+  /**
+   * دکمهٔ تمام‌صفحه در نوارِ ابزار، و میان‌برِ `F11`.
+   *
+   * پیش‌فرض روشن است ولی **فقط وقتی `toolbar` هم روشن باشد** دکمه‌ای
+   * دیده می‌شود؛ میان‌بر همیشه کار می‌کند.
+   */
+  fullscreen?: boolean;
+
+  /**
+   * خروجیِ PDF — دکمه در نوارِ ابزار و میان‌برِ `Ctrl+P`.
+   *
+   * مقدارِ `false` خاموشش می‌کند (آن‌وقت `Ctrl+P` همان چاپِ عادیِ
+   * مرورگر می‌ماند).
+   */
+  pdf?: boolean | ExportPdfOptions;
+
+  /**
+   * خمیرکردن و رهاکردنِ تصویر.
+   *
+   * بی هیچ تنظیمی کار می‌کند — تصویر `data:` می‌شود. برای آپلود،
+   * `onUploadImage` بدهید.
+   */
+  images?: PasteImageOptions;
+
   className?: string;
 }
 
@@ -85,9 +112,15 @@ export function MarkdownEditor({
   features,
   foldedIds,
   onFoldChange,
+  fullscreen = true,
+  pdf = true,
+  images,
   className,
 }: MarkdownEditorProps) {
+  const rootRef = useRef<HTMLDivElement>(null);
   const [mode, setMode] = useState<"live" | "source">("live");
+  /** پیامِ کوتاه به کاربر — خطای آپلود یا شکستِ چاپ. */
+  const [notice, setNotice] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchReplace, setSearchReplace] = useState(false);
   const [sourceText, setSourceText] = useState("");
@@ -114,6 +147,13 @@ export function MarkdownEditor({
     features,
     focusMode,
     typewriterMode,
+    images: {
+      ...images,
+      onError: (message) => {
+        setNotice(message);
+        images?.onError?.(message);
+      },
+    },
     foldedIds,
     onFoldChange: (ids) => {
       setFolded(new Set(ids));
@@ -152,6 +192,52 @@ export function MarkdownEditor({
    */
   const [folded, setFolded] = useState<ReadonlySet<string>>(() => new Set(foldedIds ?? []));
 
+  const fs = useFullscreen(() => rootRef.current);
+
+  const runExportPdf = useCallback(() => {
+    const view = handleRef.current.view;
+    if (!view) return;
+    const opts = typeof pdf === "object" ? pdf : {};
+    void exportPdf(view.state.doc, {
+      directives,
+      dir: dir === "auto" ? "rtl" : dir,
+      ...opts,
+    }).then((r) => {
+      if (!r.ok) setNotice(r.reason ?? "خروجیِ PDF شکست خورد.");
+    });
+  }, [pdf, directives, dir]);
+
+  /**
+   * میان‌برها.
+   *
+   * ★ روی خودِ ریشه، نه `document`: ادیتوری که در گوشهٔ صفحه است نباید
+   * `F11`ِ کلِ برنامه را بدزدد.
+   */
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (fullscreen && e.key === "F11") {
+        e.preventDefault();
+        fs.toggle();
+        return;
+      }
+      if (pdf !== false && (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "p") {
+        e.preventDefault();
+        runExportPdf();
+      }
+    };
+    root.addEventListener("keydown", onKey);
+    return () => root.removeEventListener("keydown", onKey);
+  }, [fullscreen, pdf, fs, runExportPdf]);
+
+  /** پیام پس از چند ثانیه خودش می‌رود — کاربر نباید ببنددش. */
+  useEffect(() => {
+    if (!notice) return;
+    const t = setTimeout(() => setNotice(null), 6000);
+    return () => clearTimeout(t);
+  }, [notice]);
+
   const onToggleFoldNode = useCallback((node: OutlineNode) => {
     const view = handleRef.current.view;
     if (!view) return;
@@ -161,8 +247,10 @@ export function MarkdownEditor({
 
   return (
     <div
+      ref={rootRef}
       className={`tm-root ${className ?? ""}`}
       data-theme={theme === "auto" ? undefined : theme}
+      data-fullscreen={fs.active ? (fs.soft ? "soft" : "real") : undefined}
       dir={dir === "auto" ? undefined : dir}
     >
       {outline ? (
@@ -189,6 +277,9 @@ export function MarkdownEditor({
             view={handle.view}
             onToggleSource={toggleSource}
             sourceMode={mode === "source"}
+            onToggleFullscreen={fullscreen ? fs.toggle : undefined}
+            fullscreen={fs.active}
+            onExportPdf={pdf !== false ? runExportPdf : undefined}
           />
         ) : null}
 
@@ -217,6 +308,13 @@ export function MarkdownEditor({
         </div>
 
         {stats ? <StatsBar view={handle.view} /> : null}
+
+        {/* ★ `role="status"` تا صفحه‌خوان هم بشنود — بندِ ۱۲. */}
+        {notice ? (
+          <div className="tm-notice" role="status" aria-live="polite">
+            {notice}
+          </div>
+        ) : null}
       </div>
     </div>
   );

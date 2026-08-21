@@ -234,10 +234,17 @@
   }
 
   /* ── چیدمانِ ادیتور ── */
+  /* ★ کلِ چیدمان (پنل + متن) با هم وسط می‌نشیند، نه هر کدام جدا.
+   *
+   * قبلاً `.tm-main` تمامِ فضای باقی‌مانده را می‌گرفت و ستونِ متن داخلش
+   * وسط می‌شد — نتیجه: متن از پنلِ کناری دور می‌افتاد و یک شکافِ بزرگ
+   * وسطِ صفحه می‌ماند. `justify-content: center` روی خودِ ظرف، هر دو را
+   * کنارِ هم و در مرکز نگه می‌دارد. */
   .tm-root {
     display: flex;
     gap: 1.5rem;
     align-items: flex-start;
+    justify-content: center;
   }
 
   .tm-sidebar {
@@ -251,6 +258,12 @@
   .tm-main {
     flex: 1 1 auto;
     min-width: 0; /* بی این، بلوکِ کدِ طولانی کلِ چیدمان را می‌کشد */
+    /* بیش از عرضِ خواندنی کش نیاید — وگرنه ستون از پنل دور می‌افتد. */
+    max-width: var(--tm-measure);
+  }
+
+  .tm-root[data-fullscreen] .tm-main {
+    max-width: min(calc(var(--tm-measure) * 1.25), 100%);
   }
 
   .tm-editor {
@@ -259,6 +272,12 @@
     max-width: var(--tm-measure);
     outline: none;
     padding-block: 1rem;
+    /* ★ ستونِ متن **وسط** ظرفش می‌نشیند، نه چسبیده به یک لبه.
+     *
+     * `--tm-measure` عرضِ خواندنی را محدود می‌کند (که درست است)، ولی بی
+     * این خط، همهٔ فضای اضافه یک‌طرفه جمع می‌شد و صفحه نامتوازن
+     * دیده می‌شد — به‌خصوص در تمام‌صفحه که فضای اضافه زیاد است. */
+    margin-inline: auto;
   }
 
   .tm-editor:focus-visible {
@@ -289,10 +308,24 @@
     resize: vertical;
   }
 
-  /* ── بلوکِ کد ── */
+  /* ── بلوکِ کد ──
+   *
+   * ★ **grid با دو ردیف، و هم‌پوشانیِ ردیفِ دوم.**
+   *
+   * سربرگ ردیفِ ۱ است؛ لایهٔ رنگ و متنِ قابلِ ویرایش **هر دو** ردیفِ ۲.
+   * یعنی مرورگر خودش آن دو را دقیقاً روی هم می‌گذارد و ارتفاع را از
+   * بلندترینشان می‌گیرد.
+   *
+   * نسخهٔ اول لایه را `position: absolute; top: 0` گذاشته بود و لایه به
+   * اندازهٔ ارتفاعِ سربرگ (۳۶ پیکسل، اندازه‌گیری‌شده در مرورگر) بالاتر
+   * می‌افتاد: متنِ رنگی و متنِ واقعی روی هم نمی‌نشستند و بلوک دو برابر
+   * بلند دیده می‌شد. با grid هیچ عددی لازم نیست.
+   */
   .tm-code,
   .tm-mermaid {
     position: relative;
+    display: grid;
+    grid-template-rows: auto 1fr;
     border: 1px solid var(--tm-border);
     border-radius: 0.5rem;
     background: var(--tm-code-bg);
@@ -301,6 +334,7 @@
   }
 
   .tm-code-header {
+    grid-row: 1;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -345,13 +379,25 @@
    * است. متنِ رویی شفاف می‌شود تا فقط رنگِ زیرین دیده شود — ولی مکان‌نما
    * و انتخاب همچنان روی متنِ واقعی کار می‌کنند.
    */
+  /* هر دو در ردیفِ دوم — پس مرورگر خودش رویشان می‌گذارد. */
+  .tm-code-highlight,
+  .tm-code > pre {
+    grid-row: 2;
+    grid-column: 1;
+  }
+
   .tm-code-highlight {
-    position: absolute;
-    inset-block-start: 0;
-    inset-inline-start: 0;
-    inline-size: 100%;
     pointer-events: none;
     overflow: hidden;
+    /* ★ متنِ قابلِ ویرایش باید **روی** رنگ باشد تا مکان‌نما و انتخاب
+     * کار کنند؛ ترتیبِ DOM این را می‌دهد ولی صریح بهتر است. */
+    z-index: 0;
+  }
+
+  .tm-code > pre {
+    z-index: 1;
+    /* پس‌زمینه ندارد تا رنگِ زیرین دیده شود. */
+    background: transparent;
   }
 
   .tm-code-highlight pre {
@@ -644,6 +690,23 @@
   }
 
   /* ── نوارِ ابزار ── */
+  /* نوارِ ابزار و آمار هم‌عرضِ ستونِ متن می‌مانند — وگرنه نوار تا لبهٔ
+   * صفحه کش می‌آید و از متنی که کنترلش می‌کند جدا می‌افتد. */
+  .tm-toolbar,
+  .tm-stats,
+  .tm-notice,
+  .tm-search-panel {
+    max-width: var(--tm-measure);
+    margin-inline: auto;
+  }
+
+  .tm-root[data-fullscreen] .tm-toolbar,
+  .tm-root[data-fullscreen] .tm-stats,
+  .tm-root[data-fullscreen] .tm-notice,
+  .tm-root[data-fullscreen] .tm-search-panel {
+    max-width: min(calc(var(--tm-measure) * 1.25), 100%);
+  }
+
   .tm-toolbar {
     display: flex;
     flex-wrap: wrap;
@@ -657,9 +720,39 @@
     z-index: 2;
   }
 
+  /* ★ جداکنندهٔ دسته‌ها — «قالب‌بندیِ متن»، «بلوک»، «درج».
+   * بی این، پانزده گلیف یک ردیفِ یکنواخت‌اند و چشم چیزی پیدا نمی‌کند. */
+  .tm-toolbar-separator {
+    inline-size: 1px;
+    block-size: 1.25rem;
+    align-self: center;
+    margin-inline: 0.125rem;
+    background: var(--tm-border);
+  }
+
+  /* ★ دکمه‌های سندی به لبهٔ دیگرِ نوار می‌روند — با حاشیه، نه با عنصرِ
+   * کشسان. توضیحِ کامل در `Toolbar.tsx` کنارِ همین کلاس. */
+  .tm-toolbar-button-first-doc {
+    margin-inline-start: auto;
+  }
+
+  /* ★ دکمهٔ سندی کم‌رنگ‌تر است: کارِ **قالب‌بندی** نمی‌کند، پس نباید
+   * هم‌وزنِ «پررنگ» و «کج» دیده شود. */
+  .tm-toolbar-button-doc {
+    color: var(--tm-muted);
+  }
+
+  .tm-toolbar-button-doc:hover:not(:disabled) {
+    color: var(--tm-fg);
+  }
+
   .tm-toolbar-button {
-    min-inline-size: 2rem;
-    block-size: 2rem;
+    /* ★ ۱٫۷۵rem و نه ۲rem: با هفده دکمه و سه جداکننده، نوار در ستونِ
+     * ۶۸ کاراکتری **دو پیکسل** کم می‌آورد و آخرین دکمه به سطرِ دوم
+     * می‌افتاد — اندازه‌گیری‌شده. ۲۸ پیکسل هنوز از حداقلِ هدفِ لمسیِ
+     * توصیه‌شده برای ابزارِ متراکمِ دسکتاپ بالاتر است. */
+    min-inline-size: 1.75rem;
+    block-size: 1.75rem;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -796,6 +889,73 @@
     font-size: 0.6875rem;
     color: var(--tm-muted);
     flex-shrink: 0;
+  }
+
+
+  /* ── تمام‌صفحه ──
+   *
+   * دو حالت با یک استایل: در حالتِ واقعی مرورگر خودش عنصر را بزرگ
+   * می‌کند و ما فقط پس‌زمینه و فاصله می‌دهیم؛ در حالتِ نرم خودمان
+   * `position: fixed` می‌کنیم.
+   *
+   * ★ `background` در **هر دو** لازم است: بی آن، عنصرِ تمام‌صفحه
+   * پس‌زمینهٔ سیاهِ پیش‌فرضِ مرورگر می‌گیرد و متن ناخوانا می‌شود.
+   */
+  .tm-root[data-fullscreen] {
+    background: var(--tm-bg);
+    padding: 1rem 1.5rem;
+    overflow-y: auto;
+  }
+
+  .tm-root[data-fullscreen="soft"] {
+    position: fixed;
+    inset: 0;
+    /* بالاتر از محتوای صفحه، پایین‌تر از دیالوگِ مصرف‌کننده. */
+    z-index: 50;
+  }
+
+  .tm-root[data-fullscreen] .tm-sidebar {
+    max-height: none;
+    /* در تمام‌صفحه، ارتفاعِ ستون به ظرف بسته است نه به viewport. */
+    align-self: stretch;
+  }
+
+  /* ★ در تمام‌صفحه، ستونِ متن پهن‌تر می‌شود ولی بی‌نهایت نه — خطِ
+   * ۲۰۰ کاراکتری خواندنی نیست. */
+  .tm-root[data-fullscreen] .tm-editor {
+    /* ★ در تمام‌صفحه پهن‌تر، ولی نه بی‌نهایت: خطِ ۲۰۰ کاراکتری خواندنی
+     * نیست و چشم سرِ خط را گم می‌کند. */
+    max-width: min(calc(var(--tm-measure) * 1.25), 100%);
+  }
+
+  /* ── پیامِ کوتاه ──
+   * خطای آپلود یا شکستِ چاپ. خودش بعد از چند ثانیه می‌رود.
+   */
+  .tm-notice {
+    margin-top: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.5rem;
+    font-size: 0.8125rem;
+    background: color-mix(in oklab, var(--tm-accent) 12%, var(--tm-bg));
+    border: 1px solid color-mix(in oklab, var(--tm-accent) 35%, var(--tm-bg));
+    color: color-mix(in oklab, var(--tm-accent) 80%, var(--tm-fg));
+  }
+
+  /* ── تصویرِ داخلِ سند ──
+   * بی سقف، یک اسکرین‌شاتِ خمیرشده کلِ چیدمان را می‌کشد.
+   */
+  .tm-editor img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 0.375rem;
+    vertical-align: middle;
+  }
+
+  /* تصویرِ در حالِ آپلود — نشانی `blob:` هنوز جای نشانیِ نهایی است. */
+  .tm-editor img[src^="blob:"] {
+    opacity: 0.6;
+    outline: 2px dashed color-mix(in oklab, var(--tm-accent) 50%, var(--tm-bg));
+    outline-offset: 2px;
   }
 
   /* ── راست‌به‌چپ ──

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 import type { EditorView } from "prosemirror-view";
 import { toggleMark, setBlockType } from "prosemirror-commands";
@@ -22,6 +22,11 @@ export interface ToolbarProps {
   /** دکمهٔ حالتِ سورس. */
   onToggleSource?: () => void;
   sourceMode?: boolean;
+  /** دکمهٔ تمام‌صفحه. */
+  onToggleFullscreen?: () => void;
+  fullscreen?: boolean;
+  /** دکمهٔ خروجیِ PDF. */
+  onExportPdf?: () => void;
   className?: string;
 }
 
@@ -32,6 +37,16 @@ interface Item {
   run: (view: EditorView) => void;
   isActive?: (view: EditorView) => boolean;
   shortcut?: string;
+  /** پیش از این دکمه یک جداکنندهٔ دیداری بیاید. */
+  startsGroup?: boolean;
+  /**
+   * دکمهٔ **سند** است نه قالب‌بندی (چاپ، تمام‌صفحه، سورس).
+   *
+   * ★ این‌ها به لبهٔ دیگرِ نوار می‌روند. با پانزده گلیفِ پشتِ‌هم و بی
+   * دسته‌بندی، چشم چیزی پیدا نمی‌کند — و «پررنگ» و «خروجیِ PDF» دو
+   * چیزِ کاملاً متفاوت‌اند که نباید کنارِ هم و هم‌شکل باشند.
+   */
+  document?: boolean;
 }
 
 function markActive(view: EditorView, type: (typeof schema.marks)[string]): boolean {
@@ -83,6 +98,7 @@ const ITEMS: Item[] = [
   },
   {
     id: "h1",
+    startsGroup: true,
     label: "عنوانِ ۱",
     icon: "H₁",
     shortcut: "Ctrl+1",
@@ -107,6 +123,7 @@ const ITEMS: Item[] = [
   },
   {
     id: "ul",
+    startsGroup: true,
     label: "فهرستِ نقطه‌ای",
     icon: "•",
     shortcut: "Ctrl+Shift+8",
@@ -147,6 +164,7 @@ const ITEMS: Item[] = [
   },
   {
     id: "table",
+    startsGroup: true,
     label: "جدول",
     icon: "▦",
     run: (v) => insertTable(3, 3)(v.state, v.dispatch),
@@ -166,7 +184,15 @@ const ITEMS: Item[] = [
   },
 ];
 
-export function Toolbar({ view, onToggleSource, sourceMode, className }: ToolbarProps) {
+export function Toolbar({
+  view,
+  onToggleSource,
+  sourceMode,
+  onToggleFullscreen,
+  fullscreen,
+  onExportPdf,
+  className,
+}: ToolbarProps) {
   const [focusIndex, setFocusIndex] = useState(0);
   const ref = useRef<HTMLDivElement>(null);
   /** برای رندرِ دوباره وقتی انتخاب عوض می‌شود — تا حالتِ فعال درست بماند. */
@@ -188,19 +214,44 @@ export function Toolbar({ view, onToggleSource, sourceMode, className }: Toolbar
     };
   }, [view]);
 
-  const items = onToggleSource
-    ? [
-        ...ITEMS,
-        {
-          id: "source",
-          label: sourceMode ? "حالتِ ویرایش" : "حالتِ سورس",
-          icon: "⌨",
-          shortcut: "Ctrl+/",
-          run: () => onToggleSource(),
-          isActive: () => !!sourceMode,
-        } as Item,
-      ]
-    : ITEMS;
+  // ★ دکمه‌های اختیاری در انتها می‌آیند، و **فقط وقتی که callback
+  // داده شده باشد**. دکمهٔ همیشه‌غیرفعال بدتر از دکمهٔ نبوده است.
+  const items: Item[] = [...ITEMS];
+
+  if (onToggleSource) {
+    items.push({
+      id: "source",
+      document: true,
+      label: sourceMode ? "حالتِ ویرایش" : "حالتِ سورس",
+      icon: "⌨",
+      shortcut: "Ctrl+/",
+      run: () => onToggleSource(),
+      isActive: () => !!sourceMode,
+    });
+  }
+
+  if (onExportPdf) {
+    items.push({
+      id: "pdf",
+      document: true,
+      label: "خروجیِ PDF",
+      icon: "⎙",
+      shortcut: "Ctrl+P",
+      run: () => onExportPdf(),
+    });
+  }
+
+  if (onToggleFullscreen) {
+    items.push({
+      id: "fullscreen",
+      document: true,
+      label: fullscreen ? "خروج از تمام‌صفحه" : "تمام‌صفحه",
+      icon: fullscreen ? "⤡" : "⤢",
+      shortcut: "F11",
+      run: () => onToggleFullscreen(),
+      isActive: () => !!fullscreen,
+    });
+  }
 
   const move = useCallback(
     (delta: number) => {
@@ -253,11 +304,30 @@ export function Toolbar({ view, onToggleSource, sourceMode, className }: Toolbar
     >
       {items.map((item, index) => {
         const active = view && item.isActive ? item.isActive(view) : false;
+        // اولین دکمهٔ سندی، بقیه را به لبهٔ دیگر هل می‌دهد.
+        const firstDocument = item.document && !items[index - 1]?.document;
         return (
+          <Fragment key={item.id}>
+            {item.startsGroup ? (
+              <span className="tm-toolbar-separator" role="separator" aria-orientation="vertical" />
+            ) : null}
           <button
             key={item.id}
             type="button"
-            className="tm-toolbar-button"
+            className={[
+              "tm-toolbar-button",
+              item.document ? "tm-toolbar-button-doc" : "",
+              // ★ فاصله‌گیر یک **حاشیه** است، نه عنصرِ جدا.
+              //
+              // نسخهٔ اول یک `<span>`ِ کشسان بود؛ در `flex-wrap` فضای
+              // باقی‌مانده را **قبل از** محاسبهٔ شکستن می‌گرفت و آخرین
+              // دکمه تنها به سطرِ دوم می‌افتاد — حتی وقتی جا بود.
+              // `margin: auto` بعد از چیدمان اعمال می‌شود و این مشکل را
+              // ندارد.
+              firstDocument ? "tm-toolbar-button-first-doc" : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
             // فقط یکی از دکمه‌ها در ترتیبِ Tab است — بقیه با کلیدِ جهت.
             tabIndex={index === focusIndex ? 0 : -1}
             aria-pressed={item.isActive ? active : undefined}
@@ -278,6 +348,7 @@ export function Toolbar({ view, onToggleSource, sourceMode, className }: Toolbar
           >
             <span aria-hidden="true">{item.icon}</span>
           </button>
+          </Fragment>
         );
       })}
     </div>

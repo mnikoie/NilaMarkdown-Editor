@@ -144,7 +144,10 @@ export default function MarkdownDemoPage() {
         <h1 className="text-xl font-bold">@tamin/markdown</h1>
         <p className="text-sm text-neutral-500">
           مکان‌نما را داخلِ هر بلوک ببرید تا نشانه‌ها پیدا شوند. مثلث‌های پنلِ
-          کناری و کارت‌ها تا می‌شوند.
+          کناری و کارت‌ها تا می‌شوند. یک تصویر را خمیر یا داخلِ متن رها کنید.
+          <br />
+          <kbd>F11</kbd> تمام‌صفحه · <kbd>Ctrl+P</kbd> خروجیِ PDF ·{" "}
+          <kbd>Ctrl+F</kbd> جست‌وجو · <kbd>Ctrl+/</kbd> سورس
         </p>
         <button
           type="button"

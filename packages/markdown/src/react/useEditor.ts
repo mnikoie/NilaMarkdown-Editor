@@ -17,6 +17,7 @@ import { tableEditingPlugin } from "../core/commands/table.js";
 import { searchPlugin } from "../core/plugins/search.js";
 import { slashMenuPlugin } from "../core/plugins/slash-menu.js";
 import { writingModesPlugin } from "../core/plugins/writing-modes.js";
+import { pasteImagePlugin, type PasteImageOptions } from "../core/plugins/paste-image.js";
 import { createNodeViews } from "../node-views/index.js";
 import type { Features } from "../node-views/index.js";
 import { buildOutline } from "../core/outline/build.js";
@@ -43,6 +44,8 @@ export interface UseEditorOptions {
   focusMode?: boolean;
   /** حالتِ ماشین‌تحریر (خطِ فعال وسطِ صفحه). */
   typewriterMode?: boolean;
+  /** خمیرکردن و رهاکردنِ تصویر. */
+  images?: PasteImageOptions;
 }
 
 export interface EditorHandle {
@@ -85,6 +88,7 @@ export function useEditor(options: UseEditorOptions): {
     features,
     focusMode,
     typewriterMode,
+    images,
   } = options;
 
   const viewRef = useRef<EditorView | null>(null);
@@ -106,6 +110,10 @@ export function useEditor(options: UseEditorOptions): {
   onSearchRef.current = onSearch;
   const onReplaceRef = useRef(onReplace);
   onReplaceRef.current = onReplace;
+  // ★ در وابستگی‌های ادیتور نیست: یک آبجکتِ نو در هر رندر، ادیتور را
+  // بازمی‌ساخت و مکان‌نما را می‌پراند.
+  const imagesRef = useRef(images);
+  imagesRef.current = images;
 
   const ref = (node: HTMLElement | null) => {
     mountRef.current = node;
@@ -144,6 +152,10 @@ export function useEditor(options: UseEditorOptions): {
         }),
         searchPlugin(),
         writingModesPlugin({ focus: focusMode, typewriter: typewriterMode }),
+        // ★ باید **قبل از** `dropCursor` بیاید: هر دو `handleDrop` دارند
+        // و اولی که `true` برگرداند رویداد را مصرف می‌کند. با ترتیبِ
+        // برعکس، رهاکردنِ عکس فقط مکان‌نما را جابه‌جا می‌کرد.
+        pasteImagePlugin(imagesRef.current ?? {}),
         tableEditingPlugin(),
         dropCursor(),
         gapCursor(),

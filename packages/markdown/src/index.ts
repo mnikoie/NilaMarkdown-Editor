@@ -127,6 +127,15 @@ export type { HighlightResult } from "./core/highlight/client.js";
 export { exportHtml, exportStats } from "./core/export-html.js";
 export type { ExportHtmlOptions } from "./core/export-html.js";
 
+export { exportPdf, buildPrintHtml } from "./core/export-pdf.js";
+export type { ExportPdfOptions, PrintResult } from "./core/export-pdf.js";
+
+export { pasteImagePlugin, pasteImageKey } from "./core/plugins/paste-image.js";
+export type { PasteImageOptions, PasteImageState } from "./core/plugins/paste-image.js";
+
+export { useFullscreen } from "./react/useFullscreen.js";
+export type { FullscreenHandle } from "./react/useFullscreen.js";
+
 export { computeStats, countWords } from "./core/stats.js";
 export type { Stats } from "./core/stats.js";
 

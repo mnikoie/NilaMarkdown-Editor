@@ -97,7 +97,7 @@ test("★ تاشدن از پنلِ ساختار", async ({ page }) => {
 });
 
 test("★ تایپ کار می‌کند و خروجی به‌روز می‌شود", async ({ page }) => {
-  await page.getByRole("button", { name: /خروجی/ }).click();
+  await page.getByRole("button", { name: "نمایشِ خروجیِ مارک‌داون" }).click();
   const p = page.locator(".tm-editor p", { hasText: "جریمه" }).first();
   await p.click();
   await page.keyboard.type("آزمایش");
