@@ -1,6 +1,15 @@
 import type { Node as PMNode } from "prosemirror-model";
 import type { EditorView, NodeView, ViewMutationRecord } from "prosemirror-view";
 import type { MarkDefinition, MarkRegistry } from "../core/directives/types.js";
+import type { FoldInitialState, FoldMode } from "../core/plugins/fold.js";
+
+export interface MarkCardOptions {
+  initial?: FoldInitialState;
+  mode?: FoldMode | (() => FoldMode);
+  locale?: "fa" | "en";
+}
+
+const cardViews = new WeakMap<EditorView, Set<MarkCardView>>();
 
 /**
  * رندرِ یک directive به‌صورتِ کارت.
@@ -20,17 +29,24 @@ export class MarkCardView implements NodeView {
   private body: HTMLElement;
   private toggle: HTMLButtonElement | null = null;
   private open: boolean;
+  private readonly onSetFold = (event: Event) => {
+    const open = (event as CustomEvent<{ open?: boolean }>).detail?.open;
+    if (typeof open !== "boolean") return;
+    this.open = open;
+    this.applyOpen();
+  };
 
   constructor(
     private node: PMNode,
     private view: EditorView,
     private getPos: () => number | undefined,
     private registry: MarkRegistry,
+    private options: MarkCardOptions = {},
   ) {
     const name = node.attrs.name as string;
     const def = registry[name];
 
-    this.open = def?.defaultOpen ?? true;
+    this.open = options.initial === "collapsed" ? false : (def?.defaultOpen ?? true);
 
     this.dom = document.createElement("div");
     this.dom.className = "tm-mark";
@@ -44,6 +60,10 @@ export class MarkCardView implements NodeView {
     this.contentDOM = this.body;
 
     this.dom.append(this.header, this.body);
+    this.dom.addEventListener("tm-set-fold", this.onSetFold);
+    const views = cardViews.get(view) ?? new Set<MarkCardView>();
+    views.add(this);
+    cardViews.set(view, views);
     this.render(def);
   }
 
@@ -74,7 +94,7 @@ export class MarkCardView implements NodeView {
       this.toggle.type = "button";
       this.toggle.className = "tm-fold-toggle";
       this.toggle.setAttribute("aria-expanded", String(this.open));
-      this.toggle.setAttribute("aria-label", `${this.open ? "بستنِ" : "بازکردنِ"} ${def?.label ?? name}`);
+      this.toggle.setAttribute("aria-label", this.toggleLabel(def?.label ?? name));
       const chevron = document.createElement("span");
       chevron.className = "tm-fold-chevron";
       chevron.setAttribute("aria-hidden", "true");
@@ -134,8 +154,29 @@ export class MarkCardView implements NodeView {
   }
 
   private setOpen(open: boolean) {
+    if (open && this.foldMode() === "accordion") {
+      const parent = this.parentNode();
+      for (const card of cardViews.get(this.view) ?? []) {
+        if (card !== this && card.parentNode() === parent) card.setOpen(false);
+      }
+    }
     this.open = open;
     this.applyOpen();
+  }
+
+  private foldMode(): FoldMode {
+    return typeof this.options.mode === "function" ? this.options.mode() : (this.options.mode ?? "accordion");
+  }
+
+  private parentNode(): PMNode | null {
+    const pos = this.getPos();
+    if (typeof pos !== "number") return null;
+    return this.view.state.doc.resolve(Math.min(pos, this.view.state.doc.content.size)).parent;
+  }
+
+  private toggleLabel(title: string): string {
+    if (this.options.locale === "en") return `${this.open ? "Collapse" : "Expand"} ${title}`;
+    return `${this.open ? "بستنِ" : "بازکردنِ"} ${title}`;
   }
 
   private applyOpen() {
@@ -143,7 +184,7 @@ export class MarkCardView implements NodeView {
     this.toggle?.setAttribute("aria-expanded", String(this.open));
     this.toggle?.setAttribute(
       "aria-label",
-      `${this.open ? "بستنِ" : "بازکردنِ"} ${this.node.attrs.name as string}`,
+      this.toggleLabel(this.node.attrs.name as string),
     );
     this.dom.setAttribute("data-folded", String(!this.open));
   }
@@ -171,12 +212,17 @@ export class MarkCardView implements NodeView {
       (mutation.type === "attributes" && (mutation.target === this.body || mutation.target === this.dom))
     );
   }
+
+  destroy(): void {
+    this.dom.removeEventListener("tm-set-fold", this.onSetFold);
+    cardViews.get(this.view)?.delete(this);
+  }
 }
 
 /** سازندهٔ NodeView برای پیکربندیِ `EditorView`. */
-export function markCardViews(registry: MarkRegistry) {
+export function markCardViews(registry: MarkRegistry, options: MarkCardOptions = {}) {
   return {
     directive_block: (node: PMNode, view: EditorView, getPos: () => number | undefined) =>
-      new MarkCardView(node, view, getPos, registry),
+      new MarkCardView(node, view, getPos, registry, options),
   };
 }

@@ -10,6 +10,8 @@ import { test, expect } from "@playwright/test";
 test.beforeEach(async ({ page }) => {
   await page.goto("/markdown");
   await page.waitForSelector(".tm-editor", { timeout: 25000 });
+  await page.getByRole("button", { name: "نمایش", exact: true }).click();
+  await page.getByRole("menuitem", { name: "بازکردن همهٔ بخش‌ها" }).click();
 });
 
 test("★ تمام‌صفحه با دکمهٔ نوارِ ابزار", async ({ page }) => {
@@ -240,14 +242,14 @@ test("★ منوی Format قالب‌های Typora و درج تصویر را ا�
     selection.addRange(range);
   });
 
-  await page.getByRole("button", { name: "Format" }).click();
-  const format = page.getByRole("menu", { name: "Format" });
+  await page.getByRole("button", { name: "قالب" }).click();
+  const format = page.getByRole("menu", { name: "قالب" });
   await expect(format.getByRole("menuitemcheckbox", { name: /زیرخط/ })).toBeVisible();
   await expect(format.getByRole("menuitemcheckbox", { name: /توضیح پنهان/ })).toBeVisible();
   await format.getByRole("menuitemcheckbox", { name: /زیرخط/ }).click();
   await expect(paragraph.locator("u")).toHaveCount(1);
 
-  await page.getByRole("button", { name: "Format" }).click();
+  await page.getByRole("button", { name: "قالب" }).click();
   await page.getByRole("menuitem", { name: "تصویر" }).click();
   await page.getByRole("menuitem", { name: /درج تصویر از نشانی/ }).click();
   const form = page.getByRole("form", { name: "درجِ تصویر" });
@@ -259,24 +261,24 @@ test("★ منوی Format قالب‌های Typora و درج تصویر را ا�
 
 test("★ منوی View حالت‌های نمایشیِ قابل‌انتقال را کنترل می‌کند", async ({ page }) => {
   await expect(page.getByRole("complementary", { name: "پنلِ ساختار" })).toBeVisible();
-  await page.getByRole("button", { name: "View" }).click();
-  const viewMenu = page.getByRole("menu", { name: "View" });
+  await page.getByRole("button", { name: "نمایش", exact: true }).click();
+  const viewMenu = page.getByRole("menu", { name: "نمایش" });
   await expect(viewMenu.getByRole("menuitemcheckbox", { name: /حالت تمرکز/ })).toBeVisible();
   await viewMenu.getByRole("menuitemcheckbox", { name: /نمایش نوار کناری/ }).click();
   await expect(page.getByRole("complementary", { name: "پنلِ ساختار" })).toHaveCount(0);
 
-  await page.getByRole("button", { name: "View" }).click();
+  await page.getByRole("button", { name: "نمایش", exact: true }).click();
   await page.getByRole("menuitem", { name: /بزرگ‌نمایی/ }).click();
   await expect(page.locator(".tm-editor-wrap")).toHaveCSS("zoom", "1.1");
 
-  await page.getByRole("button", { name: "View" }).click();
+  await page.getByRole("button", { name: "نمایش", exact: true }).click();
   await page.getByRole("menuitemcheckbox", { name: /پنجرهٔ شمارش کلمات/ }).click();
   await expect(page.getByRole("complementary", { name: "شمارش کلمات" })).toContainText("کلمه");
 });
 
 test("★ منوی File سند را ذخیره، خالی و از فایل باز می‌کند", async ({ page }) => {
-  await page.getByRole("button", { name: "File" }).click();
-  const fileMenu = page.getByRole("menu", { name: "File" });
+  await page.getByRole("button", { name: "فایل" }).click();
+  const fileMenu = page.getByRole("menu", { name: "فایل" });
   await expect(fileMenu.getByRole("menuitem", { name: "سند جدید" })).toBeVisible();
   await expect(fileMenu.getByRole("menuitem", { name: "بازکردن…" })).toBeVisible();
   await expect(fileMenu.getByRole("menuitem", { name: "خروجی" })).toBeVisible();
@@ -286,12 +288,12 @@ test("★ منوی File سند را ذخیره، خالی و از فایل با�
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toBe("document.md");
 
-  await page.getByRole("button", { name: "File" }).click();
+  await page.getByRole("button", { name: "فایل" }).click();
   await page.getByRole("menuitem", { name: "سند جدید" }).click();
   await expect(page.locator(".tm-editor")).toHaveText("");
 
   const chooserPromise = page.waitForEvent("filechooser");
-  await page.getByRole("button", { name: "File" }).click();
+  await page.getByRole("button", { name: "فایل" }).click();
   await page.getByRole("menuitem", { name: "بازکردن…" }).click();
   const chooser = await chooserPromise;
   await chooser.setFiles({
@@ -308,17 +310,17 @@ test("★ منوی Edit تکثیر، undo و پنلِ جایگزینی را اج
   await target.click();
   const initialCount = await page.locator(".tm-editor p", { hasText: "این بخشنامه در اجرای" }).count();
 
-  await page.getByRole("button", { name: "Edit" }).click();
-  const editMenu = page.getByRole("menu", { name: "Edit" });
+  await page.getByRole("button", { name: "ویرایش" }).click();
+  const editMenu = page.getByRole("menu", { name: "ویرایش" });
   await expect(editMenu.getByRole("menuitem", { name: "کپی به‌عنوان" })).toBeVisible();
   await editMenu.getByRole("menuitem", { name: "تکثیر" }).click();
   await expect(page.locator(".tm-editor p", { hasText: "این بخشنامه در اجرای" })).toHaveCount(initialCount + 1);
 
-  await page.getByRole("button", { name: "Edit" }).click();
+  await page.getByRole("button", { name: "ویرایش" }).click();
   await page.getByRole("menuitem", { name: "واگرد" }).click();
   await expect(page.locator(".tm-editor p", { hasText: "این بخشنامه در اجرای" })).toHaveCount(initialCount);
 
-  await page.getByRole("button", { name: "Edit" }).click();
+  await page.getByRole("button", { name: "ویرایش" }).click();
   await page.getByRole("menuitem", { name: "جست‌وجو و جایگزینی" }).click();
   await page.getByRole("menuitem", { name: /^جایگزینی/ }).click();
   const searchPanel = page.getByRole("search");

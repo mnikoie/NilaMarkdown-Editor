@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { FormEvent, KeyboardEvent } from "react";
 import type { EditorView } from "prosemirror-view";
 import { getActiveLink, setLink, unsetLink } from "../../core/commands/link.js";
+import { useMarkdownI18n } from "../i18n.js";
 
 export interface LinkPopoverProps {
   view: EditorView | null;
@@ -13,6 +14,7 @@ export interface LinkPopoverProps {
 
 /** ویرایشِ لینک بدونِ گرفتنِ فوکوس و انتخاب از خودِ سند. */
 export function LinkPopover({ view, open, onClose }: LinkPopoverProps) {
+  const { t } = useMarkdownI18n();
   const [href, setHref] = useState("");
   const [label, setLabel] = useState("");
   const [hasLink, setHasLink] = useState(false);
@@ -54,13 +56,13 @@ export function LinkPopover({ view, open, onClose }: LinkPopoverProps) {
   };
 
   return (
-    <form className="tm-link-popover" aria-label="ویرایشِ لینک" onSubmit={submit} onKeyDown={onKeyDown}>
+    <form className="tm-link-popover" aria-label={t("ویرایشِ لینک")} onSubmit={submit} onKeyDown={onKeyDown}>
       <label className="tm-link-field">
-        <span>متن</span>
-        <input value={label} onChange={(event) => setLabel(event.target.value)} placeholder="متنِ لینک" />
+        <span>{t("متن")}</span>
+        <input value={label} onChange={(event) => setLabel(event.target.value)} placeholder={t("متنِ لینک")} />
       </label>
       <label className="tm-link-field">
-        <span>نشانی</span>
+        <span>{t("نشانی")}</span>
         <input
           ref={hrefRef}
           value={href}
@@ -73,14 +75,14 @@ export function LinkPopover({ view, open, onClose }: LinkPopoverProps) {
       <div className="tm-link-actions">
         {hasLink ? (
           <button type="button" className="tm-link-remove" onClick={remove}>
-            حذفِ لینک
+            {t("حذفِ لینک")}
           </button>
         ) : null}
         <button type="button" onClick={() => { view?.focus(); onClose(); }}>
-          لغو
+          {t("لغو")}
         </button>
         <button type="submit" disabled={!href.trim()}>
-          ثبت
+          {t("ثبت")}
         </button>
       </div>
     </form>

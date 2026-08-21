@@ -4,6 +4,7 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 import type { OutlineNode } from "../../core/outline/types.js";
 import { flattenOutline } from "../../core/outline/build.js";
+import { useMarkdownI18n } from "../i18n.js";
 
 /**
  * پنلِ درختِ ساختار.
@@ -35,6 +36,7 @@ export function OutlineTree({
   onToggleFold,
   className,
 }: OutlineTreeProps) {
+  const { t } = useMarkdownI18n();
   const flat = useMemo(() => flattenOutline(nodes), [nodes]);
   const [focusId, setFocusId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -116,7 +118,7 @@ export function OutlineTree({
   if (nodes.length === 0) {
     return (
       <div className={`tm-outline ${className ?? ""}`}>
-        <p className="tm-outline-empty">هنوز سرفصلی نیست.</p>
+        <p className="tm-outline-empty">{t("هنوز سرفصلی نیست.")}</p>
       </div>
     );
   }
@@ -125,7 +127,7 @@ export function OutlineTree({
     <div
       ref={containerRef}
       role="tree"
-      aria-label="ساختارِ سند"
+      aria-label={t("ساختارِ سند")}
       className={`tm-outline ${className ?? ""}`}
       onKeyDown={onKeyDown}
     >
@@ -151,6 +153,7 @@ interface BranchProps {
 }
 
 function Branch({ nodes, activeId, currentId, folded, onNavigate, onToggleFold }: BranchProps) {
+  const { locale } = useMarkdownI18n();
   return (
     <ul role="group" className="tm-outline-children">
       {nodes.map((node) => {
@@ -174,7 +177,11 @@ function Branch({ nodes, activeId, currentId, folded, onNavigate, onToggleFold }
                   type="button"
                   className="tm-fold-toggle"
                   aria-expanded={!isFolded}
-                  aria-label={isFolded ? `بازکردنِ ${node.title}` : `بستنِ ${node.title}`}
+                  aria-label={
+                    locale === "en"
+                      ? `${isFolded ? "Expand" : "Collapse"} ${node.title}`
+                      : `${isFolded ? "بازکردنِ" : "بستنِ"} ${node.title}`
+                  }
                   onClick={(e) => {
                     e.stopPropagation();
                     onToggleFold?.(node);

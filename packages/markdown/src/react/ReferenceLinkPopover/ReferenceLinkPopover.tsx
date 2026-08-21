@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { FormEvent, KeyboardEvent } from "react";
 import type { EditorView } from "prosemirror-view";
 import { setReferenceLink } from "../../core/commands/link.js";
+import { useMarkdownI18n } from "../i18n.js";
 
 export interface ReferenceLinkPopoverProps {
   view: EditorView | null;
@@ -23,6 +24,7 @@ function identifierFrom(text: string): string {
 
 /** ساختِ لینکِ reference-style و definition آن در یک مرحله. */
 export function ReferenceLinkPopover({ view, open, onClose }: ReferenceLinkPopoverProps) {
+  const { t } = useMarkdownI18n();
   const [label, setLabel] = useState("");
   const [identifier, setIdentifier] = useState("link");
   const [href, setHref] = useState("");
@@ -58,16 +60,16 @@ export function ReferenceLinkPopover({ view, open, onClose }: ReferenceLinkPopov
   return (
     <form
       className="tm-link-popover tm-reference-popover"
-      aria-label="درجِ ارجاعِ لینک"
+      aria-label={t("درجِ ارجاعِ لینک")}
       onSubmit={submit}
       onKeyDown={onKeyDown}
     >
       <label className="tm-link-field">
-        <span>متن</span>
-        <input value={label} onChange={(event) => setLabel(event.target.value)} placeholder="متنِ لینک" />
+        <span>{t("متن")}</span>
+        <input value={label} onChange={(event) => setLabel(event.target.value)} placeholder={t("متنِ لینک")} />
       </label>
       <label className="tm-link-field">
-        <span>شناسه</span>
+        <span>{t("شناسه")}</span>
         <input
           value={identifier}
           onChange={(event) => setIdentifier(event.target.value)}
@@ -76,7 +78,7 @@ export function ReferenceLinkPopover({ view, open, onClose }: ReferenceLinkPopov
         />
       </label>
       <label className="tm-link-field">
-        <span>نشانی</span>
+        <span>{t("نشانی")}</span>
         <input
           ref={hrefRef}
           value={href}
@@ -88,10 +90,10 @@ export function ReferenceLinkPopover({ view, open, onClose }: ReferenceLinkPopov
       </label>
       <div className="tm-link-actions">
         <button type="button" onClick={() => { view?.focus(); onClose(); }}>
-          لغو
+          {t("لغو")}
         </button>
         <button type="submit" disabled={!identifier.trim() || !href.trim()}>
-          ثبت
+          {t("ثبت")}
         </button>
       </div>
     </form>

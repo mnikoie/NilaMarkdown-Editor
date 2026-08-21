@@ -16,6 +16,7 @@ import {
 } from "../../core/commands/edit.js";
 import { moveRow } from "../../core/commands/table.js";
 import { schema } from "../../core/schema/index.js";
+import { useMarkdownI18n } from "../i18n.js";
 
 export interface EditMenuProps {
   view: EditorView | null;
@@ -63,6 +64,7 @@ function selectedHtml(view: EditorView): string {
 
 /** منوی Edit با فرمان‌های قابل‌انتقال از Typora. */
 export function EditMenu({ view, onFind, onReplace, onNotice }: EditMenuProps) {
+  const { t } = useMarkdownI18n();
   const [open, setOpen] = useState(false);
   const [submenu, setSubmenu] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -182,11 +184,11 @@ export function EditMenu({ view, onFind, onReplace, onNotice }: EditMenuProps) {
         onClick={() => setOpen((value) => !value)}
       >
         <Pencil size={16} aria-hidden />
-        <span>Edit</span>
+        <span>{t("Edit")}</span>
         <ChevronDown size={14} aria-hidden />
       </button>
       {open ? (
-        <div className="tm-menu-panel" role="menu" aria-label="Edit">
+        <div className="tm-menu-panel" role="menu" aria-label={t("Edit")}>
           {entries.map((entry) => {
             if (isSubmenu(entry)) {
               const expanded = submenu === entry.id;
@@ -201,11 +203,11 @@ export function EditMenu({ view, onFind, onReplace, onNotice }: EditMenuProps) {
                     onMouseDown={keepSelection}
                     onClick={() => setSubmenu(expanded ? null : entry.id)}
                   >
-                    <span>{entry.label}</span>
+                    <span>{t(entry.label)}</span>
                     <ChevronLeft size={14} aria-hidden />
                   </button>
                   {expanded ? (
-                    <div className="tm-menu-submenu" role="menu" aria-label={entry.label}>
+                    <div className="tm-menu-submenu" role="menu" aria-label={t(entry.label)}>
                       {entry.items.map((item) => (
                         <button
                           key={item.id}
@@ -215,7 +217,7 @@ export function EditMenu({ view, onFind, onReplace, onNotice }: EditMenuProps) {
                           onMouseDown={keepSelection}
                           onClick={() => run(item)}
                         >
-                          <span>{item.label}</span>
+                            <span>{t(item.label)}</span>
                           {item.shortcut ? <kbd>{item.shortcut}</kbd> : null}
                         </button>
                       ))}
@@ -234,7 +236,7 @@ export function EditMenu({ view, onFind, onReplace, onNotice }: EditMenuProps) {
                   onMouseDown={keepSelection}
                   onClick={() => run(entry)}
                 >
-                  <span>{entry.label}</span>
+                  <span>{t(entry.label)}</span>
                   {entry.shortcut ? <kbd>{entry.shortcut}</kbd> : null}
                 </button>
               </div>

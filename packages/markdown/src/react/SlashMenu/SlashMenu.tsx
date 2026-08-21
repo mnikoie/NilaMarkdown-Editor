@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { EditorView } from "prosemirror-view";
 import { getSlashState, runSlashItem, type SlashItem } from "../../core/plugins/slash-menu.js";
+import { useMarkdownI18n } from "../i18n.js";
 
 /**
  * منوی `/`.
@@ -21,6 +22,7 @@ interface Position {
 }
 
 export function SlashMenu({ view }: SlashMenuProps) {
+  const { t } = useMarkdownI18n();
   const [, forceRender] = useState(0);
   const [position, setPosition] = useState<Position | null>(null);
 
@@ -76,11 +78,11 @@ export function SlashMenu({ view }: SlashMenuProps) {
       className="tm-slash-menu"
       style={{ top: position.top, left: position.left }}
       role="listbox"
-      aria-label="درجِ بلوک"
+      aria-label={t("درجِ بلوک")}
     >
       {[...groups.entries()].map(([group, items]) => (
         <div key={group} className="tm-slash-group">
-          <div className="tm-slash-group-label">{group}</div>
+          <div className="tm-slash-group-label">{t(group)}</div>
           {items.map((item) => {
             flatIndex++;
             const index = flatIndex;
@@ -103,7 +105,7 @@ export function SlashMenu({ view }: SlashMenuProps) {
                 <span className="tm-slash-icon" aria-hidden="true">
                   {item.icon}
                 </span>
-                <span>{item.label}</span>
+                <span>{t(item.label)}</span>
               </button>
             );
           })}

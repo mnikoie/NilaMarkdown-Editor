@@ -82,6 +82,7 @@ export class CodeBlockView implements NodeView {
     private getPos: () => number | undefined,
     /** اگر خاموش باشد، Shiki اصلاً بار نمی‌شود. */
     private highlightEnabled = false,
+    private locale: "fa" | "en" = "fa",
   ) {
     this.dom = document.createElement("div");
     this.dom.className = "tm-code";
@@ -96,7 +97,7 @@ export class CodeBlockView implements NodeView {
     this.copyButton = document.createElement("button");
     this.copyButton.type = "button";
     this.copyButton.className = "tm-code-copy";
-    this.copyButton.textContent = "کپی";
+    this.copyButton.textContent = this.locale === "en" ? "Copy" : "کپی";
     this.copyButton.addEventListener("click", (e) => {
       e.preventDefault();
       void this.copy();
@@ -130,7 +131,7 @@ export class CodeBlockView implements NodeView {
 
   private render() {
     const lang = this.language;
-    this.langLabel.textContent = lang || "متن";
+    this.langLabel.textContent = lang || (this.locale === "en" ? "Text" : "متن");
     if (this.dom.getAttribute("data-language") !== lang) {
       this.dom.setAttribute("data-language", lang);
     }
@@ -194,13 +195,13 @@ export class CodeBlockView implements NodeView {
     const text = this.node.textContent;
     try {
       await navigator.clipboard.writeText(text);
-      this.copyButton.textContent = "کپی شد ✓";
+      this.copyButton.textContent = this.locale === "en" ? "Copied ✓" : "کپی شد ✓";
     } catch {
-      this.copyButton.textContent = "کپی نشد";
+      this.copyButton.textContent = this.locale === "en" ? "Copy failed" : "کپی نشد";
     }
     if (this.copyTimer) clearTimeout(this.copyTimer);
     this.copyTimer = setTimeout(() => {
-      this.copyButton.textContent = "کپی";
+      this.copyButton.textContent = this.locale === "en" ? "Copy" : "کپی";
     }, 2000);
   }
 

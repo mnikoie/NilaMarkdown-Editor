@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
 import { ChevronDown, ChevronLeft, FileText } from "lucide-react";
+import { useMarkdownI18n } from "../i18n.js";
 
 export interface FileMenuProps {
   onNew?: () => void;
@@ -42,6 +43,7 @@ export function FileMenu({
   onExportPdf,
   onClose,
 }: FileMenuProps) {
+  const { t } = useMarkdownI18n();
   const [open, setOpen] = useState(false);
   const [submenu, setSubmenu] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -96,11 +98,11 @@ export function FileMenu({
         onClick={() => setOpen((value) => !value)}
       >
         <FileText size={16} aria-hidden />
-        <span>File</span>
+        <span>{t("File")}</span>
         <ChevronDown size={14} aria-hidden />
       </button>
       {open ? (
-        <div className="tm-menu-panel" role="menu" aria-label="File">
+        <div className="tm-menu-panel" role="menu" aria-label={t("File")}>
           {entries.map((entry) => {
             if (isSubmenu(entry)) {
               const expanded = submenu === entry.id;
@@ -115,11 +117,11 @@ export function FileMenu({
                     onMouseDown={keepSelection}
                     onClick={() => setSubmenu(expanded ? null : entry.id)}
                   >
-                    <span>{entry.label}</span>
+                    <span>{t(entry.label)}</span>
                     <ChevronLeft size={14} aria-hidden />
                   </button>
                   {expanded ? (
-                    <div className="tm-menu-submenu" role="menu" aria-label={entry.label}>
+                    <div className="tm-menu-submenu" role="menu" aria-label={t(entry.label)}>
                       {entry.items.map((item) => (
                         <button
                           key={item.id}
@@ -129,7 +131,7 @@ export function FileMenu({
                           onMouseDown={keepSelection}
                           onClick={() => run(item)}
                         >
-                          <span>{item.label}</span>
+                          <span>{t(item.label)}</span>
                           {item.shortcut ? <kbd>{item.shortcut}</kbd> : null}
                         </button>
                       ))}
@@ -148,7 +150,7 @@ export function FileMenu({
                   onMouseDown={keepSelection}
                   onClick={() => run(entry)}
                 >
-                  <span>{entry.label}</span>
+                  <span>{t(entry.label)}</span>
                   {entry.shortcut ? <kbd>{entry.shortcut}</kbd> : null}
                 </button>
               </div>

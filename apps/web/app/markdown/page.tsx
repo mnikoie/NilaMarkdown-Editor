@@ -155,7 +155,8 @@ export default function MarkdownDemoPage() {
         toolbar
         stats
         theme="light"
-        dir="rtl"
+        dir="auto"
+        locale="fa"
         className="tm-demo-editor"
         placeholder="بنویسید…"
       />

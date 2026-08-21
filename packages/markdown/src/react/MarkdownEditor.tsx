@@ -24,11 +24,29 @@ import { parse } from "../core/markdown/parse.js";
 import { useFullscreen } from "./useFullscreen.js";
 import { insertImageFiles, type PasteImageOptions } from "../core/plugins/paste-image.js";
 import { selectedMarkdown } from "../core/commands/edit.js";
-import { foldKey, toggleFold } from "../core/plugins/fold.js";
+import {
+  foldAll,
+  foldKey,
+  setFoldMode,
+  toggleFold,
+  unfoldAll,
+  type FoldingOptions,
+} from "../core/plugins/fold.js";
+import {
+  foldAllListNodes,
+  setListFoldMode,
+  unfoldAllListNodes,
+} from "../core/plugins/list-fold.js";
 import { BUILTIN_MARKS } from "../core/directives/builtin.js";
 import type { MarkRegistry } from "../core/directives/types.js";
 import type { OutlineNode } from "../core/outline/types.js";
 import type { Features } from "../node-views/index.js";
+import {
+  MarkdownI18nProvider,
+  translate,
+  useMarkdownI18n,
+  type MarkdownLocale,
+} from "./i18n.js";
 
 export interface MarkdownEditorProps {
   /** حالتِ کنترل‌شده. */
@@ -43,6 +61,9 @@ export interface MarkdownEditorProps {
 
   theme?: "light" | "dark" | "auto";
   dir?: "rtl" | "ltr" | "auto";
+  /** زبانِ رابط. جهتِ رابط از آن گرفته می‌شود؛ متنِ سند در حالتِ auto بلوک‌به‌بلوک تشخیص داده می‌شود. */
+  locale?: MarkdownLocale;
+  onLocaleChange?: (locale: MarkdownLocale) => void;
 
   /** تعریفِ مارک‌های سفارشی. از دیتابیس می‌آید. */
   directives?: MarkRegistry;
@@ -96,6 +117,11 @@ export interface MarkdownEditorProps {
   /** لنگرهای بسته در آغاز، و اطلاع از تغییرشان — برای ذخیره. */
   foldedIds?: string[];
   onFoldChange?: (ids: string[]) => void;
+  /** پیش‌فرض: همه بسته و آکاردئونِ هم‌سطح. */
+  folding?: FoldingOptions;
+
+  /** سرعتِ مبنای تخمینِ مطالعه. پیش‌فرض ۲۵۰ کلمه در دقیقه. */
+  readingWordsPerMinute?: number;
 
   /**
    * دکمهٔ تمام‌صفحه در نوارِ ابزار، و میان‌برِ `F11`.
@@ -141,6 +167,8 @@ export function MarkdownEditor({
   placeholder,
   theme = "auto",
   dir = "auto",
+  locale = "fa",
+  onLocaleChange,
   directives = BUILTIN_MARKS,
   outline = false,
   toolbar = false,
@@ -157,12 +185,18 @@ export function MarkdownEditor({
   features,
   foldedIds,
   onFoldChange,
+  folding,
+  readingWordsPerMinute = 250,
   fullscreen = true,
   pdf = true,
   images,
   className,
 }: MarkdownEditorProps) {
   const rootRef = useRef<HTMLDivElement>(null);
+  const [activeLocale, setActiveLocale] = useState<MarkdownLocale>(locale);
+  const [foldInitial, setFoldInitial] = useState(folding?.initial ?? "collapsed");
+  const [foldMode, setFoldModeState] = useState(folding?.mode ?? "accordion");
+  const [folded, setFolded] = useState<ReadonlySet<string>>(() => new Set(foldedIds ?? []));
   const [mode, setMode] = useState<"live" | "source">("live");
   /** پیامِ کوتاه به کاربر — خطای آپلود یا شکستِ چاپ. */
   const [notice, setNotice] = useState<string | null>(null);
@@ -184,6 +218,12 @@ export function MarkdownEditor({
   useEffect(() => setOutlineVisible(outline), [outline]);
   useEffect(() => setStatusVisible(stats), [stats]);
   useEffect(() => setDocumentFileName(fileName), [fileName]);
+  useEffect(() => setActiveLocale(locale), [locale]);
+  useEffect(() => setFoldInitial(folding?.initial ?? "collapsed"), [folding?.initial]);
+  useEffect(() => setFoldModeState(folding?.mode ?? "accordion"), [folding?.mode]);
+
+  const t = useCallback((text: string) => translate(activeLocale, text), [activeLocale]);
+  const effectiveDir = dir === "auto" ? (activeLocale === "fa" ? "rtl" : "ltr") : dir;
 
   const clampZoom = useCallback((value: number) => setZoom(Math.min(200, Math.max(50, value))), []);
 
@@ -205,6 +245,9 @@ export function MarkdownEditor({
     debounceMs,
     readOnly,
     directives,
+    locale: activeLocale,
+    dir,
+    folding: { initial: foldInitial, mode: foldMode },
     features,
     focusMode,
     typewriterMode,
@@ -239,6 +282,39 @@ export function MarkdownEditor({
   const handleRef = useRef(handle);
   handleRef.current = handle;
 
+  const setDirectiveCardsOpen = useCallback((open: boolean) => {
+    const root = rootRef.current;
+    if (!root) return;
+    for (const card of root.querySelectorAll<HTMLElement>(".tm-mark")) {
+      card.dispatchEvent(new CustomEvent("tm-set-fold", { detail: { open } }));
+    }
+  }, []);
+
+  const setAllSectionsOpen = useCallback(
+    (open: boolean) => {
+      const view = handleRef.current.view;
+      if (!view) return;
+      (open ? unfoldAll() : foldAll())(view.state, view.dispatch);
+      (open ? unfoldAllListNodes : foldAllListNodes)(view.state, view.dispatch);
+      setDirectiveCardsOpen(open);
+      setFolded(new Set(foldKey.getState(view.state)?.folded ?? []));
+    },
+    [setDirectiveCardsOpen],
+  );
+
+  useEffect(() => {
+    const view = handle.view;
+    if (!view) return;
+    setFoldMode(foldMode)(view.state, view.dispatch);
+    setListFoldMode(foldMode)(view.state, view.dispatch);
+  }, [handle.view, foldMode]);
+
+  useEffect(() => {
+    const view = handle.view;
+    if (!view) return;
+    setFolded(new Set(foldKey.getState(view.state)?.folded ?? []));
+  }, [handle.view, handle.outline]);
+
   const currentMarkdown = useCallback(
     () =>
       mode === "source"
@@ -251,7 +327,8 @@ export function MarkdownEditor({
     handleRef.current.setMarkdown(markdown);
     setSourceText(markdown);
     if (sourceRef.current) sourceRef.current.value = markdown;
-  }, []);
+    requestAnimationFrame(() => setAllSectionsOpen(foldInitial === "expanded"));
+  }, [foldInitial, setAllSectionsOpen]);
 
   const saveMarkdown = useCallback(() => {
     downloadText(currentMarkdown(), documentFileName, "text/markdown;charset=utf-8");
@@ -260,15 +337,19 @@ export function MarkdownEditor({
   const saveHtml = useCallback(() => {
     const html = exportHtml(parse(currentMarkdown()), {
       directives,
-      dir: dir === "auto" ? "rtl" : dir,
+      dir: effectiveDir,
       standalone: true,
     });
     downloadText(html, replaceExtension(documentFileName, ".html"), "text/html;charset=utf-8");
-  }, [currentMarkdown, directives, dir, documentFileName]);
+  }, [currentMarkdown, directives, effectiveDir, documentFileName]);
 
   const onNavigate = useCallback((node: OutlineNode) => {
     const view = handleRef.current.view;
     if (!view) return;
+    if (foldKey.getState(view.state)?.folded.has(node.id)) {
+      toggleFold(node.id, node.from)(view.state, view.dispatch);
+      setFolded(new Set(foldKey.getState(view.state)?.folded ?? []));
+    }
     const { state } = view;
     // `Selection.near` نزدیک‌ترین جای معتبر را پیدا می‌کند — گرهِ ساختار
     // ممکن است atom باشد و مکان‌نما مستقیم داخلش ننشیند.
@@ -276,6 +357,13 @@ export function MarkdownEditor({
     const selection = Selection.near(state.doc.resolve(pos));
     view.dispatch(state.tr.setSelection(selection).scrollIntoView());
     view.focus();
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const target = view.nodeDOM(node.from);
+        const element = target instanceof HTMLElement ? target : target?.parentElement;
+        element?.scrollIntoView({ block: "center", inline: "nearest", behavior: "smooth" });
+      });
+    });
   }, []);
 
   /**
@@ -283,20 +371,18 @@ export function MarkdownEditor({
    * از تغییرش خبردار نمی‌شود و پنلِ کناری با `aria-expanded`ِ کهنه
    * می‌ماند. این نسخهٔ آینه‌ایِ آن است تا رندرِ دوباره اتفاق بیفتد.
    */
-  const [folded, setFolded] = useState<ReadonlySet<string>>(() => new Set(foldedIds ?? []));
-
   const fs = useFullscreen(() => rootRef.current);
 
   const runExportPdf = useCallback(() => {
     const opts = typeof pdf === "object" ? pdf : {};
     void exportPdf(parse(currentMarkdown()), {
       directives,
-      dir: dir === "auto" ? "rtl" : dir,
+      dir: effectiveDir,
       ...opts,
     }).then((r) => {
-      if (!r.ok) setNotice(r.reason ?? "خروجیِ PDF شکست خورد.");
+      if (!r.ok) setNotice(r.reason ?? (activeLocale === "en" ? "PDF export failed." : "خروجیِ PDF شکست خورد."));
     });
-  }, [pdf, directives, dir, currentMarkdown]);
+  }, [pdf, directives, effectiveDir, currentMarkdown, activeLocale]);
 
   /**
    * میان‌برها.
@@ -331,7 +417,7 @@ export function MarkdownEditor({
           e.preventDefault();
           void navigator.clipboard
             .writeText(markdown)
-            .catch(() => setNotice("دسترسی به کلیپ‌بورد ممکن نشد."));
+            .catch(() => setNotice(activeLocale === "en" ? "Clipboard access failed." : "دسترسی به کلیپ‌بورد ممکن نشد."));
         }
         return;
       }
@@ -351,7 +437,7 @@ export function MarkdownEditor({
     };
     root.addEventListener("keydown", onKey);
     return () => root.removeEventListener("keydown", onKey);
-  }, [fullscreen, pdf, fs, runExportPdf, fileMenu, editMenu, mode, replaceDocument, saveMarkdown]);
+  }, [fullscreen, pdf, fs, runExportPdf, fileMenu, editMenu, mode, replaceDocument, saveMarkdown, activeLocale]);
 
   /** پیام پس از چند ثانیه خودش می‌رود — کاربر نباید ببنددش. */
   useEffect(() => {
@@ -363,21 +449,24 @@ export function MarkdownEditor({
   const onToggleFoldNode = useCallback((node: OutlineNode) => {
     const view = handleRef.current.view;
     if (!view) return;
-    toggleFold(node.id)(view.state, view.dispatch);
+    toggleFold(node.id, node.from)(view.state, view.dispatch);
     setFolded(new Set(foldKey.getState(view.state)?.folded ?? []));
   }, []);
 
   return (
+    <MarkdownI18nProvider locale={activeLocale}>
     <div
       ref={rootRef}
       className={`tm-root ${className ?? ""}`}
       data-theme={theme === "auto" ? undefined : theme}
       data-fullscreen={fs.active ? (fs.soft ? "soft" : "real") : undefined}
-      dir={dir === "auto" ? undefined : dir}
+      dir={effectiveDir}
+      lang={activeLocale}
+      data-locale={activeLocale}
       style={{ "--tm-content-zoom": zoom / 100 } as CSSProperties}
     >
       {outlineVisible ? (
-        <aside className="tm-sidebar" aria-label="پنلِ ساختار">
+        <aside className="tm-sidebar" aria-label={t("پنلِ ساختار")}>
           <OutlineTree
             nodes={handle.outline}
             folded={folded}
@@ -388,15 +477,23 @@ export function MarkdownEditor({
       ) : null}
 
       <div className="tm-main">
-        <SearchPanel
-          view={handle.view}
-          open={searchOpen}
-          withReplace={searchReplace}
-          onClose={() => setSearchOpen(false)}
-        />
+        {!toolbar ? (
+          <SearchPanel
+            view={handle.view}
+            open={searchOpen}
+            withReplace={searchReplace}
+            onClose={() => setSearchOpen(false)}
+          />
+        ) : null}
 
         {toolbar ? (
           <div className="tm-editor-controls">
+            <SearchPanel
+              view={handle.view}
+              open={searchOpen}
+              withReplace={searchReplace}
+              onClose={() => setSearchOpen(false)}
+            />
             {fileMenu || editMenu || paragraphMenu || formatMenu || viewMenu ? (
               <div className="tm-top-menu-row">
                 {fileMenu ? (
@@ -421,14 +518,14 @@ export function MarkdownEditor({
                       setSearchReplace(true);
                       setSearchOpen(true);
                     }}
-                    onNotice={setNotice}
+                    onNotice={(message) => setNotice(t(message))}
                   />
                 ) : null}
                 {paragraphMenu ? (
                   <ParagraphMenu
                     view={mode === "live" ? handle.view : null}
                     onInsertReferenceLink={() => setReferenceLinkOpen(true)}
-                    onNotice={setNotice}
+                    onNotice={(message) => setNotice(t(message))}
                   />
                 ) : null}
                 {formatMenu ? (
@@ -437,7 +534,7 @@ export function MarkdownEditor({
                     onEditLink={() => setLinkOpen(true)}
                     onInsertImage={() => setImageOpen(true)}
                     onInsertLocalImage={() => imageInputRef.current?.click()}
-                    onNotice={setNotice}
+                    onNotice={(message) => setNotice(t(message))}
                   />
                 ) : null}
                 {viewMenu ? (
@@ -459,6 +556,20 @@ export function MarkdownEditor({
                     onToggleFullscreen={fullscreen ? fs.toggle : undefined}
                     zoom={zoom}
                     onZoom={clampZoom}
+                    locale={activeLocale}
+                    onLocaleChange={(next) => {
+                      setActiveLocale(next);
+                      onLocaleChange?.(next);
+                    }}
+                    foldInitial={foldInitial}
+                    onFoldInitialChange={(next) => {
+                      setFoldInitial(next);
+                      setAllSectionsOpen(next === "expanded");
+                    }}
+                    foldMode={foldMode}
+                    onFoldModeChange={setFoldModeState}
+                    onFoldAll={() => setAllSectionsOpen(false)}
+                    onUnfoldAll={() => setAllSectionsOpen(true)}
                   />
                 ) : null}
               </div>
@@ -500,7 +611,7 @@ export function MarkdownEditor({
                 replaceDocument(markdown);
                 setDocumentFileName(file.name);
               })
-              .catch(() => setNotice("خواندنِ فایل ممکن نشد."));
+              .catch(() => setNotice(activeLocale === "en" ? "Could not read the file." : "خواندنِ فایل ممکن نشد."));
           }}
         />
         <input
@@ -518,7 +629,7 @@ export function MarkdownEditor({
             void insertImageFiles(handle.view, files, {
               ...images,
               onError: (message) => {
-                setNotice(message);
+                setNotice(t(message));
                 images?.onError?.(message);
               },
             });
@@ -536,7 +647,7 @@ export function MarkdownEditor({
             readOnly={readOnly}
             dir="ltr"
             spellCheck={false}
-            aria-label="متنِ خامِ مارک‌داون"
+            aria-label={t("متنِ خامِ مارک‌داون")}
           />
         ) : null}
 
@@ -551,8 +662,14 @@ export function MarkdownEditor({
           />
         </div>
 
-        {wordCountOpen ? <StatsPopover view={handle.view} onClose={() => setWordCountOpen(false)} /> : null}
-        {statusVisible ? <StatsBar view={handle.view} /> : null}
+        {wordCountOpen ? (
+          <StatsPopover
+            view={handle.view}
+            wordsPerMinute={readingWordsPerMinute}
+            onClose={() => setWordCountOpen(false)}
+          />
+        ) : null}
+        {statusVisible ? <StatsBar view={handle.view} wordsPerMinute={readingWordsPerMinute} /> : null}
 
         {/* ★ `role="status"` تا صفحه‌خوان هم بشنود — بندِ ۱۲. */}
         {notice ? (
@@ -562,21 +679,43 @@ export function MarkdownEditor({
         ) : null}
       </div>
     </div>
+    </MarkdownI18nProvider>
   );
 }
 
 /** نوارِ آمار — کلمه، کاراکتر، زمانِ خواندن. */
-function StatsBar({ view }: { view: import("prosemirror-view").EditorView | null }) {
-  const s = view ? computeStats(view.state.doc) : null;
+function StatsBar({
+  view,
+  wordsPerMinute,
+}: {
+  view: import("prosemirror-view").EditorView | null;
+  wordsPerMinute: number;
+}) {
+  const { locale, t, number } = useMarkdownI18n();
+  const s = view ? computeStats(view.state.doc, { wordsPerMinute }) : null;
   if (!s) return null;
-  const fa = (n: number) => n.toLocaleString("fa-IR");
+  const duration = formatReadingDuration(s.readingMinutes, locale, number);
   return (
     <div className="tm-stats" aria-live="polite">
-      <span>{fa(s.words)} کلمه</span>
-      <span>{fa(s.characters)} کاراکتر</span>
-      <span>~{fa(s.readingMinutes)} دقیقه خواندن</span>
+      <span>{number(s.words)} {t("کلمه")}</span>
+      <span>{number(s.characters)} {t("کاراکتر")}</span>
+      <span title={`${number(s.words)} ÷ ${number(s.wordsPerMinute)} ${t("کلمه")}/${t("دقیقه")}`}>
+        {duration}
+      </span>
     </div>
   );
+}
+
+function formatReadingDuration(
+  minutes: number,
+  locale: MarkdownLocale,
+  number: (value: number) => string,
+): string {
+  if (minutes < 60) return locale === "en" ? `About ${number(minutes)} min read` : `حدود ${number(minutes)} دقیقه خواندن`;
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  if (locale === "en") return `About ${number(hours)} hr${rest ? ` ${number(rest)} min` : ""} read`;
+  return `حدود ${number(hours)} ساعت${rest ? ` و ${number(rest)} دقیقه` : ""} خواندن`;
 }
 
 function replaceExtension(fileName: string, extension: string): string {
@@ -596,17 +735,20 @@ function downloadText(text: string, fileName: string, type: string) {
 
 function StatsPopover({
   view,
+  wordsPerMinute,
   onClose,
 }: {
   view: import("prosemirror-view").EditorView | null;
+  wordsPerMinute: number;
   onClose: () => void;
 }) {
-  const stats = view ? computeStats(view.state.doc) : null;
+  const { t } = useMarkdownI18n();
+  const stats = view ? computeStats(view.state.doc, { wordsPerMinute }) : null;
   if (!stats) return null;
   return (
-    <aside className="tm-word-count-popover" aria-label="شمارش کلمات">
-      <StatsBar view={view} />
-      <button type="button" onClick={onClose} aria-label="بستن شمارش کلمات">×</button>
+    <aside className="tm-word-count-popover" aria-label={t("شمارش کلمات")}>
+      <StatsBar view={view} wordsPerMinute={wordsPerMinute} />
+      <button type="button" onClick={onClose} aria-label={t("بستن شمارش کلمات")}>×</button>
     </aside>
   );
 }

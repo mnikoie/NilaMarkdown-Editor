@@ -10,6 +10,7 @@ export class LinkDefinitionView implements NodeView {
     private node: PMNode,
     private view: EditorView,
     private getPos: () => number | undefined,
+    private locale: "fa" | "en" = "fa",
   ) {
     this.dom = document.createElement("div");
     this.dom.className = "tm-link-definition";
@@ -26,7 +27,7 @@ export class LinkDefinitionView implements NodeView {
     code.textContent = `[${id}]: ${url}`;
     const edit = document.createElement("button");
     edit.type = "button";
-    edit.textContent = "ویرایش";
+    edit.textContent = this.locale === "en" ? "Edit" : "ویرایش";
     edit.addEventListener("click", () => this.startEditing());
     this.dom.replaceChildren(code, edit);
   }
@@ -37,14 +38,14 @@ export class LinkDefinitionView implements NodeView {
     const form = document.createElement("form");
     const id = document.createElement("input");
     id.value = String(this.node.attrs.identifier ?? "link");
-    id.setAttribute("aria-label", "شناسهٔ ارجاع");
+    id.setAttribute("aria-label", this.locale === "en" ? "Reference identifier" : "شناسهٔ ارجاع");
     const url = document.createElement("input");
     url.value = String(this.node.attrs.url ?? "");
     url.dir = "ltr";
-    url.setAttribute("aria-label", "نشانیِ ارجاع");
+    url.setAttribute("aria-label", this.locale === "en" ? "Reference URL" : "نشانیِ ارجاع");
     const save = document.createElement("button");
     save.type = "submit";
-    save.textContent = "ثبت";
+    save.textContent = this.locale === "en" ? "Apply" : "ثبت";
     form.append(id, url, save);
     form.addEventListener("submit", (event) => {
       event.preventDefault();

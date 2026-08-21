@@ -14,6 +14,7 @@ import {
   isInTable,
   setColumnAlign,
 } from "../../core/commands/table.js";
+import { useMarkdownI18n } from "../i18n.js";
 
 export interface TableToolsProps {
   view: EditorView | null;
@@ -23,6 +24,7 @@ export interface TableToolsProps {
 
 /** ابزارهای جدولی فقط وقتی مکان‌نما داخلِ جدول است دیده می‌شوند. */
 export function TableTools({ view, active, enabled = true }: TableToolsProps) {
+  const { t } = useMarkdownI18n();
   const [visible, setVisible] = useState(false);
 
   const sync = useCallback(() => setVisible(Boolean(view && isInTable(view.state))), [view]);
@@ -56,13 +58,13 @@ export function TableTools({ view, active, enabled = true }: TableToolsProps) {
       onMouseDown={(event) => event.preventDefault()}
       onClick={() => run(command)}
     >
-      {label}
+      {t(label)}
     </button>
   );
 
   return (
-    <div className="tm-table-tools" role="toolbar" aria-label="ابزارِ جدول">
-      <span className="tm-table-tools-label">جدول</span>
+    <div className="tm-table-tools" role="toolbar" aria-label={t("ابزارِ جدول")}>
+      <span className="tm-table-tools-label">{t("جدول")}</span>
       {button("ردیف قبل", addRowBefore)}
       {button("ردیف بعد", addRowAfter)}
       {button("حذف ردیف", deleteRow)}

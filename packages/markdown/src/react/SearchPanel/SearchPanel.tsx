@@ -14,6 +14,7 @@ import {
   getSearchState,
   type SearchOptions,
 } from "../../core/plugins/search.js";
+import { useMarkdownI18n } from "../i18n.js";
 
 /**
  * پنلِ جست‌وجو و جایگزینی.
@@ -31,6 +32,7 @@ export interface SearchPanelProps {
 }
 
 export function SearchPanel({ view, open, onClose, withReplace = false }: SearchPanelProps) {
+  const { t, number } = useMarkdownI18n();
   const [query, setQuery] = useState("");
   const [replacement, setReplacement] = useState("");
   const [options, setOptions] = useState<SearchOptions>({});
@@ -102,7 +104,6 @@ export function SearchPanel({ view, open, onClose, withReplace = false }: Search
   const state = view ? getSearchState(view.state) : null;
   const count = state?.matches.length ?? 0;
   const active = state?.active ?? -1;
-  const fa = (n: number) => n.toLocaleString("fa-IR");
 
   const toggle = (key: keyof SearchOptions) => {
     const next = { ...options, [key]: !options[key] };
@@ -117,9 +118,9 @@ export function SearchPanel({ view, open, onClose, withReplace = false }: Search
           ref={inputRef}
           type="text"
           className="tm-search-input"
-          placeholder="جست‌وجو…"
+          placeholder={t("جست‌وجو…")}
           value={query}
-          aria-label="عبارتِ جست‌وجو"
+          aria-label={t("عبارتِ جست‌وجو")}
           onChange={(e) => {
             setQuery(e.target.value);
             runSearch(e.target.value, options);
@@ -129,18 +130,18 @@ export function SearchPanel({ view, open, onClose, withReplace = false }: Search
         <span className="tm-search-count" aria-live="polite">
           {count === 0
             ? query
-              ? "پیدا نشد"
+              ? t("پیدا نشد")
               : ""
-            : `${fa(active + 1)} از ${fa(count)}`}
+            : `${number(active + 1)} ${t("از")} ${number(count)}`}
         </span>
 
-        <button type="button" className="tm-search-btn" onClick={goPrev} disabled={count === 0} aria-label="قبلی">
+        <button type="button" className="tm-search-btn" onClick={goPrev} disabled={count === 0} aria-label={t("قبلی")}>
           ↑
         </button>
-        <button type="button" className="tm-search-btn" onClick={goNext} disabled={count === 0} aria-label="بعدی">
+        <button type="button" className="tm-search-btn" onClick={goNext} disabled={count === 0} aria-label={t("بعدی")}>
           ↓
         </button>
-        <button type="button" className="tm-search-btn" onClick={close} aria-label="بستن">
+        <button type="button" className="tm-search-btn" onClick={close} aria-label={t("بستن")}>
           ✕
         </button>
       </div>
@@ -150,9 +151,9 @@ export function SearchPanel({ view, open, onClose, withReplace = false }: Search
           <input
             type="text"
             className="tm-search-input"
-            placeholder="جایگزین با…"
+            placeholder={t("جایگزین با…")}
             value={replacement}
-            aria-label="متنِ جایگزین"
+            aria-label={t("متنِ جایگزین")}
             onChange={(e) => setReplacement(e.target.value)}
           />
           <button
@@ -165,7 +166,7 @@ export function SearchPanel({ view, open, onClose, withReplace = false }: Search
               forceRender((n) => n + 1);
             }}
           >
-            جایگزینی
+            {t("جایگزینی")}
           </button>
           <button
             type="button"
@@ -177,7 +178,7 @@ export function SearchPanel({ view, open, onClose, withReplace = false }: Search
               forceRender((n) => n + 1);
             }}
           >
-            همه ({fa(count)})
+            {t("همه")} ({number(count)})
           </button>
         </div>
       ) : null}
@@ -185,17 +186,17 @@ export function SearchPanel({ view, open, onClose, withReplace = false }: Search
       <div className="tm-search-options">
         <label>
           <input type="checkbox" checked={!!options.caseSensitive} onChange={() => toggle("caseSensitive")} />
-          بزرگ و کوچک
+          {t("بزرگ و کوچک")}
         </label>
         <label>
           <input type="checkbox" checked={!!options.wholeWord} onChange={() => toggle("wholeWord")} />
-          کلمهٔ کامل
+          {t("کلمهٔ کامل")}
         </label>
         <label>
           <input type="checkbox" checked={!!options.regex} onChange={() => toggle("regex")} />
           regex
         </label>
-        <label title="«كتاب» عربی و «کتاب» فارسی، «۵۰» و «50» یکی حساب شوند">
+        <label title={t("«كتاب» عربی و «کتاب» فارسی، «۵۰» و «50» یکی حساب شوند")}>
           <input
             type="checkbox"
             checked={options.normalizePersian !== false}
@@ -205,7 +206,7 @@ export function SearchPanel({ view, open, onClose, withReplace = false }: Search
               runSearch(query, next);
             }}
           />
-          یک‌سان‌سازیِ فارسی
+          {t("یک‌سان‌سازیِ فارسی")}
         </label>
       </div>
     </div>

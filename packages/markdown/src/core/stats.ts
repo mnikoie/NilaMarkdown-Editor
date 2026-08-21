@@ -19,10 +19,15 @@ export interface Stats {
   charactersNoSpaces: number;
   paragraphs: number;
   readingMinutes: number;
+  wordsPerMinute: number;
 }
 
-/** سرعتِ خواندنِ متنِ فارسی — کندتر از انگلیسی. */
-const WORDS_PER_MINUTE = 200;
+/** مبنای قابل‌تنظیم؛ ۲۵۰ برای خواندنِ بی‌صدای متنِ عمومی. */
+export const DEFAULT_WORDS_PER_MINUTE = 250;
+
+export interface StatsOptions {
+  wordsPerMinute?: number;
+}
 
 const ZWNJ = "‌";
 
@@ -39,7 +44,7 @@ export function countWords(text: string): number {
   return matches.filter((w) => /[\p{L}\p{N}]/u.test(w)).length;
 }
 
-export function computeStats(doc: PMNode): Stats {
+export function computeStats(doc: PMNode, options: StatsOptions = {}): Stats {
   let text = "";
   let paragraphs = 0;
 
@@ -57,6 +62,9 @@ export function computeStats(doc: PMNode): Stats {
   });
 
   const words = countWords(text);
+  const wordsPerMinute = Number.isFinite(options.wordsPerMinute)
+    ? Math.max(1, Math.round(options.wordsPerMinute!))
+    : DEFAULT_WORDS_PER_MINUTE;
   const characters = [...text].length; // `[...]` تا ایموجیِ خارج از BMP یکی شمرده شود
   const charactersNoSpaces = [...text.replace(/\s/g, "")].length;
 
@@ -65,6 +73,7 @@ export function computeStats(doc: PMNode): Stats {
     characters,
     charactersNoSpaces,
     paragraphs,
-    readingMinutes: Math.max(1, Math.ceil(words / WORDS_PER_MINUTE)),
+    readingMinutes: words === 0 ? 0 : Math.max(1, Math.ceil(words / wordsPerMinute)),
+    wordsPerMinute,
   };
 }

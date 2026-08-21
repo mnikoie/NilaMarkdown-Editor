@@ -10,6 +10,8 @@ import {
   toggleFocusMode,
   toggleTypewriterMode,
 } from "../../core/plugins/writing-modes.js";
+import type { FoldInitialState, FoldMode } from "../../core/plugins/fold.js";
+import { useMarkdownI18n, type MarkdownLocale } from "../i18n.js";
 
 export interface ViewMenuProps {
   view: EditorView | null;
@@ -26,6 +28,14 @@ export interface ViewMenuProps {
   onToggleFullscreen?: () => void;
   zoom: number;
   onZoom: (zoom: number) => void;
+  locale?: MarkdownLocale;
+  onLocaleChange?: (locale: MarkdownLocale) => void;
+  foldInitial?: FoldInitialState;
+  onFoldInitialChange?: (initial: FoldInitialState) => void;
+  foldMode?: FoldMode;
+  onFoldModeChange?: (mode: FoldMode) => void;
+  onFoldAll?: () => void;
+  onUnfoldAll?: () => void;
 }
 
 interface Action {
@@ -53,7 +63,16 @@ export function ViewMenu({
   onToggleFullscreen,
   zoom,
   onZoom,
+  locale = "fa",
+  onLocaleChange,
+  foldInitial = "collapsed",
+  onFoldInitialChange,
+  foldMode = "accordion",
+  onFoldModeChange,
+  onFoldAll,
+  onUnfoldAll,
 }: ViewMenuProps) {
+  const { t } = useMarkdownI18n();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -132,6 +151,33 @@ export function ViewMenu({
     },
     { id: "zoom-in", label: "بزرگ‌نمایی", shortcut: "Ctrl+Shift+=", run: () => onZoom(zoom + 10) },
     { id: "zoom-out", label: "کوچک‌نمایی", shortcut: "Ctrl+Shift+-", run: () => onZoom(zoom - 10) },
+    {
+      id: "locale-fa",
+      label: "فارسی",
+      run: () => onLocaleChange?.("fa"),
+      checked: () => locale === "fa",
+      separatorBefore: true,
+    },
+    { id: "locale-en", label: "انگلیسی", run: () => onLocaleChange?.("en"), checked: () => locale === "en" },
+    {
+      id: "fold-all",
+      label: "بستن همهٔ بخش‌ها",
+      run: () => onFoldAll?.(),
+      separatorBefore: true,
+    },
+    { id: "unfold-all", label: "بازکردن همهٔ بخش‌ها", run: () => onUnfoldAll?.() },
+    {
+      id: "fold-initial",
+      label: "شروع با همهٔ بخش‌ها بسته",
+      run: () => onFoldInitialChange?.(foldInitial === "collapsed" ? "expanded" : "collapsed"),
+      checked: () => foldInitial === "collapsed",
+    },
+    {
+      id: "fold-accordion",
+      label: "فقط یک بخش هم‌سطح باز بماند",
+      run: () => onFoldModeChange?.(foldMode === "accordion" ? "multiple" : "accordion"),
+      checked: () => foldMode === "accordion",
+    },
   ];
 
   const run = (action: Action) => {
@@ -157,11 +203,11 @@ export function ViewMenu({
         onClick={() => setOpen((value) => !value)}
       >
         <Eye size={16} aria-hidden />
-        <span>View</span>
+        <span>{t("View")}</span>
         <ChevronDown size={14} aria-hidden />
       </button>
       {open ? (
-        <div className="tm-menu-panel" role="menu" aria-label="View">
+        <div className="tm-menu-panel" role="menu" aria-label={t("View")}>
           {actions.map((action) => (
             <div key={action.id}>
               {action.separatorBefore ? <span role="separator" className="tm-menu-separator" /> : null}
@@ -172,7 +218,7 @@ export function ViewMenu({
                 onMouseDown={keepSelection}
                 onClick={() => run(action)}
               >
-                <span>{action.label}</span>
+                <span>{t(action.label)}</span>
                 {action.shortcut ? <kbd>{action.shortcut}</kbd> : null}
               </button>
             </div>

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { FormEvent, KeyboardEvent } from "react";
 import type { EditorView } from "prosemirror-view";
 import { insertImage } from "../../core/commands/format.js";
+import { useMarkdownI18n } from "../i18n.js";
 
 export interface ImagePopoverProps {
   view: EditorView | null;
@@ -12,6 +13,7 @@ export interface ImagePopoverProps {
 }
 
 export function ImagePopover({ view, open, onClose }: ImagePopoverProps) {
+  const { t } = useMarkdownI18n();
   const [src, setSrc] = useState("");
   const [alt, setAlt] = useState("");
   const srcRef = useRef<HTMLInputElement>(null);
@@ -44,16 +46,16 @@ export function ImagePopover({ view, open, onClose }: ImagePopoverProps) {
   return (
     <form
       className="tm-link-popover tm-image-popover"
-      aria-label="درجِ تصویر"
+      aria-label={t("درجِ تصویر")}
       onSubmit={submit}
       onKeyDown={onKeyDown}
     >
       <label className="tm-link-field">
-        <span>متن جایگزین</span>
-        <input value={alt} onChange={(event) => setAlt(event.target.value)} placeholder="توضیح تصویر" />
+        <span>{t("متن جایگزین")}</span>
+        <input value={alt} onChange={(event) => setAlt(event.target.value)} placeholder={t("توضیح تصویر")} />
       </label>
       <label className="tm-link-field">
-        <span>نشانی تصویر</span>
+        <span>{t("نشانی تصویر")}</span>
         <input
           ref={srcRef}
           value={src}
@@ -65,10 +67,10 @@ export function ImagePopover({ view, open, onClose }: ImagePopoverProps) {
       </label>
       <div className="tm-link-actions">
         <button type="button" onClick={() => { view?.focus(); onClose(); }}>
-          لغو
+          {t("لغو")}
         </button>
         <button type="submit" disabled={!src.trim()}>
-          درج
+          {t("درج")}
         </button>
       </div>
     </form>

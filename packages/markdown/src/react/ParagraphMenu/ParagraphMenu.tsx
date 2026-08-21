@@ -41,6 +41,7 @@ import { setTaskStatus, toggleTaskList } from "../../core/commands/task-list.js"
 import { foldAllListNodes, unfoldAllListNodes } from "../../core/plugins/list-fold.js";
 import { schema } from "../../core/schema/index.js";
 import { serialize } from "../../core/markdown/serialize.js";
+import { useMarkdownI18n } from "../i18n.js";
 
 export interface ParagraphMenuProps {
   view: EditorView | null;
@@ -228,6 +229,7 @@ function entries(onReference?: () => void, onNotice?: (message: string) => void)
 }
 
 export function ParagraphMenu({ view, onInsertReferenceLink, onNotice }: ParagraphMenuProps) {
+  const { t } = useMarkdownI18n();
   const [open, setOpen] = useState(false);
   const [submenu, setSubmenu] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -279,11 +281,11 @@ export function ParagraphMenu({ view, onInsertReferenceLink, onNotice }: Paragra
         onClick={() => setOpen((value) => !value)}
       >
         <Pilcrow size={16} aria-hidden />
-        <span>پاراگراف</span>
+        <span>{t("پاراگراف")}</span>
         <ChevronDown size={14} aria-hidden />
       </button>
       {open ? (
-        <div className="tm-menu-panel" role="menu" aria-label="پاراگراف">
+        <div className="tm-menu-panel" role="menu" aria-label={t("پاراگراف")}>
           {menuEntries.map((entry) => {
             if (isSubmenu(entry)) {
               const expanded = submenu === entry.id;
@@ -298,11 +300,11 @@ export function ParagraphMenu({ view, onInsertReferenceLink, onNotice }: Paragra
                     onMouseDown={keepSelection}
                     onClick={() => setSubmenu(expanded ? null : entry.id)}
                   >
-                    <span>{entry.label}</span>
+                    <span>{t(entry.label)}</span>
                     <ChevronLeft size={14} aria-hidden />
                   </button>
                   {expanded ? (
-                    <div className="tm-menu-submenu" role="menu" aria-label={entry.label}>
+                    <div className="tm-menu-submenu" role="menu" aria-label={t(entry.label)}>
                       {entry.items.map((item) => (
                         <div key={item.id}>
                           {item.separatorBefore ? <span role="separator" className="tm-menu-separator" /> : null}
@@ -310,11 +312,11 @@ export function ParagraphMenu({ view, onInsertReferenceLink, onNotice }: Paragra
                             type="button"
                             role="menuitem"
                             disabled={Boolean(item.disabledHint) || !view || Boolean(item.command && !item.command(view.state, undefined, view))}
-                            title={item.disabledHint}
+                            title={item.disabledHint ? t(item.disabledHint) : undefined}
                             onMouseDown={keepSelection}
                             onClick={() => run(item)}
                           >
-                            <span>{item.label}</span>
+                            <span>{t(item.label)}</span>
                             {item.shortcut ? <kbd>{item.shortcut}</kbd> : null}
                           </button>
                         </div>
@@ -331,11 +333,11 @@ export function ParagraphMenu({ view, onInsertReferenceLink, onNotice }: Paragra
                   type="button"
                   role="menuitem"
                   disabled={Boolean(entry.disabledHint) || !view || Boolean(entry.command && !entry.command(view.state, undefined, view))}
-                  title={entry.disabledHint}
+                  title={entry.disabledHint ? t(entry.disabledHint) : undefined}
                   onMouseDown={keepSelection}
                   onClick={() => run(entry)}
                 >
-                  <span>{entry.label}</span>
+                  <span>{t(entry.label)}</span>
                   {entry.shortcut ? <kbd>{entry.shortcut}</kbd> : null}
                 </button>
               </div>

@@ -51,7 +51,7 @@ test("★ سرفصل در خودِ متن مثلثِ تاشدن دارد", async
   await expect(handle).toBeAttached();
 
   // نودِ والد بدون نیاز به hover هم باید قابلِ تشخیص باشد.
-  await expect(handle).toHaveCSS("opacity", "0.55");
+  await expect(handle).toHaveCSS("opacity", "1");
 
   // با hover دیده می‌شود.
   await h1.hover();
@@ -64,21 +64,19 @@ test("★★ کلیک روی مثلثِ متن، فصل را می‌بندد و 
 
   // ★ حالت روی **خودِ سرفصل** است نه روی دکمه — دلیلش در `fold.ts`
   // کنارِ `foldState` نوشته شده.
+  await expect(h1).toHaveAttribute("data-folded", "true");
+
+  await h1.hover();
+  await handle.click();
+
   await expect(h1).toHaveAttribute("data-folded", "false");
+  await expect(h1).toHaveAttribute("aria-expanded", "true");
 
   await h1.hover();
   await handle.click();
 
   await expect(h1).toHaveAttribute("data-folded", "true");
-  await expect(h1).toHaveAttribute("aria-expanded", "false");
-  expect(await page.locator(".tm-folded-hidden").count()).toBeGreaterThan(0);
   await expect(page.locator(".tm-fold-summary").first()).toBeVisible();
-
-  await h1.hover();
-  await handle.click();
-
-  await expect(h1).toHaveAttribute("data-folded", "false");
-  await expect(page.locator(".tm-folded-hidden")).toHaveCount(0);
 });
 
 test("★ باز و بسته‌شدن پشتِ‌هم پایدار است", async ({ page }) => {
@@ -88,7 +86,7 @@ test("★ باز و بسته‌شدن پشتِ‌هم پایدار است", asyn
   const h1 = page.locator(".tm-editor h1").first();
   const handle = h1.locator(".tm-inline-fold");
 
-  for (const expected of ["true", "false", "true", "false"]) {
+  for (const expected of ["false", "true", "false", "true"]) {
     await h1.hover();
     await handle.click();
     await expect(h1).toHaveAttribute("data-folded", expected);
@@ -99,8 +97,6 @@ test("★ بستنِ فصل، سرفصلش را پنهان نمی‌کند", asy
   const h1 = page.locator(".tm-editor h1").first();
   const text = (await h1.innerText()).trim();
 
-  await h1.hover();
-  await h1.locator(".tm-inline-fold").click();
   await expect(h1).toHaveAttribute("data-folded", "true");
 
   // وگرنه کاربر چیزی برای کلیک‌کردن و بازکردن ندارد.
@@ -109,12 +105,32 @@ test("★ بستنِ فصل، سرفصلش را پنهان نمی‌کند", asy
 
 test("★ خلاصه هم فصل را باز می‌کند", async ({ page }) => {
   const h1 = page.locator(".tm-editor h1").first();
-  await h1.hover();
-  await h1.locator(".tm-inline-fold").click();
   await expect(h1).toHaveAttribute("data-folded", "true");
 
   await page.locator(".tm-fold-summary").first().click();
-  await expect(page.locator(".tm-folded-hidden")).toHaveCount(0);
+  await expect(h1).toHaveAttribute("data-folded", "false");
+});
+
+test("★★ با مکان‌نمای داخلِ بخش هم فلش واقعاً آن را می‌بندد", async ({ page }) => {
+  const h1 = page.locator(".tm-editor h1").first();
+  await h1.locator(".tm-inline-fold").click();
+  const body = page.locator(".tm-editor p", { hasText: "این بخشنامه در اجرای" }).first();
+  await body.click();
+  await h1.hover();
+  await h1.locator(".tm-inline-fold").click();
+  await expect(h1).toHaveAttribute("data-folded", "true");
+  await expect(body).toBeHidden();
+});
+
+test("★★ بازکردنِ یک عنوانِ هم‌سطح، عنوانِ قبلی را می‌بندد", async ({ page }) => {
+  const roots = page.locator(".tm-editor h1");
+  const first = roots.nth(0);
+  const second = roots.nth(1);
+  await first.locator(".tm-inline-fold").click();
+  await expect(first).toHaveAttribute("data-folded", "false");
+  await second.locator(".tm-inline-fold").click();
+  await expect(second).toHaveAttribute("data-folded", "false");
+  await expect(first).toHaveAttribute("data-folded", "true");
 });
 
 test("★★ تاشدن وارد مارک‌داون نمی‌شود", async ({ page }) => {
@@ -124,7 +140,7 @@ test("★★ تاشدن وارد مارک‌داون نمی‌شود", async ({ 
   const h1 = page.locator(".tm-editor h1").first();
   await h1.hover();
   await h1.locator(".tm-inline-fold").click();
-  await expect(h1).toHaveAttribute("data-folded", "true");
+  await expect(h1).toHaveAttribute("data-folded", "false");
   await page.waitForTimeout(600);
 
   // ★ حالتِ نمایش هرگز نباید در سند بنشیند — وگرنه رفت‌وبرگشت می‌شکند.
@@ -136,6 +152,12 @@ test("★★ همهٔ کارت‌های دارای زیرمجموعه نودِ �
   const toggles = cards.locator(":scope > .tm-mark-header > .tm-fold-toggle");
   await expect(toggles).toHaveCount(await cards.count());
 
+  // در اجرای اول همهٔ کارت‌ها بسته‌اند.
+  await expect(toggles.first()).toHaveAttribute("aria-expanded", "false");
+
+  await page.getByRole("button", { name: "نمایش", exact: true }).click();
+  await page.getByRole("menuitem", { name: "بازکردن همهٔ بخش‌ها" }).click();
+
   // «هشدار» قبلاً collapsible نبود؛ اکنون مثل هر والدِ دیگر تا می‌شود.
   const warning = page.locator('.tm-mark[data-mark="هشدار"]');
   const toggle = warning.locator(":scope > .tm-mark-header > .tm-fold-toggle");
@@ -146,6 +168,71 @@ test("★★ همهٔ کارت‌های دارای زیرمجموعه نودِ �
   await expect(warning.locator(":scope > .tm-mark-body")).toBeHidden();
   await toggle.click();
   await expect(warning.locator(":scope > .tm-mark-body")).toBeVisible();
+});
+
+test("★★ اجرای اول همهٔ عنوان‌ها، فهرست‌ها و کارت‌ها بسته‌اند", async ({ page }) => {
+  const headings = page.locator(".tm-editor :is(h1,h2,h3,h4,h5,h6)[data-folded]");
+  expect(await headings.count()).toBeGreaterThan(0);
+  await expect(headings.first()).toHaveAttribute("aria-expanded", "false");
+  await expect(page.locator(".tm-list-fold-toggle").first()).toHaveAttribute("aria-expanded", "false");
+  await expect(page.locator(".tm-mark > .tm-mark-header > .tm-fold-toggle").first()).toHaveAttribute(
+    "aria-expanded",
+    "false",
+  );
+  await expect(page.locator(".tm-code").first()).toBeHidden();
+  await expect(page.locator(".tm-editor table")).toBeHidden();
+  await expect(page.locator(".tm-math-block").first()).toBeHidden();
+});
+
+test("★★ در حالت تمرکز، کلیک Outline خودِ عنوان را به دید می‌آورد", async ({ page }) => {
+  await page.getByRole("button", { name: "نمایش", exact: true }).click();
+  await page.getByRole("menuitem", { name: "بازکردن همهٔ بخش‌ها" }).click();
+  await page.getByRole("button", { name: "نمایش", exact: true }).click();
+  await page.getByRole("menuitemcheckbox", { name: /حالت تمرکز/ }).click();
+
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.locator('[data-outline-id="amnیت"], [data-outline-id="امنیت"]').first().click();
+  const heading = page.locator(".tm-editor h2", { hasText: "امنیت" });
+  await expect(heading).toBeInViewport();
+  const box = await heading.boundingBox();
+  expect(box!.y).toBeGreaterThanOrEqual(0);
+  expect(box!.y).toBeLessThan(page.viewportSize()!.height * 0.8);
+});
+
+test("★★ جست‌وجو هنگام اسکرول روی صفحه می‌ماند", async ({ page }) => {
+  await page.getByRole("button", { name: "ویرایش" }).click();
+  await page.getByRole("menuitem", { name: "جست‌وجو و جایگزینی" }).click();
+  await page.getByRole("menuitem", { name: /^جست‌وجو Ctrl/ }).click();
+  const search = page.getByRole("search");
+  await expect(search).toBeVisible();
+  const before = await search.boundingBox();
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  await expect(search).toBeInViewport();
+  const after = await search.boundingBox();
+  expect(Math.abs(after!.y - before!.y)).toBeLessThanOrEqual(2);
+});
+
+test("★★ رابط دو زبانه است و جهت هر بلوک مستقل تشخیص داده می‌شود", async ({ page }) => {
+  const root = page.locator(".tm-root");
+  await expect(root).toHaveAttribute("lang", "fa");
+  await expect(root).toHaveAttribute("dir", "rtl");
+  await expect(page.locator('.tm-editor [data-auto-dir="true"][dir="rtl"]').first()).toBeAttached();
+  await expect(page.locator('.tm-editor [data-auto-dir="true"][dir="ltr"]').first()).toBeAttached();
+
+  await page.getByRole("button", { name: "نمایش", exact: true }).click();
+  await page.getByRole("menuitemcheckbox", { name: "انگلیسی" }).click();
+  await expect(root).toHaveAttribute("lang", "en");
+  await expect(root).toHaveAttribute("dir", "ltr");
+  await expect(page.getByRole("button", { name: "File" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Edit" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Paragraph" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Format" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "View" })).toBeVisible();
+  await expect(page.locator(".tm-code .tm-code-copy").first()).toHaveText("Copy");
+  await expect(page.locator(".tm-task-checkbox").first()).toHaveAttribute(
+    "aria-label",
+    /Mark as (completed|incomplete)/,
+  );
 });
 
 test("★ چیدمانِ صفحه مثل Typora تمام‌قد و پنلِ ساختار در چپ است", async ({ page }) => {

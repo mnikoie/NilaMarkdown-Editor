@@ -7,7 +7,7 @@ import { serialize } from "../../src/core/markdown/serialize.js";
 import { createNodeViews } from "../../src/node-views/index.js";
 import { BUILTIN_MARKS } from "../../src/core/directives/builtin.js";
 import { isRealBrowser } from "../../src/node-views/CodeBlock.js";
-import type { Features } from "../../src/node-views/index.js";
+import type { Features, NodeViewOptions } from "../../src/node-views/index.js";
 
 /**
  * NodeViewهای بلوکِ کد، ریاضی و نمودار.
@@ -25,12 +25,12 @@ import type { Features } from "../../src/node-views/index.js";
  * بار نمی‌شوند.
  */
 
-function makeView(md: string, features: Features = {}) {
+function makeView(md: string, features: Features = {}, options: NodeViewOptions = {}) {
   const mount = document.createElement("div");
   document.body.append(mount);
   return new EditorView(mount, {
     state: EditorState.create({ doc: parse(md), schema }),
-    nodeViews: createNodeViews(BUILTIN_MARKS, features),
+    nodeViews: createNodeViews(BUILTIN_MARKS, features, options),
   });
 }
 
@@ -134,6 +134,19 @@ describe("NodeViewها", () => {
     expect(cards[0]!.hasAttribute("data-folded")).toBe(true);
     expect(cards[0]!.querySelector<HTMLElement>(".tm-mark-body")!.style.display).toBe("none");
     expect(serialize(view.state.doc)).toBe(md);
+    view.destroy();
+  });
+
+  it("کارت‌ها می‌توانند بسته شروع شوند و به‌شکل آکاردئون باز شوند", () => {
+    const md = ":::هشدار\nیک\n:::\n\n:::نکته\nدو\n:::\n";
+    const view = makeView(md, {}, { folding: { initial: "collapsed", mode: "accordion" } });
+    const toggles = [...view.dom.querySelectorAll<HTMLButtonElement>(".tm-fold-toggle")];
+    expect(toggles.map((button) => button.getAttribute("aria-expanded"))).toEqual(["false", "false"]);
+    toggles[0]!.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    expect(toggles[0]!.getAttribute("aria-expanded")).toBe("true");
+    toggles[1]!.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    expect(toggles[0]!.getAttribute("aria-expanded")).toBe("false");
+    expect(toggles[1]!.getAttribute("aria-expanded")).toBe("true");
     view.destroy();
   });
 });

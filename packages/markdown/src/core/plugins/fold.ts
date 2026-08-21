@@ -1,4 +1,4 @@
-import { Plugin, PluginKey } from "prosemirror-state";
+import { Plugin, PluginKey, Selection } from "prosemirror-state";
 import type { EditorState, Transaction } from "prosemirror-state";
 import { Decoration, DecorationSet } from "prosemirror-view";
 import type { Node as PMNode } from "prosemirror-model";
@@ -30,21 +30,36 @@ export interface FoldState {
   /** لنگرِ گره‌های بسته. */
   folded: Set<string>;
   decorations: DecorationSet;
+  mode: FoldMode;
+}
+
+export type FoldInitialState = "collapsed" | "expanded";
+export type FoldMode = "accordion" | "multiple";
+
+/** تنظیمِ عمومیِ همهٔ نودهای بازوبسته‌شوندهٔ ویرایشگر. */
+export interface FoldingOptions {
+  /** پیش‌فرضِ اولین نمایش. */
+  initial?: FoldInitialState;
+  /** آکاردئون فقط یک گرهٔ هم‌سطح را باز نگه می‌دارد. */
+  mode?: FoldMode;
 }
 
 /** تراکنشی که این متا را داشته باشد، حالتِ تاشدگی را عوض می‌کند. */
 interface FoldMeta {
-  type: "toggle" | "fold" | "unfold" | "foldAll" | "unfoldAll" | "set";
+  type: "toggle" | "fold" | "unfold" | "foldAll" | "unfoldAll" | "set" | "setMode";
   id?: string;
   ids?: string[];
   /** برای `foldAll` — فقط تا این عمق ببند. */
   depth?: number;
+  mode?: FoldMode;
 }
 
 export interface FoldOptions {
   registry?: MarkRegistry;
   /** لنگرهایی که در آغاز بسته‌اند — از localStorage یا از تعریفِ مارک. */
-  initial?: string[];
+  initial?: string[] | "all";
+  mode?: FoldMode;
+  locale?: "fa" | "en";
   /** هر بار که حالت عوض شد صدا می‌شود — برای ذخیره در localStorage. */
   onChange?: (folded: string[]) => void;
 }
@@ -57,7 +72,11 @@ export interface FoldOptions {
  * داخلش، چهار بار شمرده می‌شود و کاربر «۳۴ بلوک» می‌بیند در حالی که
  * ۱۰ تا پنهان شده.
  */
-function summaryText(doc: PMNode, range: { from: number; to: number }): string {
+function summaryText(
+  doc: PMNode,
+  range: { from: number; to: number },
+  locale: "fa" | "en",
+): string {
   let blocks = 0;
   doc.nodesBetween(range.from, range.to, (child, pos) => {
     if (pos < range.from || pos + child.nodeSize > range.to) return true;
@@ -65,6 +84,11 @@ function summaryText(doc: PMNode, range: { from: number; to: number }): string {
     blocks++;
     return false; // داخلِ این بلوک نرو
   });
+  if (locale === "en") {
+    return blocks > 0
+      ? `${blocks.toLocaleString("en-US")} hidden ${blocks === 1 ? "block" : "blocks"}`
+      : "Hidden";
+  }
   return blocks > 0 ? `${toFa(blocks)} بلوکِ پنهان` : "پنهان";
 }
 
@@ -139,7 +163,7 @@ function sectionEnd(doc: PMNode, all: OutlineNode[], node: OutlineNode): number 
  * تغییرِ حالت درست به‌روز می‌شود. دکمه ثابت می‌ماند (کلیک نمی‌شکند) و
  * CSS از روی صفتِ والد، جهتِ مثلث را می‌چرخاند.
  */
-function foldHandle(node: OutlineNode): Decoration {
+function foldHandle(node: OutlineNode, locale: "fa" | "en"): Decoration {
   return Decoration.widget(
     node.from + 1,
     () => {
@@ -148,6 +172,7 @@ function foldHandle(node: OutlineNode): Decoration {
       el.className = "tm-inline-fold";
       el.setAttribute("data-fold-id", node.id);
       el.setAttribute("contenteditable", "false");
+      el.setAttribute("aria-label", locale === "en" ? `Toggle ${node.title}` : `باز و بسته‌کردنِ ${node.title}`);
       el.textContent = "⌄";
       return el;
     },
@@ -167,11 +192,20 @@ function buildDecorations(
   state: EditorState,
   folded: Set<string>,
   registry: MarkRegistry,
+  locale: "fa" | "en",
 ): DecorationSet {
   const { doc, selection } = state;
   const tree = buildOutline(doc, registry);
   const flat = flattenOutline(tree);
   const decos: Decoration[] = [];
+  const hiddenByFoldedAncestor = new Set<string>();
+  const markHiddenDescendants = (nodes: OutlineNode[], ancestorFolded: boolean) => {
+    for (const node of nodes) {
+      if (ancestorFolded) hiddenByFoldedAncestor.add(node.id);
+      markHiddenDescendants(node.children, ancestorFolded || folded.has(node.id));
+    }
+  };
+  markHiddenDescendants(tree, false);
 
   // ★ مثلث برای **همهٔ** سرفصل‌هایی که چیزی زیرشان هست — نه فقط
   // بسته‌ها. وگرنه کاربر راهی برای بستنِ یک بخشِ باز ندارد.
@@ -181,12 +215,16 @@ function buildDecorations(
     const resolved = doc.nodeAt(node.from);
     // بخشِ خالی مثلث نمی‌گیرد — دکمه‌ای که کاری نمی‌کند بدتر از نبودنش است.
     if (!resolved || end <= node.from + resolved.nodeSize) continue;
-    decos.push(foldHandle(node));
+    decos.push(foldHandle(node, locale));
     decos.push(foldState(node, folded.has(node.id), resolved.nodeSize));
   }
 
   for (const node of flat) {
     if (!folded.has(node.id)) continue;
+    // والدِ بسته خودش کلِ این زیرشاخه را پنهان می‌کند. خلاصهٔ فرزند اگر
+    // جدا ساخته شود بیرونِ گرهٔ پنهان می‌افتد و چند pill بی‌معنی کنارِ
+    // خلاصهٔ والد دیده می‌شود.
+    if (hiddenByFoldedAncestor.has(node.id)) continue;
 
     const end = sectionEnd(doc, tree, node);
     const range = hiddenRange(doc, { ...node, to: end });
@@ -209,9 +247,9 @@ function buildDecorations(
           const el = document.createElement("button");
           el.type = "button";
           el.className = "tm-fold-summary";
-          el.textContent = summaryText(doc, range);
+          el.textContent = summaryText(doc, range, locale);
           el.setAttribute("data-fold-id", node.id);
-          el.setAttribute("aria-label", `بازکردنِ ${node.title}`);
+          el.setAttribute("aria-label", locale === "en" ? `Expand ${node.title}` : `بازکردنِ ${node.title}`);
           return el;
         },
         { side: -1, key: `fold-${node.id}` },
@@ -225,26 +263,48 @@ function buildDecorations(
 
 export function foldPlugin(options: FoldOptions = {}): Plugin<FoldState> {
   const registry = options.registry ?? BUILTIN_MARKS;
+  const locale = options.locale ?? "fa";
+
+  const allIds = (doc: PMNode) => flattenOutline(buildOutline(doc, registry)).map((node) => node.id);
+
+  const siblingIds = (doc: PMNode, id: string): string[] => {
+    const walk = (nodes: OutlineNode[]): string[] | null => {
+      if (nodes.some((node) => node.id === id)) return nodes.filter((node) => node.id !== id).map((node) => node.id);
+      for (const node of nodes) {
+        const found = walk(node.children);
+        if (found) return found;
+      }
+      return null;
+    };
+    return walk(buildOutline(doc, registry)) ?? [];
+  };
 
   return new Plugin<FoldState>({
     key: foldKey,
 
     state: {
       init(_config, state) {
-        const folded = new Set(options.initial ?? []);
-        return { folded, decorations: buildDecorations(state, folded, registry) };
+        const folded = new Set(options.initial === "all" ? allIds(state.doc) : (options.initial ?? []));
+        const mode = options.mode ?? "accordion";
+        return { folded, mode, decorations: buildDecorations(state, folded, registry, locale) };
       },
 
       apply(tr, prev, _old, newState) {
         const meta = tr.getMeta(foldKey) as FoldMeta | undefined;
         let folded = prev.folded;
+        let mode = prev.mode;
 
         if (meta) {
           folded = new Set(prev.folded);
           switch (meta.type) {
             case "toggle":
               if (meta.id) {
-                if (folded.has(meta.id)) folded.delete(meta.id);
+                if (folded.has(meta.id)) {
+                  folded.delete(meta.id);
+                  if (mode === "accordion") {
+                    for (const sibling of siblingIds(newState.doc, meta.id)) folded.add(sibling);
+                  }
+                }
                 else folded.add(meta.id);
               }
               break;
@@ -267,13 +327,16 @@ export function foldPlugin(options: FoldOptions = {}): Plugin<FoldState> {
             case "set":
               folded = new Set(meta.ids ?? []);
               break;
+            case "setMode":
+              if (meta.mode) mode = meta.mode;
+              break;
           }
           options.onChange?.([...folded]);
         } else if (!tr.docChanged && !tr.selectionSet) {
           return prev;
         }
 
-        return { folded, decorations: buildDecorations(newState, folded, registry) };
+        return { folded, mode, decorations: buildDecorations(newState, folded, registry, locale) };
       },
     },
 
@@ -299,7 +362,14 @@ export function foldPlugin(options: FoldOptions = {}): Plugin<FoldState> {
           if (!id) return false;
           // جلوی گرفتنِ فوکوس و جابه‌جاییِ مکان‌نما را بگیر.
           event.preventDefault();
-          view.dispatch(view.state.tr.setMeta(foldKey, { type: "toggle", id }));
+          const opening = foldKey.getState(view.state)?.folded.has(id) ?? false;
+          const node = flattenOutline(buildOutline(view.state.doc, registry)).find((item) => item.id === id);
+          let tr = view.state.tr;
+          if (!opening && node) {
+            const pos = Math.min(node.from + 1, view.state.doc.content.size);
+            tr = tr.setSelection(Selection.near(view.state.doc.resolve(pos)));
+          }
+          view.dispatch(tr.setMeta(foldKey, { type: "toggle", id }));
           return true;
         },
       },
@@ -311,18 +381,44 @@ export function foldPlugin(options: FoldOptions = {}): Plugin<FoldState> {
 
 type Dispatch = ((tr: Transaction) => void) | undefined;
 
-export const toggleFold = (id: string) => (state: EditorState, dispatch: Dispatch) => {
-  dispatch?.(state.tr.setMeta(foldKey, { type: "toggle", id }));
+export const toggleFold = (id: string, from?: number) => (state: EditorState, dispatch: Dispatch) => {
+  if (dispatch) {
+    let tr = state.tr;
+    const pluginState = foldKey.getState(state);
+    if (pluginState && !pluginState.folded.has(id)) {
+      const node = from === undefined
+        ? flattenOutline(buildOutline(state.doc, BUILTIN_MARKS)).find((item) => item.id === id)
+        : { from };
+      if (node) {
+        const pos = Math.min(node.from + 1, state.doc.content.size);
+        tr = tr.setSelection(Selection.near(state.doc.resolve(pos)));
+      }
+    }
+    dispatch(tr.setMeta(foldKey, { type: "toggle", id }));
+  }
   return true;
 };
 
 export const foldAll = (depth?: number) => (state: EditorState, dispatch: Dispatch) => {
-  dispatch?.(state.tr.setMeta(foldKey, { type: "foldAll", depth }));
+  if (dispatch) {
+    const first = flattenOutline(buildOutline(state.doc, BUILTIN_MARKS))[0];
+    const pos = Math.min((first?.from ?? 0) + 1, state.doc.content.size);
+    dispatch(
+      state.tr
+        .setSelection(Selection.near(state.doc.resolve(pos)))
+        .setMeta(foldKey, { type: "foldAll", depth }),
+    );
+  }
   return true;
 };
 
 export const unfoldAll = () => (state: EditorState, dispatch: Dispatch) => {
   dispatch?.(state.tr.setMeta(foldKey, { type: "unfoldAll" }));
+  return true;
+};
+
+export const setFoldMode = (mode: FoldMode) => (state: EditorState, dispatch: Dispatch) => {
+  dispatch?.(state.tr.setMeta(foldKey, { type: "setMode", mode }));
   return true;
 };
 

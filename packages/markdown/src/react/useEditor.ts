@@ -10,7 +10,7 @@ import { schema } from "../core/schema/index.js";
 import { parse } from "../core/markdown/parse.js";
 import { serialize } from "../core/markdown/serialize.js";
 import { livePreviewPlugin } from "../core/plugins/live-preview.js";
-import { foldPlugin } from "../core/plugins/fold.js";
+import { foldPlugin, type FoldingOptions } from "../core/plugins/fold.js";
 import { inputRulesPlugin } from "../core/plugins/input-rules.js";
 import { keymapPlugin } from "../core/plugins/keymap.js";
 import { isInTable, tableEditingPlugin, tableResizingPlugin } from "../core/commands/table.js";
@@ -21,6 +21,7 @@ import { pasteImagePlugin, type PasteImageOptions } from "../core/plugins/paste-
 import { autoPairPlugin } from "../core/plugins/auto-pair.js";
 import { taskListPlugin } from "../core/plugins/task-list.js";
 import { listFoldPlugin } from "../core/plugins/list-fold.js";
+import { textDirectionPlugin, type TextDirection } from "../core/plugins/text-direction.js";
 import { createNodeViews } from "../node-views/index.js";
 import type { Features } from "../node-views/index.js";
 import { buildOutline } from "../core/outline/build.js";
@@ -37,6 +38,9 @@ export interface UseEditorOptions {
   readOnly?: boolean;
   directives?: MarkRegistry;
   foldedIds?: string[];
+  folding?: FoldingOptions;
+  locale?: "fa" | "en";
+  dir?: TextDirection;
   onFoldChange?: (ids: string[]) => void;
   onToggleSource?: () => void;
   onSearch?: () => void;
@@ -90,6 +94,9 @@ export function useEditor(options: UseEditorOptions): {
     readOnly = false,
     directives = BUILTIN_MARKS,
     foldedIds,
+    folding,
+    locale = "fa",
+    dir = "auto",
     onFoldChange,
     onToggleSource,
     onSearch,
@@ -139,6 +146,8 @@ export function useEditor(options: UseEditorOptions): {
   // بازمی‌ساخت و مکان‌نما را می‌پراند.
   const imagesRef = useRef(images);
   imagesRef.current = images;
+  const foldModeRef = useRef(folding?.mode ?? "accordion");
+  foldModeRef.current = folding?.mode ?? "accordion";
 
   const ref = (node: HTMLElement | null) => {
     mountRef.current = node;
@@ -148,7 +157,7 @@ export function useEditor(options: UseEditorOptions): {
     const mount = mountRef.current;
     if (!mount) return;
 
-    const doc = parse(value ?? defaultValue);
+    const doc = parse(lastEmitted.current);
     const state = EditorState.create({
       doc,
       schema,
@@ -179,17 +188,24 @@ export function useEditor(options: UseEditorOptions): {
         livePreviewPlugin({ requireFocus: true }),
         foldPlugin({
           registry: directives,
-          initial: foldedIds,
+          initial: foldedIds ?? (folding?.initial === "expanded" ? [] : "all"),
+          mode: folding?.mode ?? "accordion",
+          locale,
           onChange: (ids) => onFoldChangeRef.current?.(ids),
         }),
         searchPlugin(),
+        textDirectionPlugin(dir),
         writingModesPlugin({ focus: focusMode, typewriter: typewriterMode }),
         // ★ باید **قبل از** `dropCursor` بیاید: هر دو `handleDrop` دارند
         // و اولی که `true` برگرداند رویداد را مصرف می‌کند. با ترتیبِ
         // برعکس، رهاکردنِ عکس فقط مکان‌نما را جابه‌جا می‌کرد.
         pasteImagePlugin(imagesRef.current ?? {}),
-        taskListPlugin(),
-        listFoldPlugin(),
+        taskListPlugin({ locale }),
+        listFoldPlugin({
+          initial: folding?.initial ?? "collapsed",
+          mode: folding?.mode ?? "accordion",
+          locale,
+        }),
         tableResizingPlugin(),
         tableEditingPlugin(),
         dropCursor(),
@@ -200,11 +216,15 @@ export function useEditor(options: UseEditorOptions): {
     const view = new EditorView(mount, {
       state,
       editable: () => !readOnly,
-      nodeViews: createNodeViews(directives, features),
+      nodeViews: createNodeViews(directives, features, {
+        folding,
+        cardFolding: { mode: () => foldModeRef.current },
+        locale,
+      }),
       attributes: {
         role: "textbox",
         "aria-multiline": "true",
-        "aria-label": "ویرایشگرِ متن",
+        "aria-label": locale === "en" ? "Text Editor" : "ویرایشگرِ متن",
         class: "tm-editor",
       },
       dispatchTransaction(tr) {
@@ -231,12 +251,13 @@ export function useEditor(options: UseEditorOptions): {
 
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
+      lastEmitted.current = serialize(view.state.doc);
       view.destroy();
       viewRef.current = null;
     };
     // `value` عمداً در وابستگی‌ها نیست — تغییرش سند را بازسازی نمی‌کند.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [directives, debounceMs, readOnly, features, focusMode, typewriterMode]);
+  }, [directives, debounceMs, readOnly, features, focusMode, typewriterMode, locale, dir, folding?.initial]);
 
   /** حالتِ کنترل‌شده — فقط وقتی `value` از بیرون واقعاً فرق کرده. */
   useEffect(() => {

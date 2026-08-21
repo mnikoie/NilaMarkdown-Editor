@@ -9,6 +9,7 @@ import type { EditorView } from "prosemirror-view";
 import { clearFormatting } from "../../core/commands/format.js";
 import { getActiveLink, unsetLink } from "../../core/commands/link.js";
 import { safeHref } from "../../core/security.js";
+import { useMarkdownI18n } from "../i18n.js";
 import { schema } from "../../core/schema/index.js";
 
 export interface FormatMenuProps {
@@ -67,6 +68,7 @@ export function FormatMenu({
   onInsertLocalImage,
   onNotice,
 }: FormatMenuProps) {
+  const { t } = useMarkdownI18n();
   const [open, setOpen] = useState(false);
   const [submenu, setSubmenu] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -223,11 +225,11 @@ export function FormatMenu({
         onClick={() => setOpen((value) => !value)}
       >
         <ALargeSmall size={16} aria-hidden />
-        <span>Format</span>
+        <span>{t("Format")}</span>
         <ChevronDown size={14} aria-hidden />
       </button>
       {open ? (
-        <div className="tm-menu-panel" role="menu" aria-label="Format">
+        <div className="tm-menu-panel" role="menu" aria-label={t("Format")}>
           {entries.map((entry) => {
             if (isSubmenu(entry)) {
               const expanded = submenu === entry.id;
@@ -243,11 +245,11 @@ export function FormatMenu({
                     onMouseDown={keepSelection}
                     onClick={() => setSubmenu(expanded ? null : entry.id)}
                   >
-                    <span>{entry.label}</span>
+                    <span>{t(entry.label)}</span>
                     <ChevronLeft size={14} aria-hidden />
                   </button>
                   {expanded ? (
-                    <div className="tm-menu-submenu" role="menu" aria-label={entry.label}>
+                    <div className="tm-menu-submenu" role="menu" aria-label={t(entry.label)}>
                       {entry.items.map((item) => (
                         <div key={item.id}>
                           {item.separatorBefore ? <span role="separator" className="tm-menu-separator" /> : null}
@@ -259,7 +261,7 @@ export function FormatMenu({
                             onMouseDown={keepSelection}
                             onClick={() => run(item)}
                           >
-                            <span>{item.label}</span>
+                            <span>{t(item.label)}</span>
                             {item.shortcut ? <kbd>{item.shortcut}</kbd> : null}
                           </button>
                         </div>
@@ -280,7 +282,7 @@ export function FormatMenu({
                   onMouseDown={keepSelection}
                   onClick={() => run(entry)}
                 >
-                  <span>{entry.label}</span>
+                  <span>{t(entry.label)}</span>
                   {entry.shortcut ? <kbd>{entry.shortcut}</kbd> : null}
                 </button>
               </div>

@@ -35,6 +35,8 @@ async function placeCursorInParagraph(page: import("@playwright/test").Page, con
 test.beforeEach(async ({ page }) => {
   await page.goto("/markdown");
   await page.waitForSelector(".tm-editor", { timeout: 25000 });
+  await page.getByRole("button", { name: "نمایش", exact: true }).click();
+  await page.getByRole("menuitem", { name: "بازکردن همهٔ بخش‌ها" }).click();
 });
 
 test("صفحه بی خطا بار می‌شود و ساختار درست است", async ({ page }) => {
@@ -188,6 +190,7 @@ test("★ نوارِ آمار، کلمه‌ها را می‌شمارد", async (
   const stats = page.locator(".tm-stats");
   await expect(stats).toContainText("کلمه");
   await expect(stats).toContainText("دقیقه خواندن");
+  await expect(stats.locator("span").last()).toHaveAttribute("title", /÷ ۲۵۰/);
 });
 
 test("★ جست‌وجو با Ctrl+F", async ({ page }) => {
@@ -310,7 +313,7 @@ test("★ فوت‌نوت رندر می‌شود", async ({ page }) => {
 test("★ حالتِ تمرکز — بقیهٔ بلوک‌ها کم‌رنگ می‌شوند", async ({ page }) => {
   await expect(page.locator(".tm-dimmed")).toHaveCount(0);
 
-  await page.getByRole("button", { name: "View" }).click();
+  await page.getByRole("button", { name: "نمایش", exact: true }).click();
   await page.getByRole("menuitemcheckbox", { name: /حالت تمرکز/ }).click();
   await page.locator(".tm-editor p", { hasText: "جریمه" }).first().click();
 
@@ -319,7 +322,7 @@ test("★ حالتِ تمرکز — بقیهٔ بلوک‌ها کم‌رنگ م�
   await expect(page.locator(".tm-editor")).toHaveClass(/tm-focus-mode/);
 
   // خروج
-  await page.getByRole("button", { name: "View" }).click();
+  await page.getByRole("button", { name: "نمایش", exact: true }).click();
   await page.getByRole("menuitemcheckbox", { name: /حالت تمرکز/ }).click();
   await expect(page.locator(".tm-dimmed")).toHaveCount(0);
 });

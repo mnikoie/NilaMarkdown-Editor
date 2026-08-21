@@ -10,6 +10,11 @@ import {
   toggleTypewriterMode,
   getWritingModes,
 } from "../../src/core/plugins/writing-modes.js";
+import {
+  detectTextDirection,
+  textDirectionKey,
+  textDirectionPlugin,
+} from "../../src/core/plugins/text-direction.js";
 
 const MD = "پاراگرافِ یک\n\nپاراگرافِ دو\n\nپاراگرافِ سه\n";
 
@@ -148,5 +153,24 @@ describe("حالتِ ماشین‌تحریر", () => {
 
   it("گزینهٔ آغازین اعمال می‌شود", () => {
     expect(getWritingModes(makeState(MD, { typewriter: true })).typewriter).toBe(true);
+  });
+});
+
+describe("جهتِ متن", () => {
+  it("جهت را از اولین نویسهٔ قوی تشخیص می‌دهد", () => {
+    expect(detectTextDirection("۱۲۳ سلام world")).toBe("rtl");
+    expect(detectTextDirection("123 Hello دنیا")).toBe("ltr");
+    expect(detectTextDirection("۱۲۳ — …")).toBeNull();
+  });
+
+  it("جهتِ خودکار فقط decoration است و سند را عوض نمی‌کند", () => {
+    const doc = parse("سلام دنیا\n\nHello world\n");
+    const before = serialize(doc);
+    const state = EditorState.create({ schema, doc, plugins: [textDirectionPlugin("auto")] });
+    const attrs = textDirectionKey.getState(state)!.find().map((deco) =>
+      (deco as unknown as { type: { attrs?: Record<string, string> } }).type.attrs?.dir,
+    );
+    expect(attrs).toEqual(["rtl", "ltr"]);
+    expect(serialize(state.doc)).toBe(before);
   });
 });

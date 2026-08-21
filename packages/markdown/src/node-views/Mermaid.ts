@@ -61,6 +61,7 @@ export class MermaidView implements NodeView {
     private view: EditorView,
     private getPos: () => number | undefined,
     private enabled: boolean,
+    private locale: "fa" | "en" = "fa",
   ) {
     this.dom = document.createElement("div");
     this.dom.className = "tm-mermaid";
@@ -71,12 +72,12 @@ export class MermaidView implements NodeView {
 
     const label = document.createElement("span");
     label.className = "tm-code-lang";
-    label.textContent = "نمودار";
+    label.textContent = this.locale === "en" ? "Diagram" : "نمودار";
 
     this.toggle = document.createElement("button");
     this.toggle.type = "button";
     this.toggle.className = "tm-code-copy";
-    this.toggle.textContent = "نمایشِ کد";
+    this.toggle.textContent = this.locale === "en" ? "Show Code" : "نمایشِ کد";
     this.toggle.addEventListener("click", (e) => {
       e.preventDefault();
       this.showSource = !this.showSource;
@@ -102,14 +103,16 @@ export class MermaidView implements NodeView {
   private applyMode() {
     this.pre.style.display = this.showSource ? "" : "none";
     this.preview.style.display = this.showSource ? "none" : "";
-    this.toggle.textContent = this.showSource ? "نمایشِ نمودار" : "نمایشِ کد";
+    this.toggle.textContent = this.locale === "en"
+      ? (this.showSource ? "Show Diagram" : "Show Code")
+      : (this.showSource ? "نمایشِ نمودار" : "نمایشِ کد");
   }
 
   private async render() {
     const text = this.node.textContent;
 
     if (!this.enabled) {
-      this.preview.textContent = "نمودار خاموش است.";
+      this.preview.textContent = this.locale === "en" ? "Diagram is disabled." : "نمودار خاموش است.";
       this.dom.setAttribute("data-rendered", "off");
       // وقتی خاموش است، کد را نشان بده تا محتوا گم نشود.
       this.showSource = true;
@@ -118,7 +121,7 @@ export class MermaidView implements NodeView {
     }
 
     if (!text.trim()) {
-      this.preview.textContent = "نمودارِ خالی";
+      this.preview.textContent = this.locale === "en" ? "Empty diagram" : "نمودارِ خالی";
       return;
     }
 
@@ -140,7 +143,9 @@ export class MermaidView implements NodeView {
     } catch (err) {
       if (this.destroyed) return;
       // نحوِ غلط → پیامِ خطا کنارِ کد، نه صفحهٔ سفید.
-      this.preview.textContent = `نمودار رندر نشد: ${(err as Error).message}`;
+      this.preview.textContent = this.locale === "en"
+        ? `Could not render diagram: ${(err as Error).message}`
+        : `نمودار رندر نشد: ${(err as Error).message}`;
       this.dom.setAttribute("data-rendered", "false");
     }
   }

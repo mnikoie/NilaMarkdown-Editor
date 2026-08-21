@@ -25,6 +25,7 @@ import {
   Table,
 } from "lucide-react";
 import type { EditorView } from "prosemirror-view";
+import { useMarkdownI18n } from "../i18n.js";
 import { toggleMark, setBlockType } from "prosemirror-commands";
 import { wrapInList } from "prosemirror-schema-list";
 import { schema } from "../../core/schema/index.js";
@@ -254,6 +255,7 @@ export function Toolbar({
   compact = false,
   className,
 }: ToolbarProps) {
+  const { t } = useMarkdownI18n();
   const [focusIndex, setFocusIndex] = useState(0);
   const ref = useRef<HTMLDivElement>(null);
   /** برای رندرِ دوباره وقتی انتخاب عوض می‌شود — تا حالتِ فعال درست بماند. */
@@ -364,7 +366,7 @@ export function Toolbar({
     <div
       ref={ref}
       role="toolbar"
-      aria-label="ابزارِ قالب‌بندی"
+      aria-label={t("ابزارِ قالب‌بندی")}
       aria-orientation="horizontal"
       className={`tm-toolbar ${className ?? ""}`}
       onKeyDown={onKeyDown}
@@ -398,8 +400,8 @@ export function Toolbar({
             // فقط یکی از دکمه‌ها در ترتیبِ Tab است — بقیه با کلیدِ جهت.
             tabIndex={index === focusIndex ? 0 : -1}
             aria-pressed={item.isActive ? active : undefined}
-            aria-label={item.shortcut ? `${item.label} (${item.shortcut})` : item.label}
-            title={item.shortcut ? `${item.label} — ${item.shortcut}` : item.label}
+            aria-label={item.shortcut ? `${t(item.label)} (${item.shortcut})` : t(item.label)}
+            title={item.shortcut ? `${t(item.label)} — ${item.shortcut}` : t(item.label)}
             disabled={!view}
             onMouseDown={(e) => {
               // بی این، کلیک روی دکمه فوکوس را از ادیتور می‌گیرد و

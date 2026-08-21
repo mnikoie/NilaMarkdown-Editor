@@ -9,6 +9,8 @@ import { HtmlBlockView } from "./HtmlBlock.js";
 import { TableOfContentsView } from "./TableOfContents.js";
 import { LinkDefinitionView } from "./LinkDefinition.js";
 import type { HtmlMode } from "../core/security.js";
+import type { FoldingOptions } from "../core/plugins/fold.js";
+import type { MarkCardOptions } from "./MarkCard.js";
 
 export interface Features {
   /**
@@ -49,6 +51,12 @@ export interface Features {
   html?: HtmlMode;
 }
 
+export interface NodeViewOptions {
+  folding?: FoldingOptions;
+  cardFolding?: MarkCardOptions;
+  locale?: "fa" | "en";
+}
+
 type NodeViewConstructor = (
   node: PMNode,
   view: EditorView,
@@ -65,13 +73,19 @@ type NodeViewConstructor = (
 export function createNodeViews(
   registry: MarkRegistry,
   features: Features = {},
+  options: NodeViewOptions = {},
 ): Record<string, NodeViewConstructor> {
   const { math = true, mermaid = false, highlight = true, html = "escape" } = features;
 
   const views: Record<string, NodeViewConstructor> = {
-    directive_block: (node, view, getPos) => new MarkCardView(node, view, getPos, registry),
-    table_of_contents: (node, view) => new TableOfContentsView(node, view),
-    link_definition: (node, view, getPos) => new LinkDefinitionView(node, view, getPos),
+    directive_block: (node, view, getPos) =>
+      new MarkCardView(node, view, getPos, registry, {
+        initial: options.folding?.initial,
+        mode: options.cardFolding?.mode ?? options.folding?.mode,
+        locale: options.locale,
+      } satisfies MarkCardOptions),
+    table_of_contents: (node, view) => new TableOfContentsView(node, view, options.locale),
+    link_definition: (node, view, getPos) => new LinkDefinitionView(node, view, getPos, options.locale),
   };
 
   // بلوکِ کد همیشه NodeView دارد — دکمهٔ کپی و برچسبِ زبان مستقل از
@@ -79,9 +93,9 @@ export function createNodeViews(
   {
     views.code_block = (node, view, getPos) => {
       if (node.attrs.language === "mermaid") {
-        return new MermaidView(node, view, getPos, mermaid);
+        return new MermaidView(node, view, getPos, mermaid, options.locale);
       }
-      return new CodeBlockView(node, view, getPos, highlight);
+      return new CodeBlockView(node, view, getPos, highlight, options.locale);
     };
   }
 

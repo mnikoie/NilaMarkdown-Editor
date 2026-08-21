@@ -130,8 +130,9 @@ export {
   listFoldKey,
   foldAllListNodes,
   unfoldAllListNodes,
+  setListFoldMode,
 } from "./core/plugins/list-fold.js";
-export type { ListFoldState } from "./core/plugins/list-fold.js";
+export type { ListFoldState, ListFoldOptions } from "./core/plugins/list-fold.js";
 export { keymapPlugin, insertZWNJ, toggleHeading } from "./core/plugins/keymap.js";
 export type { KeymapOptions } from "./core/plugins/keymap.js";
 
@@ -142,8 +143,22 @@ export {
   foldAll,
   unfoldAll,
   isFolded,
+  setFoldMode,
 } from "./core/plugins/fold.js";
-export type { FoldState, FoldOptions } from "./core/plugins/fold.js";
+export type {
+  FoldState,
+  FoldOptions,
+  FoldingOptions,
+  FoldInitialState,
+  FoldMode,
+} from "./core/plugins/fold.js";
+
+export {
+  textDirectionPlugin,
+  textDirectionKey,
+  detectTextDirection,
+} from "./core/plugins/text-direction.js";
+export type { TextDirection } from "./core/plugins/text-direction.js";
 
 export { BUILTIN_MARKS, RANK } from "./core/directives/builtin.js";
 export type {
@@ -164,7 +179,8 @@ export {
   MermaidView,
   createNodeViews,
 } from "./node-views/index.js";
-export type { Features } from "./node-views/index.js";
+export type { Features, NodeViewOptions } from "./node-views/index.js";
+export type { MarkCardOptions } from "./node-views/MarkCard.js";
 export {
   highlight,
   resetHighlighter,
@@ -185,8 +201,15 @@ export type { PasteImageOptions, PasteImageState } from "./core/plugins/paste-im
 export { useFullscreen } from "./react/useFullscreen.js";
 export type { FullscreenHandle } from "./react/useFullscreen.js";
 
-export { computeStats, countWords } from "./core/stats.js";
-export type { Stats } from "./core/stats.js";
+export { computeStats, countWords, DEFAULT_WORDS_PER_MINUTE } from "./core/stats.js";
+export type { Stats, StatsOptions } from "./core/stats.js";
+
+export {
+  MarkdownI18nProvider,
+  useMarkdownI18n,
+  translate,
+} from "./react/i18n.js";
+export type { MarkdownLocale } from "./react/i18n.js";
 
 export { Toolbar } from "./react/Toolbar/Toolbar.js";
 export type { ToolbarProps } from "./react/Toolbar/Toolbar.js";

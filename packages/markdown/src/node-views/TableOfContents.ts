@@ -10,18 +10,19 @@ export class TableOfContentsView implements NodeView {
   constructor(
     private node: PMNode,
     private view: EditorView,
+    private locale: "fa" | "en" = "fa",
   ) {
     this.dom = document.createElement("nav");
     this.dom.className = "tm-toc";
     this.dom.contentEditable = "false";
-    this.dom.setAttribute("aria-label", "فهرست مطالب");
+    this.dom.setAttribute("aria-label", this.locale === "en" ? "Table of Contents" : "فهرست مطالب");
     this.render();
   }
 
   private render() {
     const title = document.createElement("strong");
     title.className = "tm-toc-title";
-    title.textContent = "فهرست مطالب";
+    title.textContent = this.locale === "en" ? "Table of Contents" : "فهرست مطالب";
     const list = document.createElement("ol");
     list.className = "tm-toc-list";
 
@@ -31,7 +32,7 @@ export class TableOfContentsView implements NodeView {
       item.style.setProperty("--tm-toc-level", String(node.attrs.level));
       const button = document.createElement("button");
       button.type = "button";
-      button.textContent = node.textContent || "سرفصلِ بی‌نام";
+      button.textContent = node.textContent || (this.locale === "en" ? "Untitled heading" : "سرفصلِ بی‌نام");
       button.addEventListener("click", () => {
         const current = this.view.state.doc.nodeAt(pos);
         if (current?.type !== schema.nodes.heading) return;
@@ -47,7 +48,7 @@ export class TableOfContentsView implements NodeView {
     if (!list.childElementCount) {
       const empty = document.createElement("p");
       empty.className = "tm-toc-empty";
-      empty.textContent = "هنوز سرفصلی نیست.";
+      empty.textContent = this.locale === "en" ? "No headings yet." : "هنوز سرفصلی نیست.";
       this.dom.replaceChildren(title, empty);
       return;
     }

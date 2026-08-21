@@ -1,4 +1,4 @@
-import { Plugin, PluginKey } from "prosemirror-state";
+import { Plugin, PluginKey, Selection } from "prosemirror-state";
 import type { Command, EditorState, Transaction } from "prosemirror-state";
 import { Decoration, DecorationSet } from "prosemirror-view";
 import type { Node as PMNode } from "prosemirror-model";
@@ -8,11 +8,19 @@ export interface ListFoldState {
   /** موقعیتِ list_itemهایی که زیرگره‌هایشان بسته است. */
   folded: Set<number>;
   decorations: DecorationSet;
+  mode: "accordion" | "multiple";
 }
 
 interface ListFoldMeta {
-  type: "toggle" | "foldAll" | "unfoldAll";
+  type: "toggle" | "foldAll" | "unfoldAll" | "setMode";
   pos?: number;
+  mode?: "accordion" | "multiple";
+}
+
+export interface ListFoldOptions {
+  initial?: "collapsed" | "expanded";
+  mode?: "accordion" | "multiple";
+  locale?: "fa" | "en";
 }
 
 export const listFoldKey = new PluginKey<ListFoldState>("tm-list-fold");
@@ -27,18 +35,21 @@ function nestedLists(node: PMNode, pos: number): Array<{ node: PMNode; pos: numb
   return result;
 }
 
-function foldableItems(doc: PMNode): Array<{ node: PMNode; pos: number; nested: ReturnType<typeof nestedLists> }> {
-  const items: Array<{ node: PMNode; pos: number; nested: ReturnType<typeof nestedLists> }> = [];
+function foldableItems(doc: PMNode): Array<{ node: PMNode; pos: number; parentPos: number; nested: ReturnType<typeof nestedLists> }> {
+  const items: Array<{ node: PMNode; pos: number; parentPos: number; nested: ReturnType<typeof nestedLists> }> = [];
   doc.descendants((node, pos) => {
     if (node.type !== schema.nodes.list_item) return true;
     const nested = nestedLists(node, pos);
-    if (nested.length) items.push({ node, pos, nested });
+    if (nested.length) {
+      const $pos = doc.resolve(pos);
+      items.push({ node, pos, parentPos: $pos.depth > 0 ? $pos.before($pos.depth) : 0, nested });
+    }
     return true;
   });
   return items;
 }
 
-function buildDecorations(state: EditorState, folded: Set<number>): DecorationSet {
+function buildDecorations(state: EditorState, folded: Set<number>, locale: "fa" | "en"): DecorationSet {
   const decorations: Decoration[] = [];
   for (const item of foldableItems(state.doc)) {
     const isFolded = folded.has(item.pos);
@@ -51,7 +62,12 @@ function buildDecorations(state: EditorState, folded: Set<number>): DecorationSe
           button.className = "tm-list-fold-toggle";
           button.contentEditable = "false";
           button.dataset.listFoldPos = String(item.pos);
-          button.setAttribute("aria-label", isFolded ? "بازکردنِ زیرگره‌ها" : "بستنِ زیرگره‌ها");
+          button.setAttribute(
+            "aria-label",
+            locale === "en"
+              ? (isFolded ? "Expand child nodes" : "Collapse child nodes")
+              : (isFolded ? "بازکردنِ زیرگره‌ها" : "بستنِ زیرگره‌ها"),
+          );
           button.setAttribute("aria-expanded", String(!isFolded));
           button.textContent = "⌄";
           return button;
@@ -79,14 +95,19 @@ function buildDecorations(state: EditorState, folded: Set<number>): DecorationSe
   return decorations.length ? DecorationSet.create(state.doc, decorations) : DecorationSet.empty;
 }
 
-function syncButtons(view: import("prosemirror-view").EditorView): void {
+function syncButtons(view: import("prosemirror-view").EditorView, locale: "fa" | "en"): void {
   const state = listFoldKey.getState(view.state);
   if (!state) return;
   for (const button of view.dom.querySelectorAll<HTMLButtonElement>(".tm-list-fold-toggle")) {
     const pos = Number(button.dataset.listFoldPos);
     const folded = state.folded.has(pos);
     button.setAttribute("aria-expanded", String(!folded));
-    button.setAttribute("aria-label", folded ? "بازکردنِ زیرگره‌ها" : "بستنِ زیرگره‌ها");
+    button.setAttribute(
+      "aria-label",
+      locale === "en"
+        ? (folded ? "Expand child nodes" : "Collapse child nodes")
+        : (folded ? "بازکردنِ زیرگره‌ها" : "بستنِ زیرگره‌ها"),
+    );
   }
 }
 
@@ -101,34 +122,51 @@ function mappedFolded(tr: Transaction, previous: Set<number>): Set<number> {
 }
 
 /** تاشدنِ هر list_item که یک فهرستِ تودرتو دارد؛ فقط Decoration است. */
-export function listFoldPlugin(): Plugin<ListFoldState> {
+export function listFoldPlugin(options: ListFoldOptions = {}): Plugin<ListFoldState> {
+  const locale = options.locale ?? "fa";
   return new Plugin<ListFoldState>({
     key: listFoldKey,
     state: {
       init: (_config, state) => {
-        const folded = new Set<number>();
-        return { folded, decorations: buildDecorations(state, folded) };
+        const folded = new Set<number>(
+          options.initial === "collapsed" ? foldableItems(state.doc).map((item) => item.pos) : [],
+        );
+        const mode = options.mode ?? "accordion";
+        return { folded, mode, decorations: buildDecorations(state, folded, locale) };
       },
       apply(tr, previous, _old, state) {
         const meta = tr.getMeta(listFoldKey) as ListFoldMeta | undefined;
         let folded = mappedFolded(tr, previous.folded);
+        let mode = previous.mode;
         if (meta) {
           folded = new Set(folded);
           if (meta.type === "toggle" && typeof meta.pos === "number") {
-            if (folded.has(meta.pos)) folded.delete(meta.pos);
+            if (folded.has(meta.pos)) {
+              folded.delete(meta.pos);
+              if (mode === "accordion") {
+                const item = foldableItems(state.doc).find((candidate) => candidate.pos === meta.pos);
+                if (item) {
+                  for (const sibling of foldableItems(state.doc)) {
+                    if (sibling.parentPos === item.parentPos && sibling.pos !== item.pos) folded.add(sibling.pos);
+                  }
+                }
+              }
+            }
             else folded.add(meta.pos);
           } else if (meta.type === "foldAll") {
             for (const item of foldableItems(state.doc)) folded.add(item.pos);
           } else if (meta.type === "unfoldAll") {
             folded.clear();
+          } else if (meta.type === "setMode" && meta.mode) {
+            mode = meta.mode;
           }
         } else if (!tr.docChanged && !tr.selectionSet) {
           return previous;
         }
-        return { folded, decorations: buildDecorations(state, folded) };
+        return { folded, mode, decorations: buildDecorations(state, folded, locale) };
       },
     },
-    view: (view) => ({ update: (next) => syncButtons(next) }),
+    view: (view) => ({ update: (next) => syncButtons(next, locale) }),
     props: {
       decorations: (state) => listFoldKey.getState(state)?.decorations ?? DecorationSet.empty,
       handleDOMEvents: {
@@ -141,7 +179,13 @@ export function listFoldPlugin(): Plugin<ListFoldState> {
           const pos = Number(button.dataset.listFoldPos);
           if (!Number.isInteger(pos)) return false;
           event.preventDefault();
-          view.dispatch(view.state.tr.setMeta(listFoldKey, { type: "toggle", pos }));
+          const opening = listFoldKey.getState(view.state)?.folded.has(pos) ?? false;
+          let tr = view.state.tr;
+          if (!opening) {
+            const selectionPos = Math.min(pos + 2, view.state.doc.content.size);
+            tr = tr.setSelection(Selection.near(view.state.doc.resolve(selectionPos)));
+          }
+          view.dispatch(tr.setMeta(listFoldKey, { type: "toggle", pos }));
           return true;
         },
       },
@@ -150,11 +194,23 @@ export function listFoldPlugin(): Plugin<ListFoldState> {
 }
 
 export const foldAllListNodes: Command = (state, dispatch) => {
-  dispatch?.(state.tr.setMeta(listFoldKey, { type: "foldAll" }));
+  if (dispatch) {
+    const pos = Math.min(1, state.doc.content.size);
+    dispatch(
+      state.tr
+        .setSelection(Selection.near(state.doc.resolve(pos)))
+        .setMeta(listFoldKey, { type: "foldAll" }),
+    );
+  }
   return true;
 };
 
 export const unfoldAllListNodes: Command = (state, dispatch) => {
   dispatch?.(state.tr.setMeta(listFoldKey, { type: "unfoldAll" }));
+  return true;
+};
+
+export const setListFoldMode = (mode: "accordion" | "multiple"): Command => (state, dispatch) => {
+  dispatch?.(state.tr.setMeta(listFoldKey, { type: "setMode", mode }));
   return true;
 };

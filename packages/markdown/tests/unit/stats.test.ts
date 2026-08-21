@@ -64,6 +64,14 @@ describe("آمارِ سند", () => {
     const stats = computeStats(parse(md));
     expect(stats.words).toBe(400);
     expect(stats.readingMinutes).toBe(2);
+    expect(stats.wordsPerMinute).toBe(250);
+  });
+
+  it("سرعتِ خواندن قابل تنظیم است و متنِ خالی صفر دقیقه است", () => {
+    const md = Array.from({ length: 600 }, () => "کلمه").join(" ") + "\n";
+    expect(computeStats(parse(md), { wordsPerMinute: 300 }).readingMinutes).toBe(2);
+    expect(computeStats(parse(md), { wordsPerMinute: 300 }).wordsPerMinute).toBe(300);
+    expect(computeStats(parse("")).readingMinutes).toBe(0);
   });
 
   it("متنِ داخلِ عنوان و فهرست هم شمرده می‌شود", () => {

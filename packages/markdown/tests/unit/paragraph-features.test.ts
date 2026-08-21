@@ -174,4 +174,24 @@ describe("زیرگره‌های تاشوندهٔ فهرست", () => {
     expect(button?.getAttribute("aria-expanded")).toBe("false");
     view.destroy();
   });
+
+  it("در حالت آکاردئون فقط یک والدِ هم‌سطح باز می‌ماند", () => {
+    const mount = document.createElement("div");
+    document.body.append(mount);
+    const view = new EditorView(mount, {
+      state: EditorState.create({
+        schema,
+        doc: parse("- والد اول\n  - فرزند اول\n- والد دوم\n  - فرزند دوم\n"),
+        plugins: [listFoldPlugin({ initial: "collapsed", mode: "accordion" })],
+      }),
+    });
+    const buttons = [...view.dom.querySelectorAll<HTMLButtonElement>(".tm-list-fold-toggle")];
+    expect(buttons).toHaveLength(2);
+    buttons[0]!.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true }));
+    expect(buttons[0]!.getAttribute("aria-expanded")).toBe("true");
+    buttons[1]!.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true }));
+    expect(buttons[0]!.getAttribute("aria-expanded")).toBe("false");
+    expect(buttons[1]!.getAttribute("aria-expanded")).toBe("true");
+    view.destroy();
+  });
 });

@@ -158,6 +158,43 @@ describe("تاشدن", () => {
     expect(foldKey.getState(state)!.decorations.find().length).toBeGreaterThan(0);
   });
 
+  it("حالتِ آغازینِ all همهٔ عنوان‌ها را می‌بندد", () => {
+    const state = EditorState.create({
+      doc: parse(MD),
+      schema,
+      plugins: [foldPlugin({ initial: "all" })],
+    });
+    expect(foldKey.getState(state)!.folded.size).toBe(flattenOutline(buildOutline(state.doc)).length);
+    const summaries = foldKey
+      .getState(state)!
+      .decorations.find()
+      .filter((deco) => (deco.spec as { key?: string }).key?.startsWith("fold-"));
+    expect(summaries).toHaveLength(2); // فقط دو فصلِ ریشه، نه خلاصهٔ بخشِ پنهانِ داخل فصل
+  });
+
+  it("در حالت آکاردئون فقط یک عنوانِ هم‌سطح باز می‌ماند", () => {
+    let state = EditorState.create({
+      doc: parse(MD),
+      schema,
+      plugins: [foldPlugin({ initial: "all", mode: "accordion" })],
+    });
+    const roots = buildOutline(state.doc);
+    toggleFold(roots[0]!.id, roots[0]!.from)(state, (tr) => (state = state.apply(tr)));
+    expect(isFolded(state, roots[0]!.id)).toBe(false);
+    toggleFold(roots[1]!.id, roots[1]!.from)(state, (tr) => (state = state.apply(tr)));
+    expect(isFolded(state, roots[0]!.id)).toBe(true);
+    expect(isFolded(state, roots[1]!.id)).toBe(false);
+  });
+
+  it("بستنِ بخشی که مکان‌نما داخلش است، مکان‌نما را به عنوان منتقل می‌کند", () => {
+    let state = makeState();
+    const node = buildOutline(state.doc)[0]!;
+    state = state.apply(state.tr.setSelection(TextSelection.create(state.doc, node.from + 3)));
+    toggleFold(node.id, node.from)(state, (tr) => (state = state.apply(tr)));
+    expect(state.selection.from).toBe(node.from + 1);
+    expect(hiddenCount(state)).toBeGreaterThan(0);
+  });
+
   it("onChange با فهرستِ لنگرها صدا می‌شود — برای ذخیره", () => {
     const seen: string[][] = [];
     let state = EditorState.create({

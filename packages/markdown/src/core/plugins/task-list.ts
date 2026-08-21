@@ -3,7 +3,12 @@ import { Decoration, DecorationSet } from "prosemirror-view";
 import { schema } from "../schema/index.js";
 import { toggleTaskItemAt } from "../commands/task-list.js";
 
-function decorations(doc: import("prosemirror-model").Node): DecorationSet {
+function taskLabel(checked: boolean, locale: "fa" | "en"): string {
+  if (locale === "en") return checked ? "Mark as incomplete" : "Mark as completed";
+  return checked ? "علامت‌زدن به‌عنوان انجام‌نشده" : "علامت‌زدن به‌عنوان انجام‌شده";
+}
+
+function decorations(doc: import("prosemirror-model").Node, locale: "fa" | "en"): DecorationSet {
   const result: Decoration[] = [];
   doc.descendants((node, pos) => {
     if (node.type !== schema.nodes.list_item || node.attrs.checked === null) return;
@@ -19,7 +24,7 @@ function decorations(doc: import("prosemirror-model").Node): DecorationSet {
           button.dataset.taskPos = String(pos);
           button.setAttribute("role", "checkbox");
           button.setAttribute("aria-checked", String(checked));
-          button.setAttribute("aria-label", checked ? "علامت‌زدن به‌عنوان انجام‌نشده" : "علامت‌زدن به‌عنوان انجام‌شده");
+          button.setAttribute("aria-label", taskLabel(checked, locale));
           button.textContent = checked ? "✓" : "";
           return button;
         },
@@ -33,7 +38,7 @@ function decorations(doc: import("prosemirror-model").Node): DecorationSet {
   return DecorationSet.create(doc, result);
 }
 
-function syncButtons(view: import("prosemirror-view").EditorView): void {
+function syncButtons(view: import("prosemirror-view").EditorView, locale: "fa" | "en"): void {
   for (const button of view.dom.querySelectorAll<HTMLButtonElement>(".tm-task-checkbox")) {
     const pos = Number(button.dataset.taskPos);
     const node = Number.isInteger(pos) ? view.state.doc.nodeAt(pos) : null;
@@ -42,7 +47,7 @@ function syncButtons(view: import("prosemirror-view").EditorView): void {
     button.setAttribute("aria-checked", String(checked));
     button.setAttribute(
       "aria-label",
-      checked ? "علامت‌زدن به‌عنوان انجام‌نشده" : "علامت‌زدن به‌عنوان انجام‌شده",
+      taskLabel(checked, locale),
     );
     button.textContent = checked ? "✓" : "";
   }
@@ -57,13 +62,14 @@ function runFromTarget(view: import("prosemirror-view").EditorView, target: Even
 }
 
 /** دکمهٔ واقعی و دسترس‌پذیر برای تیک‌زدنِ چک‌لیست. */
-export function taskListPlugin(): Plugin {
+export function taskListPlugin(options: { locale?: "fa" | "en" } = {}): Plugin {
+  const locale = options.locale ?? "fa";
   return new Plugin({
     view: (view) => ({
-      update: (next) => syncButtons(next),
+      update: (next) => syncButtons(next, locale),
     }),
     props: {
-      decorations: (state) => decorations(state.doc),
+      decorations: (state) => decorations(state.doc, locale),
       handleDOMEvents: {
         mousedown(view, event) {
           if (!(event.target instanceof HTMLElement) || !event.target.closest(".tm-task-checkbox")) return false;
