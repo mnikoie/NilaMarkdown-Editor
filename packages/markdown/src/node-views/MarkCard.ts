@@ -67,17 +67,22 @@ export class MarkCardView implements NodeView {
 
     this.header.replaceChildren();
 
-    if (def?.collapsible) {
+    // هر directive بلوکی مالکِ محتوای زیرمجموعهٔ خودش است؛ پس مستقل از
+    // تعریفِ سفارشی‌اش یک نودِ درختی و قابلِ بازوبسته‌شدن محسوب می‌شود.
+    if (this.node.childCount > 0) {
       this.toggle = document.createElement("button");
       this.toggle.type = "button";
       this.toggle.className = "tm-fold-toggle";
       this.toggle.setAttribute("aria-expanded", String(this.open));
+      this.toggle.setAttribute("aria-label", `${this.open ? "بستنِ" : "بازکردنِ"} ${def?.label ?? name}`);
       const chevron = document.createElement("span");
       chevron.className = "tm-fold-chevron";
       chevron.setAttribute("aria-hidden", "true");
       chevron.textContent = "⌄";
       this.toggle.append(chevron);
-      this.toggle.addEventListener("click", (e) => {
+      // mousedown پیش از تراکنشِ focus اجرا می‌شود؛ اگر منتظر click بمانیم
+      // ProseMirror ممکن است NodeView را میانِ down/up به‌روزرسانی کند.
+      this.toggle.addEventListener("mousedown", (e) => {
         e.preventDefault();
         this.setOpen(!this.open);
       });
@@ -136,6 +141,11 @@ export class MarkCardView implements NodeView {
   private applyOpen() {
     this.body.style.display = this.open ? "" : "none";
     this.toggle?.setAttribute("aria-expanded", String(this.open));
+    this.toggle?.setAttribute(
+      "aria-label",
+      `${this.open ? "بستنِ" : "بازکردنِ"} ${this.node.attrs.name as string}`,
+    );
+    this.dom.setAttribute("data-folded", String(!this.open));
   }
 
   /**
@@ -156,7 +166,10 @@ export class MarkCardView implements NodeView {
   }
 
   ignoreMutation(mutation: ViewMutationRecord): boolean {
-    return this.header.contains(mutation.target);
+    return (
+      this.header.contains(mutation.target) ||
+      (mutation.type === "attributes" && (mutation.target === this.body || mutation.target === this.dom))
+    );
   }
 }
 

@@ -97,12 +97,11 @@ test("★ تاشدن از پنلِ ساختار", async ({ page }) => {
 });
 
 test("★ تایپ کار می‌کند و خروجی به‌روز می‌شود", async ({ page }) => {
-  await page.getByRole("button", { name: "نمایشِ خروجیِ مارک‌داون" }).click();
   const p = page.locator(".tm-editor p", { hasText: "جریمه" }).first();
   await p.click();
   await page.keyboard.type("آزمایش");
   await page.waitForTimeout(600); // debounce ۳۰۰ms
-  await expect(page.locator("pre").last()).toContainText("آزمایش");
+  await expect(page.getByTestId("markdown-output")).toContainText("آزمایش");
 });
 
 test("★ جدول رندر و ویرایش می‌شود", async ({ page }) => {
@@ -311,7 +310,8 @@ test("★ فوت‌نوت رندر می‌شود", async ({ page }) => {
 test("★ حالتِ تمرکز — بقیهٔ بلوک‌ها کم‌رنگ می‌شوند", async ({ page }) => {
   await expect(page.locator(".tm-dimmed")).toHaveCount(0);
 
-  await page.getByRole("button", { name: "حالتِ تمرکز" }).click();
+  await page.getByRole("button", { name: "View" }).click();
+  await page.getByRole("menuitemcheckbox", { name: /حالت تمرکز/ }).click();
   await page.locator(".tm-editor p", { hasText: "جریمه" }).first().click();
 
   // بلوک‌های دیگر کم‌رنگ‌اند، بلوکِ فعال نه
@@ -319,6 +319,7 @@ test("★ حالتِ تمرکز — بقیهٔ بلوک‌ها کم‌رنگ م�
   await expect(page.locator(".tm-editor")).toHaveClass(/tm-focus-mode/);
 
   // خروج
-  await page.getByRole("button", { name: "خروج از حالتِ تمرکز" }).click();
+  await page.getByRole("button", { name: "View" }).click();
+  await page.getByRole("menuitemcheckbox", { name: /حالت تمرکز/ }).click();
   await expect(page.locator(".tm-dimmed")).toHaveCount(0);
 });

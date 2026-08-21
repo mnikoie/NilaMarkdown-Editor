@@ -118,4 +118,22 @@ describe("NodeViewها", () => {
     expect(serialize(view.state.doc)).toBe(md);
     view.destroy();
   });
+
+  it("★★ هر directive بلوکی، حتی هشدار و ناشناخته، نودِ تاشونده است", () => {
+    const md = ":::هشدار\nمتن\n:::\n\n:::ناشناخته\nمحتوا\n:::\n";
+    const view = makeView(md);
+    const cards = [...view.dom.querySelectorAll<HTMLElement>(".tm-mark")];
+    expect(cards).toHaveLength(2);
+    expect(cards.every((card) => card.querySelector(":scope > .tm-mark-header > .tm-fold-toggle"))).toBe(
+      true,
+    );
+
+    const toggle = cards[0]!.querySelector<HTMLButtonElement>(".tm-fold-toggle")!;
+    toggle.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    expect(cards[0]!.hasAttribute("data-folded")).toBe(true);
+    expect(cards[0]!.querySelector<HTMLElement>(".tm-mark-body")!.style.display).toBe("none");
+    expect(serialize(view.state.doc)).toBe(md);
+    view.destroy();
+  });
 });

@@ -128,3 +128,66 @@
     @apply font-sans;
   }
 }
+
+.markdown-workspace {
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--background);
+}
+
+.markdown-workspace .tm-demo-editor {
+  width: 100%;
+  height: 100%;
+  gap: 0;
+  align-items: stretch;
+}
+
+.markdown-workspace .tm-demo-editor > .tm-sidebar {
+  position: relative;
+  flex: 0 0 17rem;
+  max-height: none;
+  height: 100%;
+  padding: 0.75rem;
+  border: 0;
+  border-right: 1px solid color-mix(in srgb, var(--foreground) 13%, transparent);
+  border-radius: 0;
+  background: color-mix(in srgb, var(--background) 96%, var(--foreground));
+}
+
+.markdown-workspace .tm-demo-editor > .tm-main {
+  height: 100%;
+  max-width: none;
+  overflow-y: auto;
+  padding: 0 2rem 3rem;
+}
+
+.markdown-workspace .tm-demo-editor .tm-editor {
+  width: 100%;
+  max-width: 90rem;
+}
+
+.markdown-workspace .tm-demo-editor .tm-controls {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  padding-block: 0.5rem;
+  background: color-mix(in srgb, var(--background) 92%, transparent);
+  backdrop-filter: blur(8px);
+}
+
+.markdown-workspace .tm-demo-editor .tm-stats {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  background: var(--background);
+}
+
+@media (max-width: 52rem) {
+  .markdown-workspace .tm-demo-editor > .tm-sidebar {
+    display: none;
+  }
+
+  .markdown-workspace .tm-demo-editor > .tm-main {
+    padding-inline: 1rem;
+  }
+}

@@ -62,9 +62,12 @@ export interface MarkDefinition {
   icon?: string;
   variant?: MarkVariant;
 
-  /** کارت خودش تاشو باشد. */
+  /**
+   * @deprecated همهٔ کارت‌های بلوکی که محتوا دارند اکنون ذاتاً نودِ
+   * تاشونده‌اند. این فیلد فقط برای سازگاریِ نوعی نگه داشته شده است.
+   */
   collapsible?: boolean;
-  /** اگر `collapsible`، حالتِ آغازین. پیش‌فرض: باز. */
+  /** حالتِ آغازینِ کارت. پیش‌فرض: باز. */
   defaultOpen?: boolean;
 
   /**

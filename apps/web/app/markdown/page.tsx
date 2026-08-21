@@ -144,36 +144,9 @@ const MARKS: MarkRegistry = {
 
 export default function MarkdownDemoPage() {
   const [markdown, setMarkdown] = useState(SANAD);
-  const [showSource, setShowSource] = useState(false);
-  const [focus, setFocus] = useState(false);
 
   return (
-    <main className="p-6" dir="rtl">
-      <header className="mb-4">
-        <h1 className="text-xl font-bold">@tamin/markdown</h1>
-        <p className="text-sm text-neutral-500">
-          مکان‌نما را داخلِ هر بلوک ببرید تا نشانه‌ها پیدا شوند. مثلث‌های پنلِ
-          کناری و کارت‌ها تا می‌شوند. یک تصویر را خمیر یا داخلِ متن رها کنید.
-          <br />
-          <kbd>F11</kbd> تمام‌صفحه · <kbd>Ctrl+P</kbd> خروجیِ PDF ·{" "}
-          <kbd>Ctrl+F</kbd> جست‌وجو · <kbd>Ctrl+/</kbd> سورس
-        </p>
-        <button
-          type="button"
-          className="mt-2 rounded border px-3 py-1 text-sm"
-          onClick={() => setShowSource((v) => !v)}
-        >
-          {showSource ? "پنهان‌کردنِ خروجی" : "نمایشِ خروجیِ مارک‌داون"}
-        </button>
-        <button
-          type="button"
-          className="mt-2 ms-2 rounded border px-3 py-1 text-sm"
-          onClick={() => setFocus((v) => !v)}
-        >
-          {focus ? "خروج از حالتِ تمرکز" : "حالتِ تمرکز"}
-        </button>
-      </header>
-
+    <main className="markdown-workspace" dir="rtl">
       <MarkdownEditor
         defaultValue={SANAD}
         onChange={setMarkdown}
@@ -181,28 +154,14 @@ export default function MarkdownDemoPage() {
         outline
         toolbar
         stats
-        focusMode={focus}
+        theme="light"
         dir="rtl"
+        className="tm-demo-editor"
         placeholder="بنویسید…"
       />
-
-      {showSource ? (
-        <section className="mt-6">
-          <h2 className="mb-2 text-sm font-semibold">
-            خروجیِ زندهٔ `serialize` — باید با ورودی یکی باشد تا وقتی چیزی
-            تغییر نکرده
-          </h2>
-          <pre
-            dir="ltr"
-            className="overflow-x-auto rounded border bg-neutral-50 p-3 text-xs dark:bg-neutral-900"
-          >
-            {markdown}
-          </pre>
-          <p className="mt-2 text-xs text-neutral-500">
-            بی‌تغییر نسبت به ورودی: {markdown === SANAD ? "✅ بله" : "✏️ ویرایش شده"}
-          </p>
-        </section>
-      ) : null}
+      <output data-testid="markdown-output" hidden>
+        {markdown}
+      </output>
     </main>
   );
 }

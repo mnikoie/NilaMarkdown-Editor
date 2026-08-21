@@ -50,8 +50,8 @@ test("★ سرفصل در خودِ متن مثلثِ تاشدن دارد", async
   const handle = h1.locator(".tm-inline-fold");
   await expect(handle).toBeAttached();
 
-  // پیش‌فرض پنهان — سندِ پر از مثلثِ پررنگ شلوغ است.
-  await expect(handle).toHaveCSS("opacity", "0");
+  // نودِ والد بدون نیاز به hover هم باید قابلِ تشخیص باشد.
+  await expect(handle).toHaveCSS("opacity", "0.55");
 
   // با hover دیده می‌شود.
   await h1.hover();
@@ -118,10 +118,8 @@ test("★ خلاصه هم فصل را باز می‌کند", async ({ page }) =>
 });
 
 test("★★ تاشدن وارد مارک‌داون نمی‌شود", async ({ page }) => {
-  await page.getByRole("button", { name: "نمایشِ خروجیِ مارک‌داون" }).click();
-  const pre = page.locator("main > section pre");
-  await expect(pre).toBeVisible();
-  const before = await pre.innerText();
+  const output = page.getByTestId("markdown-output");
+  const before = await output.textContent();
 
   const h1 = page.locator(".tm-editor h1").first();
   await h1.hover();
@@ -130,5 +128,36 @@ test("★★ تاشدن وارد مارک‌داون نمی‌شود", async ({ 
   await page.waitForTimeout(600);
 
   // ★ حالتِ نمایش هرگز نباید در سند بنشیند — وگرنه رفت‌وبرگشت می‌شکند.
-  expect(await pre.innerText()).toBe(before);
+  expect(await output.textContent()).toBe(before);
+});
+
+test("★★ همهٔ کارت‌های دارای زیرمجموعه نودِ بازوبسته‌شونده‌اند", async ({ page }) => {
+  const cards = page.locator(".tm-mark");
+  const toggles = cards.locator(":scope > .tm-mark-header > .tm-fold-toggle");
+  await expect(toggles).toHaveCount(await cards.count());
+
+  // «هشدار» قبلاً collapsible نبود؛ اکنون مثل هر والدِ دیگر تا می‌شود.
+  const warning = page.locator('.tm-mark[data-mark="هشدار"]');
+  const toggle = warning.locator(":scope > .tm-mark-header > .tm-fold-toggle");
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-expanded", "false");
+  await expect(warning).toHaveAttribute("data-folded", "true");
+  await expect(warning.locator(":scope > .tm-mark-body")).toBeHidden();
+  await toggle.click();
+  await expect(warning.locator(":scope > .tm-mark-body")).toBeVisible();
+});
+
+test("★ چیدمانِ صفحه مثل Typora تمام‌قد و پنلِ ساختار در چپ است", async ({ page }) => {
+  await expect(page.locator(".markdown-workspace")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "@tamin/markdown" })).toHaveCount(0);
+
+  const [workspace, sidebar, editor] = await Promise.all([
+    page.locator(".markdown-workspace").boundingBox(),
+    page.locator(".tm-sidebar").boundingBox(),
+    page.locator(".tm-main").boundingBox(),
+  ]);
+  expect(workspace?.height).toBeGreaterThanOrEqual(700);
+  expect(sidebar!.x).toBeLessThan(editor!.x);
+  expect(Math.abs(sidebar!.height - workspace!.height)).toBeLessThanOrEqual(1);
 });
