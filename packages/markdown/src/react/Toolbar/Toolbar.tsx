@@ -52,6 +52,8 @@ export interface ToolbarProps {
   onExportPdf?: () => void;
   /** بازکردنِ ویرایشگرِ لینک. */
   onEditLink?: () => void;
+  /** فقط ابزارهای پرتکرار؛ بلوک‌ها به منوی Paragraph منتقل می‌شوند. */
+  compact?: boolean;
   className?: string;
 }
 
@@ -249,6 +251,7 @@ export function Toolbar({
   fullscreen,
   onExportPdf,
   onEditLink,
+  compact = false,
   className,
 }: ToolbarProps) {
   const [focusIndex, setFocusIndex] = useState(0);
@@ -276,6 +279,7 @@ export function Toolbar({
   // داده شده باشد**. دکمهٔ همیشه‌غیرفعال بدتر از دکمهٔ نبوده است.
   const items: Item[] = ITEMS
     .filter((item) => item.id !== "link" || onEditLink)
+    .filter((item) => !compact || ["bold", "italic", "strike", "code", "link", "zwnj"].includes(item.id))
     .map((item) => ({ ...item }));
 
   const linkItem = items.find((item) => item.id === "link");

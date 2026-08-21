@@ -767,6 +767,7 @@
   /* نوارِ ابزار و آمار هم‌عرضِ ستونِ متن می‌مانند — وگرنه نوار تا لبهٔ
    * صفحه کش می‌آید و از متنی که کنترلش می‌کند جدا می‌افتد. */
   .tm-toolbar,
+  .tm-editor-controls,
   .tm-stats,
   .tm-notice,
   .tm-search-panel {
@@ -775,6 +776,7 @@
   }
 
   .tm-root[data-fullscreen] .tm-toolbar,
+  .tm-root[data-fullscreen] .tm-editor-controls,
   .tm-root[data-fullscreen] .tm-stats,
   .tm-root[data-fullscreen] .tm-notice,
   .tm-root[data-fullscreen] .tm-search-panel {
@@ -858,6 +860,122 @@
     outline-offset: -2px;
   }
 
+  .tm-editor-controls {
+    position: sticky;
+    top: 0;
+    z-index: 6;
+    display: flex;
+    align-items: stretch;
+    gap: 0.375rem;
+    margin-block-end: 0.375rem;
+  }
+
+  .tm-editor-controls .tm-toolbar {
+    position: static;
+    flex: 1;
+    min-inline-size: 0;
+    margin: 0;
+  }
+
+  /* ── منوی Paragraph؛ فرمان‌های کم‌مصرف از نوار آیکون‌ها جدا می‌شوند. ── */
+  .tm-paragraph-menu {
+    position: relative;
+    flex: none;
+  }
+
+  .tm-menu-trigger {
+    block-size: 100%;
+    min-block-size: 2.375rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    border: 1px solid var(--tm-border);
+    border-radius: 0.5rem;
+    background: var(--tm-bg);
+    color: var(--tm-fg);
+    padding-inline: 0.625rem;
+    font: inherit;
+    font-size: 0.8125rem;
+    cursor: pointer;
+  }
+
+  .tm-menu-trigger:hover:not(:disabled),
+  .tm-menu-trigger[aria-expanded="true"] {
+    border-color: var(--tm-accent);
+    color: var(--tm-accent);
+  }
+
+  .tm-menu-trigger:disabled {
+    opacity: 0.45;
+    cursor: default;
+  }
+
+  .tm-menu-panel {
+    position: absolute;
+    inset-block-start: calc(100% + 0.25rem);
+    inset-inline-start: 0;
+    z-index: 12;
+    inline-size: min(22rem, calc(100vw - 2rem));
+    max-block-size: min(75vh, 42rem);
+    overflow: auto;
+    padding: 0.375rem;
+    border: 1px solid var(--tm-border);
+    border-radius: 0.625rem;
+    background: var(--tm-bg);
+    box-shadow: 0 10px 30px rgb(0 0 0 / 0.2);
+  }
+
+  .tm-menu-panel button {
+    inline-size: 100%;
+    min-block-size: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    border: 0;
+    border-radius: 0.375rem;
+    background: transparent;
+    color: var(--tm-fg);
+    padding: 0.375rem 0.5rem;
+    text-align: start;
+    font: inherit;
+    font-size: 0.8125rem;
+    cursor: pointer;
+  }
+
+  .tm-menu-panel button:hover:not(:disabled),
+  .tm-menu-panel button[aria-expanded="true"] {
+    background: var(--tm-code-bg);
+    color: var(--tm-accent);
+  }
+
+  .tm-menu-panel button:disabled {
+    color: var(--tm-muted);
+    opacity: 0.55;
+    cursor: default;
+  }
+
+  .tm-menu-panel kbd {
+    direction: ltr;
+    color: var(--tm-muted);
+    font-family: var(--tm-font-mono);
+    font-size: 0.6875rem;
+  }
+
+  .tm-menu-separator {
+    display: block;
+    block-size: 1px;
+    margin-block: 0.25rem;
+    background: var(--tm-border);
+  }
+
+  .tm-menu-submenu {
+    margin-block: 0.125rem 0.375rem;
+    margin-inline-start: 0.75rem;
+    padding-inline-start: 0.375rem;
+    border-inline-start: 1px solid var(--tm-border);
+  }
+
   /* ── ویرایشِ لینک ── */
   .tm-link-popover {
     position: sticky;
@@ -874,6 +992,10 @@
     border-radius: 0.5rem;
     background: var(--tm-bg);
     box-shadow: 0 4px 16px rgb(0 0 0 / 0.14);
+  }
+
+  .tm-reference-popover {
+    grid-template-columns: minmax(8rem, 1fr) minmax(8rem, 0.8fr) minmax(12rem, 1.4fr) auto;
   }
 
   .tm-link-field {
@@ -985,6 +1107,14 @@
       position: relative;
       top: auto;
       grid-template-columns: 1fr;
+    }
+
+    .tm-editor-controls {
+      align-items: stretch;
+    }
+
+    .tm-menu-trigger span {
+      display: none;
     }
   }
 
@@ -1270,6 +1400,49 @@
     margin-block: 0.25em;
   }
 
+  /* فهرست‌های تودرتو مثل درخت: هر آیتمِ والد یک گره با زیرگره است. */
+  .tm-editor .tm-list-node {
+    position: relative;
+  }
+
+  .tm-editor .tm-list-node > ul,
+  .tm-editor .tm-list-node > ol {
+    border-inline-start: 1px solid var(--tm-border);
+  }
+
+  .tm-editor .tm-list-fold-toggle {
+    position: absolute;
+    inset-inline-start: -2.75em;
+    inset-block-start: 0.05em;
+    inline-size: 1.5em;
+    block-size: 1.5em;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    border-radius: 0.25em;
+    background: transparent;
+    color: var(--tm-muted);
+    font: inherit;
+    line-height: 1;
+    cursor: pointer;
+    transition: rotate 120ms ease, background 120ms ease;
+  }
+
+  .tm-editor .tm-list-fold-toggle:hover,
+  .tm-editor .tm-list-fold-toggle:focus-visible {
+    background: var(--tm-code-bg);
+    color: var(--tm-accent);
+  }
+
+  .tm-editor .tm-list-node[data-list-folded="true"] > .tm-list-fold-toggle {
+    rotate: -90deg;
+  }
+
+  .tm-editor .tm-list-folded-hidden {
+    display: none !important;
+  }
+
   /* ★ بندِ تک‌پاراگرافی نباید حاشیه بگیرد — وگرنه فهرست شل و پراکنده
    * دیده می‌شود. */
   .tm-editor li > p {
@@ -1338,6 +1511,89 @@
 
   .tm-editor blockquote > :first-child { margin-block-start: 0; }
   .tm-editor blockquote > :last-child { margin-block-end: 0; }
+
+  /* ── فهرست مطالب و تعریفِ ارجاع ── */
+  .tm-editor .tm-toc {
+    margin-block: 1rem;
+    padding: 0.875rem;
+    border: 1px solid var(--tm-border);
+    border-radius: 0.625rem;
+    background: var(--tm-code-bg);
+  }
+
+  .tm-editor .tm-toc-title {
+    display: block;
+    margin-block-end: 0.5rem;
+  }
+
+  .tm-editor .tm-toc-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .tm-editor .tm-toc-list li {
+    margin: 0;
+    padding-inline-start: calc((var(--tm-toc-level, 1) - 1) * 1rem);
+  }
+
+  .tm-editor .tm-toc-list button {
+    inline-size: 100%;
+    border: 0;
+    border-block-end: 1px solid var(--tm-border);
+    background: transparent;
+    color: var(--tm-fg);
+    padding: 0.35rem 0;
+    text-align: start;
+    font: inherit;
+    cursor: pointer;
+  }
+
+  .tm-editor .tm-toc-list button:hover {
+    color: var(--tm-accent);
+  }
+
+  .tm-editor .tm-toc-empty {
+    margin: 0;
+    color: var(--tm-muted);
+  }
+
+  .tm-editor .tm-link-definition {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-block: 0.5rem;
+    padding: 0.5rem 0.625rem;
+    border: 1px dashed var(--tm-border);
+    border-radius: 0.375rem;
+    background: var(--tm-code-bg);
+    direction: ltr;
+  }
+
+  .tm-editor .tm-link-definition code {
+    min-inline-size: 0;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .tm-editor .tm-link-definition button,
+  .tm-editor .tm-link-definition input {
+    border: 1px solid var(--tm-border);
+    border-radius: 0.3rem;
+    background: var(--tm-bg);
+    color: var(--tm-fg);
+    padding: 0.3rem 0.45rem;
+    font: inherit;
+  }
+
+  .tm-editor .tm-link-definition form {
+    inline-size: 100%;
+    display: grid;
+    grid-template-columns: 0.7fr 1.5fr auto;
+    gap: 0.375rem;
+  }
 
   /* ── جداکننده ── */
   .tm-editor hr {

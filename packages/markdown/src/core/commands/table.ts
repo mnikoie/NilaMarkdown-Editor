@@ -14,6 +14,8 @@ import {
 import { TextSelection } from "prosemirror-state";
 import type { Command, EditorState, Transaction } from "prosemirror-state";
 import type { Plugin } from "prosemirror-state";
+import { Fragment } from "prosemirror-model";
+import type { Node as PMNode } from "prosemirror-model";
 import { schema } from "../schema/index.js";
 
 /**
@@ -115,4 +117,97 @@ export function setColumnAlign(align: "left" | "center" | "right" | null): Comma
     dispatch(tr);
     return true;
   };
+}
+
+interface TableContext {
+  table: PMNode;
+  tablePos: number;
+  rowIndex: number;
+  colIndex: number;
+}
+
+function tableContext(state: EditorState): TableContext | null {
+  const { $from } = state.selection;
+  let cellDepth = $from.depth;
+  while (cellDepth > 0 && !$from.node(cellDepth).type.spec.tableRole?.includes("cell")) cellDepth--;
+  if (cellDepth === 0) return null;
+  const rowDepth = cellDepth - 1;
+  const tableDepth = cellDepth - 2;
+  return {
+    table: $from.node(tableDepth),
+    tablePos: $from.before(tableDepth),
+    rowIndex: $from.index(tableDepth),
+    colIndex: $from.index(rowDepth),
+  };
+}
+
+function cellTextPosition(table: PMNode, tablePos: number, rowIndex: number, colIndex: number): number {
+  let pos = tablePos + 1;
+  for (let row = 0; row < rowIndex; row++) pos += table.child(row).nodeSize;
+  pos += 1;
+  const targetRow = table.child(rowIndex);
+  for (let col = 0; col < colIndex; col++) pos += targetRow.child(col).nodeSize;
+  return pos + 1;
+}
+
+/** جابه‌جایی ردیفِ فعلی، با حفظِ محتوای همهٔ سلول‌ها. */
+export function moveRow(direction: -1 | 1): Command {
+  return (state, dispatch) => {
+    const ctx = tableContext(state);
+    if (!ctx) return false;
+    const target = ctx.rowIndex + direction;
+    if (target < 0 || target >= ctx.table.childCount) return false;
+    if (!dispatch) return true;
+
+    const rows: PMNode[] = [];
+    ctx.table.forEach((row) => rows.push(row));
+    [rows[ctx.rowIndex], rows[target]] = [rows[target]!, rows[ctx.rowIndex]!];
+    const table = ctx.table.copy(Fragment.fromArray(rows));
+    const tr = state.tr.replaceWith(ctx.tablePos, ctx.tablePos + ctx.table.nodeSize, table);
+    const cursor = cellTextPosition(table, ctx.tablePos, target, Math.min(ctx.colIndex, table.child(target).childCount - 1));
+    tr.setSelection(TextSelection.near(tr.doc.resolve(cursor), 1));
+    dispatch(tr.scrollIntoView());
+    return true;
+  };
+}
+
+/** جابه‌جایی ستونِ فعلی در تمامِ ردیف‌ها. */
+export function moveColumn(direction: -1 | 1): Command {
+  return (state, dispatch) => {
+    const ctx = tableContext(state);
+    if (!ctx) return false;
+    const target = ctx.colIndex + direction;
+    const columnCount = ctx.table.firstChild?.childCount ?? 0;
+    if (target < 0 || target >= columnCount) return false;
+    if (!dispatch) return true;
+
+    const rows: PMNode[] = [];
+    ctx.table.forEach((row) => {
+      const cells: PMNode[] = [];
+      row.forEach((cell) => cells.push(cell));
+      if (ctx.colIndex < cells.length && target < cells.length) {
+        [cells[ctx.colIndex], cells[target]] = [cells[target]!, cells[ctx.colIndex]!];
+      }
+      rows.push(row.copy(Fragment.fromArray(cells)));
+    });
+    const table = ctx.table.copy(Fragment.fromArray(rows));
+    const tr = state.tr.replaceWith(ctx.tablePos, ctx.tablePos + ctx.table.nodeSize, table);
+    const cursor = cellTextPosition(table, ctx.tablePos, ctx.rowIndex, target);
+    tr.setSelection(TextSelection.near(tr.doc.resolve(cursor), 1));
+    dispatch(tr.scrollIntoView());
+    return true;
+  };
+}
+
+/** جابه‌جاییِ دیداریِ چپ/راست؛ در جدولِ RTL جهتِ منطقی برعکس است. */
+export function moveColumnVisual(direction: "left" | "right"): Command {
+  return (state, dispatch, view) => {
+    const rtl = view ? getComputedStyle(view.dom).direction === "rtl" : false;
+    const logical = direction === "left" ? (rtl ? 1 : -1) : rtl ? -1 : 1;
+    return moveColumn(logical)(state, dispatch, view);
+  };
+}
+
+export function currentTable(state: EditorState): PMNode | null {
+  return tableContext(state)?.table ?? null;
 }

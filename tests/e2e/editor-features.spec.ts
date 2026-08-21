@@ -192,3 +192,44 @@ test("★ ابزارِ جدول فقط داخلِ جدول می‌آید و رد
   await tools.getByRole("button", { name: "ردیف بعد" }).click();
   await expect(table.locator("tr")).toHaveCount(4);
 });
+
+test("★ منوی Paragraph گزینه‌های Typora را دسته‌بندی می‌کند", async ({ page }) => {
+  await page.getByRole("button", { name: "پاراگراف" }).click();
+  const menu = page.getByRole("menu", { name: "پاراگراف" });
+  await expect(menu).toBeVisible();
+  await expect(menu.getByRole("menuitem", { name: "عنوان 6" })).toBeVisible();
+  await expect(menu.getByRole("menuitem", { name: "بلوک ریاضی" })).toBeVisible();
+  await expect(menu.getByRole("menuitem", { name: "پانویس" })).toBeVisible();
+  await expect(menu.getByRole("menuitem", { name: "فهرست مطالب" })).toBeVisible();
+
+  await menu.getByRole("menuitem", { name: "هشدارها" }).click();
+  const alerts = page.getByRole("menu", { name: "هشدارها" });
+  await expect(alerts.getByRole("menuitem", { name: "یادداشت (Note)" })).toBeVisible();
+  await expect(alerts.getByRole("menuitem", { name: "احتیاط (Caution)" })).toBeVisible();
+});
+
+test("★ ارجاع لینک از منوی Paragraph ساخته می‌شود", async ({ page }) => {
+  const paragraph = page.locator(".tm-editor p", { hasText: "پررنگ" }).first();
+  await paragraph.click();
+  await page.getByRole("button", { name: "پاراگراف" }).click();
+  await page.getByRole("menuitem", { name: "ارجاع لینک" }).click();
+
+  const form = page.getByRole("form", { name: "درجِ ارجاعِ لینک" });
+  await expect(form).toBeVisible();
+  await form.getByRole("textbox", { name: "شناسه" }).fill("منبع-آزمایشی");
+  await form.getByRole("textbox", { name: "نشانی" }).fill("https://example.org/reference");
+  await form.getByRole("button", { name: "ثبت" }).click();
+  await expect(page.locator('.tm-editor a[href="https://example.org/reference"]')).toBeVisible();
+  await expect(page.locator(".tm-link-definition")).toContainText("منبع-آزمایشی");
+});
+
+test("★ هر فهرستِ تودرتو مثل نودِ والد باز و بسته می‌شود", async ({ page }) => {
+  const toggle = page.locator(".tm-list-fold-toggle").first();
+  await expect(toggle).toBeVisible();
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-expanded", "false");
+  await expect(page.locator(".tm-list-folded-hidden").first()).toBeHidden();
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+});

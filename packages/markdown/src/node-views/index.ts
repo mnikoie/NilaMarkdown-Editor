@@ -6,6 +6,8 @@ import { CodeBlockView } from "./CodeBlock.js";
 import { MathBlockView, MathInlineView } from "./Math.js";
 import { MermaidView } from "./Mermaid.js";
 import { HtmlBlockView } from "./HtmlBlock.js";
+import { TableOfContentsView } from "./TableOfContents.js";
+import { LinkDefinitionView } from "./LinkDefinition.js";
 import type { HtmlMode } from "../core/security.js";
 
 export interface Features {
@@ -68,6 +70,8 @@ export function createNodeViews(
 
   const views: Record<string, NodeViewConstructor> = {
     directive_block: (node, view, getPos) => new MarkCardView(node, view, getPos, registry),
+    table_of_contents: (node, view) => new TableOfContentsView(node, view),
+    link_definition: (node, view, getPos) => new LinkDefinitionView(node, view, getPos),
   };
 
   // بلوکِ کد همیشه NodeView دارد — دکمهٔ کپی و برچسبِ زبان مستقل از
@@ -96,3 +100,5 @@ export { CodeBlockView } from "./CodeBlock.js";
 export { MathBlockView, MathInlineView } from "./Math.js";
 export { MermaidView } from "./Mermaid.js";
 export { HtmlBlockView } from "./HtmlBlock.js";
+export { TableOfContentsView } from "./TableOfContents.js";
+export { LinkDefinitionView } from "./LinkDefinition.js";

@@ -235,6 +235,12 @@ function blockHtml(
         // متادیتا در خروجیِ خواندنی نمی‌آید.
         break;
 
+      case "link_definition":
+      case "table_of_contents":
+        // definition در hrefِ خودِ لینک حل شده و TOC در حلقهٔ اصلی
+        // به کلِ سند نیاز دارد؛ اینجا چیزی رندر نمی‌شود.
+        break;
+
       default:
         out += blockHtml(child, options, depth);
     }
@@ -348,7 +354,9 @@ export function exportHtml(doc: PMNode, options: ExportHtmlOptions = {}): string
 
   let body = "";
   doc.forEach((child, offset) => {
-    if (child.type.name === "heading" && !child.attrs.id && anchors.has(offset)) {
+    if (child.type.name === "table_of_contents") {
+      body += tocHtml(doc, directives);
+    } else if (child.type.name === "heading" && !child.attrs.id && anchors.has(offset)) {
       const withId = child.type.create({ ...child.attrs, id: anchors.get(offset) }, child.content);
       body += blockHtml(doc.type.schema.nodes.doc.create(null, [withId]), resolved);
     } else {

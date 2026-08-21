@@ -87,6 +87,27 @@ export function toggleTaskItemAt(pos: number): Command {
   };
 }
 
+/** وضعیتِ همهٔ Taskهای انتخاب‌شده را صریح یا معکوس می‌کند. */
+export function setTaskStatus(checked: boolean | "toggle"): Command {
+  return (state, dispatch) => {
+    const items = selectedListItems(state).filter((item) => item.checked !== null);
+    if (items.length === 0) return false;
+    if (!dispatch) return true;
+
+    const tr = state.tr;
+    for (const item of items) {
+      const node = tr.doc.nodeAt(item.pos);
+      if (node?.type !== schema.nodes.list_item || node.attrs.checked === null) continue;
+      tr.setNodeMarkup(item.pos, undefined, {
+        ...node.attrs,
+        checked: checked === "toggle" ? !Boolean(node.attrs.checked) : checked,
+      });
+    }
+    dispatch(tr);
+    return true;
+  };
+}
+
 export function isTaskList(state: EditorState): boolean {
   return selectedListItems(state).some((item) => item.checked !== null);
 }

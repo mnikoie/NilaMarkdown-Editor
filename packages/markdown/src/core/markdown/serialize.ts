@@ -75,6 +75,9 @@ interface MdastNode {
   [k: string]: unknown;
 }
 
+const ALERT_SENTINEL = "TAMINALERT";
+const TOC_SENTINEL = "TAMINTABLEOFCONTENTS";
+
 /** نشانه‌های فعالِ یک متن را به گره‌های تودرتوی mdast تبدیل می‌کند. */
 function applyMarks(text: string, marks: readonly Mark[]): MdastNode {
   let node: MdastNode = { type: "text", value: text };
@@ -95,12 +98,20 @@ function applyMarks(text: string, marks: readonly Mark[]): MdastNode {
         node = { type: "delete", children: [node] };
         break;
       case "link":
-        node = {
-          type: "link",
-          url: m.attrs.href ?? m.attrs.url ?? "",
-          title: m.attrs.title ?? null,
-          children: [node],
-        };
+        node = m.attrs.identifier
+          ? {
+              type: "linkReference",
+              identifier: m.attrs.identifier,
+              label: m.attrs.identifier,
+              referenceType: m.attrs.referenceType ?? "full",
+              children: [node],
+            }
+          : {
+              type: "link",
+              url: m.attrs.href ?? m.attrs.url ?? "",
+              title: m.attrs.title ?? null,
+              children: [node],
+            };
         break;
     }
   }
@@ -235,6 +246,17 @@ function blockOf(node: PMNode): MdastNode[] {
 
       case "directive_block": {
         const children = blockOf(child);
+        if (
+          child.attrs.syntax === "alert" &&
+          ["note", "tip", "important", "warning", "caution"].includes(child.attrs.name)
+        ) {
+          children.unshift({
+            type: "paragraph",
+            children: [{ type: "text", value: `${ALERT_SENTINEL}${String(child.attrs.name).toUpperCase()}` }],
+          });
+          out.push({ type: "blockquote", children });
+          break;
+        }
         if (child.attrs.label) {
           children.unshift({
             type: "paragraph",
@@ -272,6 +294,23 @@ function blockOf(node: PMNode): MdastNode[] {
           identifier: child.attrs.identifier,
           label: child.attrs.label ?? child.attrs.identifier,
           children: blockOf(child),
+        });
+        break;
+
+      case "link_definition":
+        out.push({
+          type: "definition",
+          identifier: child.attrs.identifier,
+          label: child.attrs.identifier,
+          url: child.attrs.url,
+          title: child.attrs.title ?? null,
+        });
+        break;
+
+      case "table_of_contents":
+        out.push({
+          type: "paragraph",
+          children: [{ type: "text", value: TOC_SENTINEL }],
         });
         break;
 
@@ -344,5 +383,7 @@ export function serialize(doc: PMNode): string {
   if (strongs.size === 1) overrides.strong = [...strongs][0][0];
   if (ems.size === 1) overrides.emphasis = [...ems][0][0];
 
-  return stringifyWith(tree, overrides);
+  return stringifyWith(tree, overrides)
+    .replace(new RegExp(`^> ${ALERT_SENTINEL}([A-Z]+)$`, "gm"), "> [!$1]")
+    .replace(new RegExp(`^${TOC_SENTINEL}$`, "gm"), "[TOC]");
 }

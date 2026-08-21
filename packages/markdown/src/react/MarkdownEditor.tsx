@@ -9,6 +9,8 @@ import { SearchPanel } from "./SearchPanel/SearchPanel.js";
 import { SlashMenu } from "./SlashMenu/SlashMenu.js";
 import { LinkPopover } from "./LinkPopover/LinkPopover.js";
 import { TableTools } from "./TableTools/TableTools.js";
+import { ParagraphMenu } from "./ParagraphMenu/ParagraphMenu.js";
+import { ReferenceLinkPopover } from "./ReferenceLinkPopover/ReferenceLinkPopover.js";
 import { computeStats } from "../core/stats.js";
 import { exportPdf, type ExportPdfOptions } from "../core/export-pdf.js";
 import { useFullscreen } from "./useFullscreen.js";
@@ -126,6 +128,7 @@ export function MarkdownEditor({
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchReplace, setSearchReplace] = useState(false);
   const [linkOpen, setLinkOpen] = useState(false);
+  const [referenceLinkOpen, setReferenceLinkOpen] = useState(false);
   const [sourceText, setSourceText] = useState("");
   const sourceRef = useRef<HTMLTextAreaElement>(null);
 
@@ -277,18 +280,31 @@ export function MarkdownEditor({
         />
 
         {toolbar ? (
-          <Toolbar
-            view={handle.view}
-            onToggleSource={toggleSource}
-            sourceMode={mode === "source"}
-            onToggleFullscreen={fullscreen ? fs.toggle : undefined}
-            fullscreen={fs.active}
-            onExportPdf={pdf !== false ? runExportPdf : undefined}
-            onEditLink={() => setLinkOpen(true)}
-          />
+          <div className="tm-editor-controls">
+            <ParagraphMenu
+              view={mode === "live" ? handle.view : null}
+              onInsertReferenceLink={() => setReferenceLinkOpen(true)}
+              onNotice={setNotice}
+            />
+            <Toolbar
+              view={handle.view}
+              compact
+              onToggleSource={toggleSource}
+              sourceMode={mode === "source"}
+              onToggleFullscreen={fullscreen ? fs.toggle : undefined}
+              fullscreen={fs.active}
+              onExportPdf={pdf !== false ? runExportPdf : undefined}
+              onEditLink={() => setLinkOpen(true)}
+            />
+          </div>
         ) : null}
 
         <LinkPopover view={handle.view} open={linkOpen} onClose={() => setLinkOpen(false)} />
+        <ReferenceLinkPopover
+          view={handle.view}
+          open={referenceLinkOpen}
+          onClose={() => setReferenceLinkOpen(false)}
+        />
         <TableTools view={handle.view} active={handle.inTable} enabled={mode === "live"} />
 
         {/* حالتِ سورس: یک textarea با فونتِ mono کافی است — CodeMirror لازم نیست. */}

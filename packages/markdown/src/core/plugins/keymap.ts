@@ -11,8 +11,21 @@ import { undo, redo } from "prosemirror-history";
 import { undoInputRule } from "prosemirror-inputrules";
 import type { Plugin, Command } from "prosemirror-state";
 import { schema } from "../schema/index.js";
-import { goToNextCell, isInTable } from "../commands/table.js";
+import {
+  addRowAfter,
+  deleteRow,
+  goToNextCell,
+  insertTable,
+  isInTable,
+  moveColumnVisual,
+} from "../commands/table.js";
 import { toggleTaskList } from "../commands/task-list.js";
+import {
+  changeHeadingLevel,
+  insertMathBlock,
+  setParagraph,
+  toggleBlockquote,
+} from "../commands/paragraph.js";
 
 /**
  * میان‌برها.
@@ -75,8 +88,18 @@ export function keymapPlugin(options: KeymapOptions = {}): Plugin {
     "Mod-Shift-8": wrapInList(schema.nodes.bullet_list),
     "Mod-Shift-7": wrapInList(schema.nodes.ordered_list),
     "Mod-Shift-x": toggleTaskList,
+    "Mod-0": setParagraph,
+    "Mod-=": changeHeadingLevel("increase"),
+    "Mod--": changeHeadingLevel("decrease"),
+    "Mod-t": insertTable(3, 3),
+    "Mod-Shift-m": insertMathBlock(),
+    "Mod-Shift-q": toggleBlockquote,
+    "Alt-ArrowLeft": moveColumnVisual("left"),
+    "Alt-ArrowRight": moveColumnVisual("right"),
+    "Mod-Shift-Backspace": deleteRow,
 
     Enter: chainCommands(splitListItem(schema.nodes.list_item), baseKeymap.Enter!),
+    "Mod-Enter": (state, dispatch) => (isInTable(state) ? addRowAfter(state, dispatch) : false),
 
     // Tab بسته به جا معنیِ متفاوت دارد: در جدول «سلولِ بعدی»، در فهرست
     // «تورفتگی». ترتیب مهم است — جدول اول چک می‌شود چون خاص‌تر است.

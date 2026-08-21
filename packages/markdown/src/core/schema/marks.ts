@@ -36,7 +36,13 @@ const code: MarkSpec = {
 };
 
 const link: MarkSpec = {
-  attrs: { href: {}, title: { default: null } },
+  attrs: {
+    href: {},
+    title: { default: null },
+    /** اگر مقدار داشته باشد، لینک از نوع reference-style است. */
+    identifier: { default: null },
+    referenceType: { default: null },
+  },
   inclusive: false,
   parseDOM: [
     {

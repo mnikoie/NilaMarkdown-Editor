@@ -20,6 +20,7 @@ import { writingModesPlugin } from "../core/plugins/writing-modes.js";
 import { pasteImagePlugin, type PasteImageOptions } from "../core/plugins/paste-image.js";
 import { autoPairPlugin } from "../core/plugins/auto-pair.js";
 import { taskListPlugin } from "../core/plugins/task-list.js";
+import { listFoldPlugin } from "../core/plugins/list-fold.js";
 import { createNodeViews } from "../node-views/index.js";
 import type { Features } from "../node-views/index.js";
 import { buildOutline } from "../core/outline/build.js";
@@ -131,8 +132,9 @@ export function useEditor(options: UseEditorOptions): {
     const mount = mountRef.current;
     if (!mount) return;
 
+    const doc = parse(value ?? defaultValue);
     const state = EditorState.create({
-      doc: parse(value ?? defaultValue),
+      doc,
       schema,
       plugins: [
         history(),
@@ -154,7 +156,7 @@ export function useEditor(options: UseEditorOptions): {
         }),
         inputRulesPlugin(directives),
         autoPairPlugin(),
-        livePreviewPlugin(),
+        livePreviewPlugin({ requireFocus: true }),
         foldPlugin({
           registry: directives,
           initial: foldedIds,
@@ -167,6 +169,7 @@ export function useEditor(options: UseEditorOptions): {
         // برعکس، رهاکردنِ عکس فقط مکان‌نما را جابه‌جا می‌کرد.
         pasteImagePlugin(imagesRef.current ?? {}),
         taskListPlugin(),
+        listFoldPlugin(),
         tableResizingPlugin(),
         tableEditingPlugin(),
         dropCursor(),

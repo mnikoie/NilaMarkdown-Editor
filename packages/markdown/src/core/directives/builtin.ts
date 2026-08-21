@@ -105,6 +105,52 @@ export const BUILTIN_MARKS: MarkRegistry = {
     inputRule: true,
   },
 
+  note: {
+    name: "note",
+    label: "یادداشت",
+    kind: "بلوکی",
+    color: "#2563eb",
+    icon: "ℹ",
+    variant: "کادر",
+    inSlashMenu: false,
+  },
+  tip: {
+    name: "tip",
+    label: "نکته",
+    kind: "بلوکی",
+    color: "#0891b2",
+    icon: "◆",
+    variant: "کادر",
+    inSlashMenu: false,
+  },
+  important: {
+    name: "important",
+    label: "مهم",
+    kind: "بلوکی",
+    color: "#7c3aed",
+    icon: "!",
+    variant: "کادر",
+    inSlashMenu: false,
+  },
+  warning: {
+    name: "warning",
+    label: "هشدار",
+    kind: "بلوکی",
+    color: "#f59e0b",
+    icon: "⚠",
+    variant: "کادر",
+    inSlashMenu: false,
+  },
+  caution: {
+    name: "caution",
+    label: "احتیاط",
+    kind: "بلوکی",
+    color: "#dc2626",
+    icon: "⛔",
+    variant: "کادر",
+    inSlashMenu: false,
+  },
+
   /** ارجاعِ بین‌سندی — بندِ ۱۸ـ۲ پرامپت. */
   ref: {
     name: "ref",

@@ -113,3 +113,56 @@ export const unsetLink: Command = (state, dispatch) => {
   dispatch?.(state.tr.removeMark(from, to, schema.marks.link));
   return true;
 };
+
+/** لینکِ reference-style را همراه با definition آن در انتهای سند می‌سازد. */
+export function setReferenceLink(
+  identifier: string,
+  href: string,
+  label?: string,
+  title: string | null = null,
+): Command {
+  return (state, dispatch) => {
+    const cleanIdentifier = identifier.trim().replace(/\s+/g, "-");
+    const cleanHref = href.trim();
+    if (!cleanIdentifier || !cleanHref) return false;
+
+    let definitionPos: number | null = null;
+    state.doc.descendants((node, pos) => {
+      if (
+        definitionPos === null &&
+        node.type === schema.nodes.link_definition &&
+        String(node.attrs.identifier).toLowerCase() === cleanIdentifier.toLowerCase()
+      ) {
+        definitionPos = pos;
+      }
+    });
+
+    if (!dispatch) return true;
+    const { from, to } = state.selection;
+    const text = label?.trim() || state.doc.textBetween(from, to, "") || cleanIdentifier;
+    const mark = schema.marks.link.create({
+      href: cleanHref,
+      title,
+      identifier: cleanIdentifier,
+      referenceType: "full",
+    });
+    const tr = state.tr;
+    if (from === to) {
+      tr.insertText(text, from);
+      tr.addMark(from, from + text.length, mark);
+    } else if (text !== state.doc.textBetween(from, to, "")) {
+      tr.replaceWith(from, to, schema.text(text, [mark]));
+    } else {
+      tr.removeMark(from, to, schema.marks.link).addMark(from, to, mark);
+    }
+
+    const attrs = { identifier: cleanIdentifier, url: cleanHref, title };
+    if (definitionPos !== null) {
+      tr.setNodeMarkup(tr.mapping.map(definitionPos), schema.nodes.link_definition, attrs);
+    } else {
+      tr.insert(tr.doc.content.size, schema.nodes.link_definition.create(attrs));
+    }
+    dispatch(tr.scrollIntoView());
+    return true;
+  };
+}

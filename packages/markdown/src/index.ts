@@ -29,11 +29,38 @@ export {
   deleteTable,
   goToNextCell,
   isInTable,
+  moveRow,
+  moveColumn,
+  moveColumnVisual,
+  currentTable,
 } from "./core/commands/table.js";
 
-export { getActiveLink, setLink, unsetLink } from "./core/commands/link.js";
+export { getActiveLink, setLink, unsetLink, setReferenceLink } from "./core/commands/link.js";
 export type { ActiveLink } from "./core/commands/link.js";
-export { toggleTaskList, toggleTaskItemAt, isTaskList } from "./core/commands/task-list.js";
+export {
+  toggleTaskList,
+  toggleTaskItemAt,
+  setTaskStatus,
+  isTaskList,
+} from "./core/commands/task-list.js";
+export {
+  setParagraph,
+  changeHeadingLevel,
+  toggleBlockquote,
+  toggleBulletList,
+  toggleOrderedList,
+  indentListItem,
+  outdentListItem,
+  insertParagraphBefore,
+  insertParagraphAfter,
+  insertMathBlock,
+  insertHorizontalRule,
+  insertTableOfContents,
+  insertAlert,
+  insertYamlFrontMatter,
+  insertFootnote,
+} from "./core/commands/paragraph.js";
+export { autoIndentCode, codeContent } from "./core/commands/code.js";
 
 export {
   isSafeHref,
@@ -91,6 +118,13 @@ export { inputRulesPlugin } from "./core/plugins/input-rules.js";
 export { autoPairPlugin } from "./core/plugins/auto-pair.js";
 export type { AutoPairOptions } from "./core/plugins/auto-pair.js";
 export { taskListPlugin } from "./core/plugins/task-list.js";
+export {
+  listFoldPlugin,
+  listFoldKey,
+  foldAllListNodes,
+  unfoldAllListNodes,
+} from "./core/plugins/list-fold.js";
+export type { ListFoldState } from "./core/plugins/list-fold.js";
 export { keymapPlugin, insertZWNJ, toggleHeading } from "./core/plugins/keymap.js";
 export type { KeymapOptions } from "./core/plugins/keymap.js";
 
@@ -153,6 +187,10 @@ export { LinkPopover } from "./react/LinkPopover/LinkPopover.js";
 export type { LinkPopoverProps } from "./react/LinkPopover/LinkPopover.js";
 export { TableTools } from "./react/TableTools/TableTools.js";
 export type { TableToolsProps } from "./react/TableTools/TableTools.js";
+export { ParagraphMenu } from "./react/ParagraphMenu/ParagraphMenu.js";
+export type { ParagraphMenuProps } from "./react/ParagraphMenu/ParagraphMenu.js";
+export { ReferenceLinkPopover } from "./react/ReferenceLinkPopover/ReferenceLinkPopover.js";
+export type { ReferenceLinkPopoverProps } from "./react/ReferenceLinkPopover/ReferenceLinkPopover.js";
 export { OutlineTree } from "./react/Outline/OutlineTree.js";
 export type { OutlineTreeProps } from "./react/Outline/OutlineTree.js";
 

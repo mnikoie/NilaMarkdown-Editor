@@ -62,6 +62,7 @@ function tickCount(source: string, node: MdastNode): number {
 
 interface Ctx {
   source: string;
+  definitions: Map<string, { url: string; title: string | null }>;
 }
 
 function inlineChildren(nodes: MdastNode[] | undefined, marks: readonly Mark[], ctx: Ctx): PMNode[] {
@@ -102,6 +103,20 @@ function inline(node: MdastNode, marks: readonly Mark[], ctx: Ctx): PMNode[] {
         ...marks,
         schema.marks.link.create({ url: node.url, href: node.url, title: node.title ?? null }),
       ], ctx);
+
+    case "linkReference": {
+      const identifier = String(node.identifier ?? node.label ?? "");
+      const definition = ctx.definitions.get(identifier.toLowerCase());
+      return inlineChildren(node.children, [
+        ...marks,
+        schema.marks.link.create({
+          href: definition?.url ?? `#${identifier}`,
+          title: definition?.title ?? null,
+          identifier,
+          referenceType: node.referenceType ?? "full",
+        }),
+      ], ctx);
+    }
 
     case "image":
       return [
@@ -153,6 +168,13 @@ function blockChildren(nodes: MdastNode[] | undefined, ctx: Ctx): PMNode[] {
 function block(node: MdastNode, ctx: Ctx): PMNode[] {
   switch (node.type) {
     case "paragraph":
+      if (
+        node.children?.length === 1 &&
+        node.children[0]?.type === "text" &&
+        /^\[toc\]$/i.test(String(node.children[0].value ?? "").trim())
+      ) {
+        return [schema.nodes.table_of_contents.create()];
+      }
       return [schema.nodes.paragraph.create(null, inlineChildren(node.children, [], ctx))];
 
     case "heading": {
@@ -169,8 +191,18 @@ function block(node: MdastNode, ctx: Ctx): PMNode[] {
       ];
     }
 
-    case "blockquote":
+    case "blockquote": {
+      const alert = alertFromBlockquote(node, ctx);
+      if (alert) {
+        return [
+          schema.nodes.directive_block.create(
+            { name: alert.type, attributes: {}, label: null, syntax: "alert" },
+            blockChildren(alert.children, ctx),
+          ),
+        ];
+      }
       return [schema.nodes.blockquote.create(null, blockChildren(node.children, ctx))];
+    }
 
     case "thematicBreak":
       return [schema.nodes.horizontal_rule.create()];
@@ -239,6 +271,7 @@ function block(node: MdastNode, ctx: Ctx): PMNode[] {
             name: String(node.name ?? ""),
             attributes: node.attributes ?? {},
             label: directiveLabel(node),
+            syntax: "directive",
           },
           blockChildren(stripLabel(node).children, ctx),
         ),
@@ -265,6 +298,15 @@ function block(node: MdastNode, ctx: Ctx): PMNode[] {
           },
           blockChildren(node.children, ctx),
         ),
+      ];
+
+    case "definition":
+      return [
+        schema.nodes.link_definition.create({
+          identifier: String(node.identifier ?? node.label ?? "link"),
+          url: String(node.url ?? ""),
+          title: node.title ?? null,
+        }),
       ];
 
     case "yaml":
@@ -338,10 +380,49 @@ function textOf(node: MdastNode): string {
   return (node.children ?? []).map(textOf).join("");
 }
 
+const ALERT_TYPES = new Set(["note", "tip", "important", "warning", "caution"]);
+
+/** `> [!NOTE]` را به همان گرهٔ عمومیِ کارت‌های بلوکی تبدیل می‌کند. */
+function alertFromBlockquote(node: MdastNode, ctx: Ctx): { type: string; children: MdastNode[] } | null {
+  const position = node.position as { start?: { offset?: number }; end?: { offset?: number } } | undefined;
+  const start = position?.start?.offset;
+  const end = position?.end?.offset;
+  if (typeof start !== "number" || typeof end !== "number") return null;
+  const firstLine = ctx.source.slice(start, end).split(/\r?\n/, 1)[0] ?? "";
+  if (!/^\s*>\s*\[!/i.test(firstLine)) return null;
+
+  const children = [...(node.children ?? [])];
+  const first = children[0];
+  const firstInline = first?.type === "paragraph" ? first.children?.[0] : undefined;
+  if (!first || !firstInline || firstInline.type !== "text") return null;
+
+  const match = /^\[!([a-z]+)\](?:\s+([\s\S]*))?$/i.exec(String(firstInline.value ?? ""));
+  const type = match?.[1]?.toLowerCase();
+  if (!type || !ALERT_TYPES.has(type)) return null;
+
+  const rest = match?.[2] ?? "";
+  if (rest) {
+    firstInline.value = rest;
+  } else {
+    children.shift();
+  }
+  if (children.length === 0) children.push({ type: "paragraph", children: [] });
+  return { type, children };
+}
+
 /** ورودیِ اصلی: مارک‌داون → سندِ ProseMirror. */
 export function parse(md: string): PMNode {
   const tree = toMdast(md);
-  const ctx: Ctx = { source: md };
+  const definitions = new Map<string, { url: string; title: string | null }>();
+  for (const child of tree.children ?? []) {
+    if (child.type !== "definition") continue;
+    const identifier = String(child.identifier ?? child.label ?? "").toLowerCase();
+    definitions.set(identifier, {
+      url: String(child.url ?? ""),
+      title: child.title ? String(child.title) : null,
+    });
+  }
+  const ctx: Ctx = { source: md, definitions };
   const content = blockChildren(tree.children, ctx);
   // سندِ خالی هم باید معتبر باشد — `block+` حداقل یک گره می‌خواهد.
   if (content.length === 0) content.push(schema.nodes.paragraph.create());

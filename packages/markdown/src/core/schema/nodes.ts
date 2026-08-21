@@ -58,6 +58,8 @@ const directive_block: NodeSpec = {
   attrs: {
     name: { default: "" },
     attributes: { default: {} },
+    /** `directive` یا Alert سازگار با Typora/GitHub. */
+    syntax: { default: "directive" },
     /** محتوای `[…]` در `:::note[عنوان]` */
     label: { default: null },
   },
@@ -115,6 +117,35 @@ const horizontal_rule: NodeSpec = {
   group: "block",
   parseDOM: [{ tag: "hr" }],
   toDOM: () => ["hr"],
+};
+
+/** `[شناسه]: https://example.com "عنوان"` */
+const link_definition: NodeSpec = {
+  attrs: {
+    identifier: { default: "link" },
+    url: { default: "" },
+    title: { default: null },
+  },
+  group: "block",
+  atom: true,
+  defining: true,
+  toDOM: (n) => [
+    "div",
+    {
+      class: "tm-link-definition",
+      "data-identifier": n.attrs.identifier as string,
+      contenteditable: "false",
+    },
+    `[${n.attrs.identifier as string}]: ${n.attrs.url as string}`,
+  ],
+};
+
+/** `[TOC]` — فهرست مطالبی که از سرفصل‌های همان سند ساخته می‌شود. */
+const table_of_contents: NodeSpec = {
+  group: "block",
+  atom: true,
+  defining: true,
+  toDOM: () => ["nav", { class: "tm-toc", contenteditable: "false" }, "فهرست مطالب"],
 };
 
 const code_block: NodeSpec = {
@@ -279,6 +310,8 @@ export const nodes = {
   directive_inline,
   blockquote,
   horizontal_rule,
+  link_definition,
+  table_of_contents,
   code_block,
   bullet_list,
   ordered_list,

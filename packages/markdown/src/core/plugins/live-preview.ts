@@ -28,6 +28,8 @@ export interface LivePreviewState {
   decorations: DecorationSet;
   /** بلوک‌هایی که همین حالا نشانه نشان می‌دهند — برای تست و اشکال‌زدایی. */
   activeBlocks: number[];
+  /** نشانه‌ها فقط وقتی خودِ ویرایشگر فوکوس دارد دیده می‌شوند. */
+  focused: boolean;
 }
 
 export interface LivePreviewOptions {
@@ -38,6 +40,8 @@ export interface LivePreviewOptions {
    * سه نشانه نشان دهند، صفحه می‌لرزد. پیش‌فرض: خاموش.
    */
   showOnMultiBlockSelection?: boolean;
+  /** در رابطِ تعاملی، نشانه‌ها فقط هنگامِ فوکوسِ خودِ ویرایشگر دیده شوند. */
+  requireFocus?: boolean;
 }
 
 /** نشانهٔ هر نوع mark. */
@@ -170,10 +174,11 @@ function activeBlocksOf(state: EditorState, allowMulti: boolean): number[] {
   return blocks;
 }
 
-function build(state: EditorState, options: LivePreviewOptions): LivePreviewState {
+function build(state: EditorState, options: LivePreviewOptions, focused = true): LivePreviewState {
+  if (!focused) return { decorations: DecorationSet.empty, activeBlocks: [], focused };
   const activeBlocks = activeBlocksOf(state, options.showOnMultiBlockSelection ?? false);
   if (activeBlocks.length === 0) {
-    return { decorations: DecorationSet.empty, activeBlocks };
+    return { decorations: DecorationSet.empty, activeBlocks, focused };
   }
 
   const decos: Decoration[] = [];
@@ -182,7 +187,7 @@ function build(state: EditorState, options: LivePreviewOptions): LivePreviewStat
     if (node) decorateBlock(node, pos, decos);
   }
 
-  return { decorations: DecorationSet.create(state.doc, decos), activeBlocks };
+  return { decorations: DecorationSet.create(state.doc, decos), activeBlocks, focused };
 }
 
 export function livePreviewPlugin(options: LivePreviewOptions = {}): Plugin<LivePreviewState> {
@@ -191,19 +196,33 @@ export function livePreviewPlugin(options: LivePreviewOptions = {}): Plugin<Live
 
     state: {
       init(_config, state) {
-        return build(state, options);
+        return build(state, options, !options.requireFocus);
       },
       apply(tr, prev, _old, newState) {
+        const focus = options.requireFocus
+          ? (tr.getMeta(livePreviewKey) as boolean | undefined)
+          : undefined;
+        const focused = focus ?? prev.focused;
         // فقط وقتی سند یا انتخاب عوض شده. بی این، هر تراکنشِ بی‌ربط
         // (مثلاً تاشدن) کلِ نشانه‌ها را بازمی‌سازد.
-        if (!tr.docChanged && !tr.selectionSet) return prev;
-        return build(newState, options);
+        if (focus === undefined && !tr.docChanged && !tr.selectionSet) return prev;
+        return build(newState, options, focused);
       },
     },
 
     props: {
       decorations(state) {
         return livePreviewKey.getState(state)?.decorations ?? DecorationSet.empty;
+      },
+      handleDOMEvents: {
+        focus(view) {
+          if (options.requireFocus) view.dispatch(view.state.tr.setMeta(livePreviewKey, true));
+          return false;
+        },
+        blur(view) {
+          if (options.requireFocus) view.dispatch(view.state.tr.setMeta(livePreviewKey, false));
+          return false;
+        },
       },
     },
   });
