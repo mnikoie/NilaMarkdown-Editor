@@ -28,7 +28,8 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "build:css": "tailwindcss -i src/styles/index.css -o dist/styles.css --minify",
-    "bench": "vitest run --config vitest.perf.config.ts"
+    "bench": "vitest run --config vitest.perf.config.ts",
+    "vendor:themes": "node scripts/vendor-themes.mjs"
   },
   "dependencies": {
     "mdast-util-directive": "^3.1.0",
