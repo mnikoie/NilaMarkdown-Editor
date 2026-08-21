@@ -352,6 +352,16 @@ export function MarkdownEditor({
     }
   }, []);
 
+  const setDirectiveCardOpen = useCallback((id: string, open: boolean) => {
+    const root = rootRef.current;
+    if (!root) return;
+    for (const card of root.querySelectorAll<HTMLElement>(".tm-mark[data-fold-id]")) {
+      if (card.dataset.foldId !== id) continue;
+      card.dispatchEvent(new CustomEvent("tm-set-fold", { detail: { open } }));
+      break;
+    }
+  }, []);
+
   const setAllSectionsOpen = useCallback(
     (open: boolean) => {
       const view = handleRef.current.view;
@@ -376,6 +386,24 @@ export function MarkdownEditor({
     if (!view) return;
     setFolded(new Set(foldKey.getState(view.state)?.folded ?? []));
   }, [handle.view, handle.outline]);
+
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    const onCardFoldChange = (event: Event) => {
+      const detail = (event as CustomEvent<{ id?: string; pos?: number; open?: boolean }>).detail;
+      if (!detail || typeof detail.id !== "string" || typeof detail.pos !== "number") return;
+      if (typeof detail.open !== "boolean") return;
+      const view = handleRef.current.view;
+      if (!view) return;
+      const isFolded = foldKey.getState(view.state)?.folded.has(detail.id) ?? false;
+      if (detail.open !== isFolded) return;
+      toggleFold(detail.id, detail.pos)(view.state, view.dispatch);
+      setFolded(new Set(foldKey.getState(view.state)?.folded ?? []));
+    };
+    root.addEventListener("tm-card-fold-change", onCardFoldChange);
+    return () => root.removeEventListener("tm-card-fold-change", onCardFoldChange);
+  }, []);
 
   const currentMarkdown = useCallback(
     () =>
@@ -412,6 +440,7 @@ export function MarkdownEditor({
       toggleFold(node.id, node.from)(view.state, view.dispatch);
       setFolded(new Set(foldKey.getState(view.state)?.folded ?? []));
     }
+    setDirectiveCardOpen(node.id, true);
     const { state } = view;
     // `Selection.near` نزدیک‌ترین جای معتبر را پیدا می‌کند — گرهِ ساختار
     // ممکن است atom باشد و مکان‌نما مستقیم داخلش ننشیند.
@@ -423,10 +452,10 @@ export function MarkdownEditor({
       requestAnimationFrame(() => {
         const target = view.nodeDOM(node.from);
         const element = target instanceof HTMLElement ? target : target?.parentElement;
-        element?.scrollIntoView({ block: "center", inline: "nearest", behavior: "smooth" });
+        element?.scrollIntoView({ block: "center", inline: "nearest", behavior: "auto" });
       });
     });
-  }, []);
+  }, [setDirectiveCardOpen]);
 
   /**
    * حالتِ تاشدگی داخلِ ProseMirror زندگی می‌کند، نه در React. پس React
@@ -511,9 +540,11 @@ export function MarkdownEditor({
   const onToggleFoldNode = useCallback((node: OutlineNode) => {
     const view = handleRef.current.view;
     if (!view) return;
+    const open = foldKey.getState(view.state)?.folded.has(node.id) ?? false;
     toggleFold(node.id, node.from)(view.state, view.dispatch);
+    setDirectiveCardOpen(node.id, open);
     setFolded(new Set(foldKey.getState(view.state)?.folded ?? []));
-  }, []);
+  }, [setDirectiveCardOpen]);
 
   return (
     <MarkdownI18nProvider locale={activeLocale}>

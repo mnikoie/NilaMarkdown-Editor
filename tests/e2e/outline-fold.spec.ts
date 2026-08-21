@@ -166,6 +166,51 @@ test("★★ همهٔ کارت‌های دارای زیرمجموعه نودِ �
   await expect(warning.locator(":scope > .tm-mark-body")).toBeVisible();
 });
 
+test("★★ تمامِ سربرگِ کارت در مرورگرهای واقعی باز و بسته می‌شود", async ({ page }) => {
+  await page.getByRole("button", { name: "نمایش", exact: true }).click();
+  await page.getByRole("menuitem", { name: "بازکردن همهٔ بخش‌ها" }).click();
+
+  const card = page.locator('.tm-mark[data-mark="ماده"]').first();
+  const header = card.locator(":scope > .tm-mark-header");
+  const toggle = header.locator(":scope > .tm-fold-toggle");
+  const id = await card.getAttribute("data-fold-id");
+  expect(id).toBeTruthy();
+
+  await header.click({ position: { x: 100, y: 10 } });
+  await expect(toggle).toHaveAttribute("aria-expanded", "false");
+  await expect(card.locator(":scope > .tm-mark-body")).toBeHidden();
+
+  await header.click({ position: { x: 100, y: 10 } });
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+  await expect(card.locator(":scope > .tm-mark-body")).toBeVisible();
+  await expect(page.locator(`.tm-fold-summary[data-fold-id="${id}"]`)).toHaveCount(0);
+});
+
+test("★★ کارتِ ماده و Outline در هر دو جهت یک state دارند", async ({ page }) => {
+  await page.getByRole("button", { name: "نمایش", exact: true }).click();
+  await page.getByRole("menuitem", { name: "بازکردن همهٔ بخش‌ها" }).click();
+
+  const card = page.locator('.tm-mark[data-mark="ماده"]').first();
+  const id = await card.getAttribute("data-fold-id");
+  expect(id).toBeTruthy();
+  const outlineItem = page.locator(`[data-outline-id="${id}"]`);
+  const outlineToggle = outlineItem.locator(":scope > .tm-fold-toggle");
+
+  await outlineToggle.click();
+  await expect(card).toHaveAttribute("data-folded", "true");
+  await expect(card.locator(":scope > .tm-mark-body")).toBeHidden();
+
+  await outlineToggle.click();
+  await expect(card).toHaveAttribute("data-folded", "false");
+  await expect(card.locator(":scope > .tm-mark-body")).toBeVisible();
+  await expect(page.locator(`.tm-fold-summary[data-fold-id="${id}"]`)).toHaveCount(0);
+
+  await card.locator(":scope > .tm-mark-header").click({ position: { x: 100, y: 10 } });
+  await expect(outlineToggle).toHaveAttribute("aria-expanded", "false");
+  await card.locator(":scope > .tm-mark-header").click({ position: { x: 100, y: 10 } });
+  await expect(outlineToggle).toHaveAttribute("aria-expanded", "true");
+});
+
 test("★★ اجرای اول همهٔ عنوان‌ها، فهرست‌ها و کارت‌ها بسته‌اند", async ({ page }) => {
   const headings = page.locator(".tm-editor :is(h1,h2,h3,h4,h5,h6)[data-folded]");
   expect(await headings.count()).toBeGreaterThan(0);

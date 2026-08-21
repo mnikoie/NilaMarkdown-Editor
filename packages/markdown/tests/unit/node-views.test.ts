@@ -128,11 +128,15 @@ describe("NodeViewها", () => {
       true,
     );
 
+    const header = cards[0]!.querySelector<HTMLElement>(".tm-mark-header")!;
     const toggle = cards[0]!.querySelector<HTMLButtonElement>(".tm-fold-toggle")!;
-    toggle.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    header.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0 }));
     expect(toggle.getAttribute("aria-expanded")).toBe("false");
-    expect(cards[0]!.hasAttribute("data-folded")).toBe(true);
+    expect(cards[0]!.getAttribute("data-folded")).toBe("true");
     expect(cards[0]!.querySelector<HTMLElement>(".tm-mark-body")!.style.display).toBe("none");
+    toggle.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "Enter" }));
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+    expect(cards[0]!.getAttribute("data-folded")).toBe("false");
     expect(serialize(view.state.doc)).toBe(md);
     view.destroy();
   });

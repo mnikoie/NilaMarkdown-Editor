@@ -95,6 +95,10 @@
     font-size: 0.875rem;
   }
 
+  .tm-mark[data-collapsible="true"] > .tm-mark-header {
+    cursor: pointer;
+  }
+
   .tm-mark-body {
     padding: 0 0.75rem 0.75rem;
   }

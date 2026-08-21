@@ -6,7 +6,9 @@ const REAL_DOCUMENT =
 
 test.describe("فایل واقعیِ بخشنامهٔ ۶۲۲۸۵۳۶۰", () => {
   test.skip(!existsSync(REAL_DOCUMENT), `فایل واقعی در ${REAL_DOCUMENT} موجود نیست`);
-  test.setTimeout(180_000);
+  // WebKit/Firefox و Chrome واقعی در اجرای هم‌زمانِ ماتریس روی همین فایلِ
+  // بزرگ کندترند؛ سقفِ بیشتر برای کارِ واقعی است، نه retry پنهان.
+  test.setTimeout(360_000);
 
   async function loadRealDocument(page: Page) {
     await page.goto("/markdown");

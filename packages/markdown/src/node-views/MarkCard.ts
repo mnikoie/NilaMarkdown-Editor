@@ -2,6 +2,7 @@ import type { Node as PMNode } from "prosemirror-model";
 import type { EditorView, NodeView, ViewMutationRecord } from "prosemirror-view";
 import type { MarkDefinition, MarkRegistry } from "../core/directives/types.js";
 import type { FoldInitialState, FoldMode } from "../core/plugins/fold.js";
+import { buildOutline, flattenOutline } from "../core/outline/build.js";
 
 export interface MarkCardOptions {
   initial?: FoldInitialState;
@@ -10,6 +11,7 @@ export interface MarkCardOptions {
 }
 
 const cardViews = new WeakMap<EditorView, Set<MarkCardView>>();
+const foldIdsByView = new WeakMap<EditorView, { doc: PMNode; ids: Map<number, string> }>();
 
 /**
  * رندرِ یک directive به‌صورتِ کارت.
@@ -31,9 +33,15 @@ export class MarkCardView implements NodeView {
   private open: boolean;
   private readonly onSetFold = (event: Event) => {
     const open = (event as CustomEvent<{ open?: boolean }>).detail?.open;
-    if (typeof open !== "boolean") return;
+    if (typeof open !== "boolean" || this.open === open) return;
     this.open = open;
     this.applyOpen();
+  };
+  private readonly onHeaderMouseDown = (event: MouseEvent) => {
+    if (event.button !== 0 || !this.toggle) return;
+    if ((event.target as Element).closest(".tm-fold-toggle")) return;
+    event.preventDefault();
+    this.setOpen(!this.open);
   };
 
   constructor(
@@ -61,6 +69,7 @@ export class MarkCardView implements NodeView {
 
     this.dom.append(this.header, this.body);
     this.dom.addEventListener("tm-set-fold", this.onSetFold);
+    this.header.addEventListener("mousedown", this.onHeaderMouseDown);
     const views = cardViews.get(view) ?? new Set<MarkCardView>();
     views.add(this);
     cardViews.set(view, views);
@@ -90,6 +99,7 @@ export class MarkCardView implements NodeView {
     // هر directive بلوکی مالکِ محتوای زیرمجموعهٔ خودش است؛ پس مستقل از
     // تعریفِ سفارشی‌اش یک نودِ درختی و قابلِ بازوبسته‌شدن محسوب می‌شود.
     if (this.node.childCount > 0) {
+      this.dom.setAttribute("data-collapsible", "true");
       this.toggle = document.createElement("button");
       this.toggle.type = "button";
       this.toggle.className = "tm-fold-toggle";
@@ -106,8 +116,14 @@ export class MarkCardView implements NodeView {
         e.preventDefault();
         this.setOpen(!this.open);
       });
+      this.toggle.addEventListener("keydown", (e) => {
+        if (e.key !== "Enter" && e.key !== " ") return;
+        e.preventDefault();
+        this.setOpen(!this.open);
+      });
       this.header.append(this.toggle);
     } else {
+      this.dom.removeAttribute("data-collapsible");
       this.toggle = null;
     }
 
@@ -134,6 +150,9 @@ export class MarkCardView implements NodeView {
     }
 
     this.dom.setAttribute("aria-label", `${def?.label ?? name}`);
+    const foldId = this.foldId();
+    if (foldId) this.dom.setAttribute("data-fold-id", foldId);
+    else this.dom.removeAttribute("data-fold-id");
     this.applyOpen();
   }
 
@@ -154,6 +173,7 @@ export class MarkCardView implements NodeView {
   }
 
   private setOpen(open: boolean) {
+    if (this.open === open) return;
     if (open && this.foldMode() === "accordion") {
       const parent = this.parentNode();
       for (const card of cardViews.get(this.view) ?? []) {
@@ -162,6 +182,31 @@ export class MarkCardView implements NodeView {
     }
     this.open = open;
     this.applyOpen();
+    const id = this.foldId();
+    const pos = this.getPos();
+    if (id && typeof pos === "number") {
+      this.dom.dispatchEvent(
+        new CustomEvent("tm-card-fold-change", {
+          bubbles: true,
+          detail: { id, pos, open },
+        }),
+      );
+    }
+  }
+
+  private foldId(): string | null {
+    const pos = this.getPos();
+    if (typeof pos !== "number") return null;
+    const doc = this.view.state.doc;
+    let cached = foldIdsByView.get(this.view);
+    if (!cached || cached.doc !== doc) {
+      cached = {
+        doc,
+        ids: new Map(flattenOutline(buildOutline(doc, this.registry)).map((node) => [node.from, node.id])),
+      };
+      foldIdsByView.set(this.view, cached);
+    }
+    return cached.ids.get(pos) ?? null;
   }
 
   private foldMode(): FoldMode {
@@ -215,6 +260,7 @@ export class MarkCardView implements NodeView {
 
   destroy(): void {
     this.dom.removeEventListener("tm-set-fold", this.onSetFold);
+    this.header.removeEventListener("mousedown", this.onHeaderMouseDown);
     cardViews.get(this.view)?.delete(this);
   }
 }
