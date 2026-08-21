@@ -3,6 +3,15 @@
 import { useState } from "react";
 import { MarkdownEditor, type MarkRegistry, BUILTIN_MARKS } from "@tamin/markdown";
 import "@tamin/markdown/styles.css";
+// ★ CSSِ KaTeX **جدا** است و مصرف‌کننده باید خودش import کند.
+//
+// چرا ما داخلِ `styles.css` نمی‌گذاریمش: KaTeX یک وابستگیِ **اختیاری**
+// است. اگر CSSش را جاسازی کنیم، کسی که ریاضی نمی‌خواهد هم ~۲۵ کیلوبایت
+// و فایل‌های فونت را دانلود می‌کند.
+//
+// بی این خط، فرمول رندر می‌شود ولی به‌صورتِ متنِ درهم — نه خطا، فقط
+// نامفهوم. (`E = mc2` به‌جای فرمولِ درست.)
+import "katex/dist/katex.min.css";
 
 /**
  * صفحهٔ نمایشیِ `@tamin/markdown`.

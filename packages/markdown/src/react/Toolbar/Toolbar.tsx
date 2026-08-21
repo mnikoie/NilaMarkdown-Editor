@@ -1,7 +1,27 @@
 "use client";
 
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
-import type { KeyboardEvent } from "react";
+import type { ComponentType, KeyboardEvent } from "react";
+import {
+  Bold,
+  Code,
+  FileCode,
+  Heading1,
+  Heading2,
+  Heading3,
+  Italic,
+  List,
+  ListOrdered,
+  Maximize2,
+  Minimize2,
+  Minus,
+  Printer,
+  Quote,
+  Space,
+  SquareCode,
+  Strikethrough,
+  Table,
+} from "lucide-react";
 import type { EditorView } from "prosemirror-view";
 import { toggleMark, setBlockType } from "prosemirror-commands";
 import { wrapInList } from "prosemirror-schema-list";
@@ -30,10 +50,25 @@ export interface ToolbarProps {
   className?: string;
 }
 
+/**
+ * آیکون‌ها از `lucide-react`.
+ *
+ * ★ **چرا آیکونِ واقعی و نه گلیفِ متنی.** نسخهٔ اول از کاراکترهایی مثل
+ * `{}` و `⤢` و `⎙` استفاده می‌کرد. در مرورگر که نگاه شد، نوار یک ردیفِ
+ * علامتِ ریزِ نامفهوم بود — هیچ‌کس با دیدنشان نمی‌فهمید کدام چه می‌کند.
+ * بدتر: رندرِ گلیف به فونتِ سیستم بستگی دارد، پس روی هر دستگاه شکلِ
+ * دیگری می‌گرفت.
+ *
+ * ★ `lucide-react` **peerDependencyِ اختیاری** است، پس به کسی تحمیل
+ * نمی‌شود؛ ولی چون tree-shakable است، فقط همین هجده آیکون به باندلِ
+ * مصرف‌کننده می‌روند، نه کلِ کتابخانه.
+ */
+type IconComponent = ComponentType<{ size?: number | string; "aria-hidden"?: boolean }>;
+
 interface Item {
   id: string;
   label: string;
-  icon: string;
+  icon: IconComponent;
   run: (view: EditorView) => void;
   isActive?: (view: EditorView) => boolean;
   shortcut?: string;
@@ -68,7 +103,7 @@ const ITEMS: Item[] = [
   {
     id: "bold",
     label: "پررنگ",
-    icon: "B",
+    icon: Bold,
     shortcut: "Ctrl+B",
     run: (v) => toggleMark(schema.marks.strong)(v.state, v.dispatch, v),
     isActive: (v) => markActive(v, schema.marks.strong),
@@ -76,7 +111,7 @@ const ITEMS: Item[] = [
   {
     id: "italic",
     label: "کج",
-    icon: "I",
+    icon: Italic,
     shortcut: "Ctrl+I",
     run: (v) => toggleMark(schema.marks.em)(v.state, v.dispatch, v),
     isActive: (v) => markActive(v, schema.marks.em),
@@ -84,14 +119,14 @@ const ITEMS: Item[] = [
   {
     id: "strike",
     label: "خط‌خورده",
-    icon: "S",
+    icon: Strikethrough,
     run: (v) => toggleMark(schema.marks.strike)(v.state, v.dispatch, v),
     isActive: (v) => markActive(v, schema.marks.strike),
   },
   {
     id: "code",
     label: "کدِ درون‌خطی",
-    icon: "‹›",
+    icon: Code,
     shortcut: "Ctrl+`",
     run: (v) => toggleMark(schema.marks.code)(v.state, v.dispatch, v),
     isActive: (v) => markActive(v, schema.marks.code),
@@ -100,7 +135,7 @@ const ITEMS: Item[] = [
     id: "h1",
     startsGroup: true,
     label: "عنوانِ ۱",
-    icon: "H₁",
+    icon: Heading1,
     shortcut: "Ctrl+1",
     run: (v) => toggleHeading(1)(v.state, v.dispatch, v),
     isActive: (v) => blockActive(v, "heading", { level: 1 }),
@@ -108,7 +143,7 @@ const ITEMS: Item[] = [
   {
     id: "h2",
     label: "عنوانِ ۲",
-    icon: "H₂",
+    icon: Heading2,
     shortcut: "Ctrl+2",
     run: (v) => toggleHeading(2)(v.state, v.dispatch, v),
     isActive: (v) => blockActive(v, "heading", { level: 2 }),
@@ -116,7 +151,7 @@ const ITEMS: Item[] = [
   {
     id: "h3",
     label: "عنوانِ ۳",
-    icon: "H₃",
+    icon: Heading3,
     shortcut: "Ctrl+3",
     run: (v) => toggleHeading(3)(v.state, v.dispatch, v),
     isActive: (v) => blockActive(v, "heading", { level: 3 }),
@@ -125,21 +160,21 @@ const ITEMS: Item[] = [
     id: "ul",
     startsGroup: true,
     label: "فهرستِ نقطه‌ای",
-    icon: "•",
+    icon: List,
     shortcut: "Ctrl+Shift+8",
     run: (v) => wrapInList(schema.nodes.bullet_list)(v.state, v.dispatch),
   },
   {
     id: "ol",
     label: "فهرستِ شماره‌دار",
-    icon: "۱.",
+    icon: ListOrdered,
     shortcut: "Ctrl+Shift+7",
     run: (v) => wrapInList(schema.nodes.ordered_list)(v.state, v.dispatch),
   },
   {
     id: "quote",
     label: "نقلِ قول",
-    icon: "❝",
+    icon: Quote,
     run: (v) => {
       const { blockquote } = schema.nodes;
       const { $from } = v.state.selection;
@@ -157,7 +192,7 @@ const ITEMS: Item[] = [
   {
     id: "codeblock",
     label: "بلوکِ کد",
-    icon: "{}",
+    icon: SquareCode,
     shortcut: "Ctrl+Shift+K",
     run: (v) => setBlockType(schema.nodes.code_block)(v.state, v.dispatch),
     isActive: (v) => blockActive(v, "code_block"),
@@ -166,19 +201,19 @@ const ITEMS: Item[] = [
     id: "table",
     startsGroup: true,
     label: "جدول",
-    icon: "▦",
+    icon: Table,
     run: (v) => insertTable(3, 3)(v.state, v.dispatch),
   },
   {
     id: "hr",
     label: "جداکننده",
-    icon: "—",
+    icon: Minus,
     run: (v) => v.dispatch(v.state.tr.replaceSelectionWith(schema.nodes.horizontal_rule.create())),
   },
   {
     id: "zwnj",
     label: "نیم‌فاصله",
-    icon: "‌↔",
+    icon: Space,
     shortcut: "Shift+Space",
     run: (v) => insertZWNJ(v.state, v.dispatch, v),
   },
@@ -223,7 +258,7 @@ export function Toolbar({
       id: "source",
       document: true,
       label: sourceMode ? "حالتِ ویرایش" : "حالتِ سورس",
-      icon: "⌨",
+      icon: FileCode,
       shortcut: "Ctrl+/",
       run: () => onToggleSource(),
       isActive: () => !!sourceMode,
@@ -235,7 +270,7 @@ export function Toolbar({
       id: "pdf",
       document: true,
       label: "خروجیِ PDF",
-      icon: "⎙",
+      icon: Printer,
       shortcut: "Ctrl+P",
       run: () => onExportPdf(),
     });
@@ -246,7 +281,7 @@ export function Toolbar({
       id: "fullscreen",
       document: true,
       label: fullscreen ? "خروج از تمام‌صفحه" : "تمام‌صفحه",
-      icon: fullscreen ? "⤡" : "⤢",
+      icon: fullscreen ? Minimize2 : Maximize2,
       shortcut: "F11",
       run: () => onToggleFullscreen(),
       isActive: () => !!fullscreen,
@@ -346,7 +381,7 @@ export function Toolbar({
               setFocusIndex(index);
             }}
           >
-            <span aria-hidden="true">{item.icon}</span>
+            <item.icon size={16} aria-hidden />
           </button>
           </Fragment>
         );

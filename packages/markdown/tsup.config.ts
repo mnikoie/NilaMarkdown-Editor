@@ -18,7 +18,17 @@ export default defineConfig([
     treeshake: true,
     splitting: true,
     target: "es2022",
-    external: ["react", "react-dom", "react/jsx-runtime", "katex", "mermaid", "shiki"],
+    external: [
+      "react",
+      "react-dom",
+      "react/jsx-runtime",
+      "katex",
+      "mermaid",
+      "shiki",
+      // آیکون‌ها از باندلِ مصرف‌کننده می‌آیند، نه از ما — وگرنه اگر خودش
+      // هم lucide داشته باشد، دو نسخه دانلود می‌شود.
+      "lucide-react",
+    ],
   },
 
   // ★ **بیلدِ دومِ جدا برای worker — و Shiki داخلش باندل می‌شود.**

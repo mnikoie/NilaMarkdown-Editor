@@ -61,7 +61,8 @@
     "mermaid": "^11.17.0",
     "react": ">=18",
     "react-dom": ">=18",
-    "shiki": "^4.4.3"
+    "shiki": "^4.4.3",
+    "lucide-react": ">=1"
   },
   "peerDependenciesMeta": {
     "katex": {
@@ -71,6 +72,9 @@
       "optional": true
     },
     "shiki": {
+      "optional": true
+    },
+    "lucide-react": {
       "optional": true
     }
   },
@@ -89,7 +93,8 @@
     "tailwindcss": "^4.3.3",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",
-    "vitest": "^4.1.11"
+    "vitest": "^4.1.11",
+    "lucide-react": "^1.33.0"
   },
   "publishConfig": {
     "access": "public"

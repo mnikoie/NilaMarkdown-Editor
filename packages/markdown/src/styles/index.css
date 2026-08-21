@@ -958,6 +958,259 @@
     outline-offset: 2px;
   }
 
+
+  /* ── تایپوگرافیِ متنِ سند ──
+   *
+   * ★ **چرا این بخش لازم است و قبلاً نبود.**
+   *
+   * بالا نوشته شده که `preflight.css` عمداً وارد نمی‌شود — و آن تصمیم
+   * درست است: ریستِ Tailwind اگر منتشر شود، استایلِ صفحهٔ میزبان را
+   * خراب می‌کند.
+   *
+   * ولی نتیجهٔ ناخواسته‌اش این بود که **هیچ‌کس** جای preflight را پر
+   * نکرد. در مرورگر اندازه‌گیری شد: `h1` اندازه‌اش ۱۶px و وزنش ۴۰۰ بود
+   * — یعنی «فصل اول: کلیات» با یک پاراگرافِ عادی مو نمی‌زد. `ul`
+   * نشانه‌اش `none` و تورفتگی‌اش صفر بود، و `blockquote` هیچ حاشیه‌ای
+   * نداشت. در ویرایشگرِ سند این فاجعه است.
+   *
+   * ★ همهٔ انتخابگرها با `.tm-editor` شروع می‌شوند، پس **بیرونِ
+   * ویرایشگر هیچ اثری ندارند**. همان دلیلی که preflight را رد کرد،
+   * اینجا هم رعایت شده.
+   */
+
+  .tm-editor h1,
+  .tm-editor h2,
+  .tm-editor h3,
+  .tm-editor h4,
+  .tm-editor h5,
+  .tm-editor h6 {
+    font-weight: 700;
+    line-height: 1.3;
+    /* ★ فاصلهٔ بالا بیشتر از پایین: سرفصل به متنِ **زیرِ** خودش تعلق
+     * دارد، نه به متنِ بالایی. */
+    margin-block: 1.6em 0.6em;
+    text-wrap: balance;
+  }
+
+  .tm-editor h1:first-child,
+  .tm-editor h2:first-child,
+  .tm-editor h3:first-child {
+    margin-block-start: 0;
+  }
+
+  /* اندازه‌ها نسبی‌اند تا با `--tm-font-size` مقیاس بخورند. */
+  .tm-editor h1 { font-size: 1.75em; }
+  .tm-editor h2 { font-size: 1.4em; }
+  .tm-editor h3 { font-size: 1.2em; }
+  .tm-editor h4 { font-size: 1.05em; }
+  .tm-editor h5 { font-size: 1em; }
+  .tm-editor h6 { font-size: 0.9em; color: var(--tm-muted); }
+
+  /* ★ خطِ زیرِ فصل و بخش — مرزِ دیداری بینِ بخش‌های سند.
+   * فقط دو سطحِ اول، وگرنه سند پر از خط می‌شود. */
+  .tm-editor h1,
+  .tm-editor h2 {
+    padding-block-end: 0.25em;
+    border-block-end: 1px solid var(--tm-border);
+  }
+
+  .tm-editor p {
+    margin-block: 0.75em;
+  }
+
+  /* ── فهرست ── */
+  .tm-editor ul,
+  .tm-editor ol {
+    margin-block: 0.75em;
+    padding-inline-start: 1.75em;
+  }
+
+  .tm-editor ul { list-style-type: disc; }
+  .tm-editor ol { list-style-type: decimal; }
+
+  /* سطحِ دوم و سوم نشانهٔ متفاوت می‌گیرند تا تودرتویی دیده شود. */
+  .tm-editor ul ul { list-style-type: circle; }
+  .tm-editor ul ul ul { list-style-type: square; }
+
+  .tm-editor li {
+    margin-block: 0.25em;
+  }
+
+  /* ★ بندِ تک‌پاراگرافی نباید حاشیه بگیرد — وگرنه فهرست شل و پراکنده
+   * دیده می‌شود. */
+  .tm-editor li > p {
+    margin-block: 0;
+  }
+
+  /* ── چک‌لیست ──
+   * `data-checked` را schema می‌گذارد؛ نشانهٔ فهرست جایش را به مربع
+   * می‌دهد.
+   */
+  .tm-editor li[data-checked] {
+    list-style: none;
+    position: relative;
+  }
+
+  .tm-editor li[data-checked]::before {
+    content: "";
+    position: absolute;
+    inset-inline-start: -1.5em;
+    inset-block-start: 0.3em;
+    inline-size: 1em;
+    block-size: 1em;
+    border: 1.5px solid var(--tm-border);
+    border-radius: 0.25em;
+    background: var(--tm-bg);
+  }
+
+  .tm-editor li[data-checked="true"]::before {
+    content: "✓";
+    display: grid;
+    place-items: center;
+    font-size: 0.75em;
+    line-height: 1;
+    /* اندازه با `em` است، پس با فونتِ کوچک‌تر هم درست می‌ماند. */
+    inline-size: 1.33em;
+    block-size: 1.33em;
+    inset-block-start: 0.4em;
+    border-color: var(--tm-accent);
+    background: var(--tm-accent);
+    color: var(--tm-bg);
+  }
+
+  .tm-editor li[data-checked="true"] {
+    color: var(--tm-muted);
+  }
+
+  /* ── نقلِ قول ── */
+  .tm-editor blockquote {
+    margin-block: 1em;
+    margin-inline: 0;
+    padding-inline-start: 1em;
+    border-inline-start: 3px solid color-mix(in oklab, var(--tm-accent) 45%, var(--tm-bg));
+    color: var(--tm-muted);
+  }
+
+  .tm-editor blockquote > :first-child { margin-block-start: 0; }
+  .tm-editor blockquote > :last-child { margin-block-end: 0; }
+
+  /* ── جداکننده ── */
+  .tm-editor hr {
+    margin-block: 1.5em;
+    border: 0;
+    border-block-start: 1px solid var(--tm-border);
+  }
+
+  /* ── تأکید و لینک ── */
+  .tm-editor strong { font-weight: 700; }
+  .tm-editor em { font-style: italic; }
+  .tm-editor s { text-decoration: line-through; }
+
+  .tm-editor a {
+    color: var(--tm-accent);
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+
+  /* کدِ درون‌خطی — نه بلوکِ کد، که NodeViewِ خودش را دارد. */
+  .tm-editor :not(pre) > code {
+    font-family: var(--tm-font-mono);
+    font-size: 0.875em;
+    padding: 0.1em 0.35em;
+    border-radius: 0.25em;
+    background: var(--tm-code-bg);
+    border: 1px solid var(--tm-border);
+  }
+
+  /* ── ریاضی ──
+   *
+   * ★ KaTeX **دو** نسخه تولید می‌کند: یکی دیداری (`katex-html`) و یکی
+   * MathML برای صفحه‌خوان. خودِ KaTeX معمولاً دومی را با CSS مخفی
+   * می‌کند، ولی آن CSS اینجا نیست.
+   *
+   * نتیجه‌اش در مرورگر دیده شد: هر فرمول **دوبار** چاپ می‌شد —
+   * `E = mc² E = mc2`. مخفی‌کردن با `clip` است نه `display: none`، تا
+   * صفحه‌خوان همچنان بخواندش.
+   */
+  .tm-editor .katex-mathml {
+    position: absolute;
+    clip: rect(1px, 1px, 1px, 1px);
+    padding: 0;
+    border: 0;
+    block-size: 1px;
+    inline-size: 1px;
+    overflow: hidden;
+  }
+
+  /* ── HTMLِ خام ──
+   * پیش‌فرض escape می‌شود، پس متنش باید مثلِ کد دیده شود نه مثلِ متنِ
+   * سند — وگرنه کاربر فکر می‌کند تگ‌ها بخشی از نوشته‌اند.
+   */
+  .tm-editor .tm-html {
+    margin-block: 0.75em;
+    padding: 0.5em 0.75em;
+    border-radius: 0.375rem;
+    border: 1px dashed var(--tm-border);
+    background: var(--tm-code-bg);
+    color: var(--tm-muted);
+    font-family: var(--tm-font-mono);
+    font-size: 0.8125em;
+    direction: ltr;
+    text-align: start;
+    overflow-x: auto;
+  }
+
+
+  /* ── فوت‌نوت ──
+   *
+   * تا حالا فقط خروجیِ HTML استایل داشت و داخلِ ویرایشگر هیچ — ارجاع و
+   * تعریف مثلِ متنِ عادی دیده می‌شدند و چپ‌چین می‌افتادند.
+   */
+  .tm-editor .tm-footnote-ref {
+    font-size: 0.75em;
+    color: var(--tm-accent);
+    vertical-align: super;
+    line-height: 0;
+    /* ★ `isolate` اجباری است: شمارهٔ لاتین داخلِ متنِ فارسی وگرنه
+     * جای غلط می‌نشیند (قاعدهٔ دوجهته). */
+    unicode-bidi: isolate;
+  }
+
+  .tm-editor .tm-footnote-def {
+    display: flex;
+    gap: 0.5em;
+    align-items: baseline;
+    margin-block: 0.375em;
+    padding-inline-start: 0.75em;
+    border-inline-start: 2px solid var(--tm-border);
+    font-size: 0.875em;
+    color: var(--tm-muted);
+  }
+
+  .tm-editor .tm-footnote-def > :first-child { margin-block-start: 0; }
+  .tm-editor .tm-footnote-def > :last-child { margin-block-end: 0; }
+
+  .tm-editor .tm-footnote-def::before {
+    content: attr(data-identifier);
+    flex: none;
+    font-size: 0.8125em;
+    color: var(--tm-accent);
+    unicode-bidi: isolate;
+  }
+
+  /* ── شمارهٔ فهرستِ فارسی ──
+   *
+   * ★ سندِ فارسی با `1.` و `2.` شروع نمی‌شود. `list-style-type` مقدارِ
+   * آمادهٔ `persian` دارد که همان `۱.` و `۲.` را می‌دهد — بی هیچ
+   * جاوااسکریپتی.
+   *
+   * فقط وقتی اعمال می‌شود که سند راست‌به‌چپ باشد؛ در سندِ لاتین همان
+   * `decimal` می‌ماند.
+   */
+  .tm-root[dir="rtl"] .tm-editor ol {
+    list-style-type: persian;
+  }
+
   /* ── راست‌به‌چپ ──
    * بلوکِ کد همیشه LTR است، حتی داخلِ سندِ فارسی — وگرنه `if (x) {` وارونه
    * دیده می‌شود.
