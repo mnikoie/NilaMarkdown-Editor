@@ -11,7 +11,9 @@ import {
   Heading3,
   Italic,
   List,
+  ListChecks,
   ListOrdered,
+  Link,
   Maximize2,
   Minimize2,
   Minus,
@@ -28,12 +30,13 @@ import { wrapInList } from "prosemirror-schema-list";
 import { schema } from "../../core/schema/index.js";
 import { toggleHeading, insertZWNJ } from "../../core/plugins/keymap.js";
 import { insertTable } from "../../core/commands/table.js";
+import { isTaskList, toggleTaskList } from "../../core/commands/task-list.js";
 
 /**
  * نوارِ ابزار.
  *
  * ★ دسترس‌پذیری (بندِ ۱۲): کلِ نوار **یک** توقفِ Tab است و بینِ دکمه‌ها با
- * کلیدهای جهت حرکت می‌شود — نه Tab بینِ تک‌تکِ پانزده دکمه. این الگوی
+ * کلیدهای جهت حرکت می‌شود — نه Tab بینِ تک‌تکِ دکمه‌ها. این الگوی
  * استانداردِ ARIA برای `role="toolbar"` است.
  */
 
@@ -47,6 +50,8 @@ export interface ToolbarProps {
   fullscreen?: boolean;
   /** دکمهٔ خروجیِ PDF. */
   onExportPdf?: () => void;
+  /** بازکردنِ ویرایشگرِ لینک. */
+  onEditLink?: () => void;
   className?: string;
 }
 
@@ -60,7 +65,7 @@ export interface ToolbarProps {
  * دیگری می‌گرفت.
  *
  * ★ `lucide-react` **peerDependencyِ اختیاری** است، پس به کسی تحمیل
- * نمی‌شود؛ ولی چون tree-shakable است، فقط همین هجده آیکون به باندلِ
+ * نمی‌شود؛ ولی چون tree-shakable است، فقط آیکون‌های لازم به باندلِ
  * مصرف‌کننده می‌روند، نه کلِ کتابخانه.
  */
 type IconComponent = ComponentType<{ size?: number | string; "aria-hidden"?: boolean }>;
@@ -77,7 +82,7 @@ interface Item {
   /**
    * دکمهٔ **سند** است نه قالب‌بندی (چاپ، تمام‌صفحه، سورس).
    *
-   * ★ این‌ها به لبهٔ دیگرِ نوار می‌روند. با پانزده گلیفِ پشتِ‌هم و بی
+   * ★ این‌ها به لبهٔ دیگرِ نوار می‌روند. با گلیف‌های پشتِ‌هم و بی
    * دسته‌بندی، چشم چیزی پیدا نمی‌کند — و «پررنگ» و «خروجیِ PDF» دو
    * چیزِ کاملاً متفاوت‌اند که نباید کنارِ هم و هم‌شکل باشند.
    */
@@ -132,6 +137,15 @@ const ITEMS: Item[] = [
     isActive: (v) => markActive(v, schema.marks.code),
   },
   {
+    id: "link",
+    label: "لینک",
+    icon: Link,
+    shortcut: "Ctrl+K",
+    // callback واقعی در `Toolbar` جایگزین می‌شود.
+    run: () => undefined,
+    isActive: (v) => markActive(v, schema.marks.link),
+  },
+  {
     id: "h1",
     startsGroup: true,
     label: "عنوانِ ۱",
@@ -170,6 +184,14 @@ const ITEMS: Item[] = [
     icon: ListOrdered,
     shortcut: "Ctrl+Shift+7",
     run: (v) => wrapInList(schema.nodes.ordered_list)(v.state, v.dispatch),
+  },
+  {
+    id: "task",
+    label: "چک‌لیست",
+    icon: ListChecks,
+    shortcut: "Ctrl+Shift+X",
+    run: (v) => toggleTaskList(v.state, v.dispatch),
+    isActive: (v) => isTaskList(v.state),
   },
   {
     id: "quote",
@@ -226,6 +248,7 @@ export function Toolbar({
   onToggleFullscreen,
   fullscreen,
   onExportPdf,
+  onEditLink,
   className,
 }: ToolbarProps) {
   const [focusIndex, setFocusIndex] = useState(0);
@@ -251,7 +274,12 @@ export function Toolbar({
 
   // ★ دکمه‌های اختیاری در انتها می‌آیند، و **فقط وقتی که callback
   // داده شده باشد**. دکمهٔ همیشه‌غیرفعال بدتر از دکمهٔ نبوده است.
-  const items: Item[] = [...ITEMS];
+  const items: Item[] = ITEMS
+    .filter((item) => item.id !== "link" || onEditLink)
+    .map((item) => ({ ...item }));
+
+  const linkItem = items.find((item) => item.id === "link");
+  if (linkItem && onEditLink) linkItem.run = () => onEditLink();
 
   if (onToggleSource) {
     items.push({

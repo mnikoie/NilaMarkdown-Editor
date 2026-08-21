@@ -6,6 +6,7 @@ import { setBlockType } from "prosemirror-commands";
 import { wrapInList } from "prosemirror-schema-list";
 import { schema } from "../schema/index.js";
 import { insertTable } from "../commands/table.js";
+import { toggleTaskList } from "../commands/task-list.js";
 import { BUILTIN_MARKS } from "../directives/builtin.js";
 import type { MarkRegistry } from "../directives/types.js";
 import { normalizeForSearch } from "./search.js";
@@ -66,6 +67,9 @@ function baseItems(): SlashItem[] {
     heading(1),
     heading(2),
     heading(3),
+    heading(4),
+    heading(5),
+    heading(6),
     {
       id: "ul",
       label: "فهرستِ نقطه‌ای",
@@ -81,6 +85,14 @@ function baseItems(): SlashItem[] {
       icon: "۱.",
       group: "فهرست",
       run: wrapInList(schema.nodes.ordered_list),
+    },
+    {
+      id: "task",
+      label: "چک‌لیست",
+      keywords: ["task", "check", "کار", "وظیفه", "چک"],
+      icon: "☑",
+      group: "فهرست",
+      run: toggleTaskList,
     },
     {
       id: "quote",

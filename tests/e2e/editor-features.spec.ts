@@ -149,3 +149,46 @@ test("★ فایلِ غیرتصویری، تصویر نمی‌سازد", async (
   await page.waitForTimeout(1000);
   await expect(page.locator(".tm-editor img")).toHaveCount(0);
 });
+
+test("★ Ctrl+K ویرایشگرِ لینک را باز می‌کند و لینک می‌سازد", async ({ page }) => {
+  await page.evaluate(() => {
+    const p = [...document.querySelectorAll(".tm-editor p")].find((node) =>
+      node.textContent?.includes("پررنگ"),
+    );
+    const text = [...(p?.childNodes ?? [])].find((node) => node.textContent?.includes("اینجاست"));
+    if (!text) throw new Error("متنِ هدف پیدا نشد");
+    const range = document.createRange();
+    range.selectNodeContents(text);
+    const selection = window.getSelection()!;
+    selection.removeAllRanges();
+    selection.addRange(range);
+    (document.querySelector(".tm-editor") as HTMLElement).focus();
+  });
+
+  await page.keyboard.press("Control+k");
+  const form = page.getByRole("form", { name: "ویرایشِ لینک" });
+  await expect(form).toBeVisible();
+  await form.getByRole("textbox", { name: "نشانی" }).fill("https://example.org");
+  await form.getByRole("button", { name: "ثبت" }).click();
+  await expect(page.locator('.tm-editor a[href="https://example.org"]')).toBeVisible();
+});
+
+test("★ چک‌لیست با کلیک واقعاً تغییر می‌کند", async ({ page }) => {
+  const button = page.locator(".tm-task-checkbox").first();
+  const item = page.locator(".tm-editor li[data-checked]").first();
+  await expect(button).toHaveAttribute("aria-checked", "false");
+  await button.click();
+  await expect(button).toHaveAttribute("aria-checked", "true");
+  await expect(item).toHaveAttribute("data-checked", "true");
+});
+
+test("★ ابزارِ جدول فقط داخلِ جدول می‌آید و ردیف اضافه می‌کند", async ({ page }) => {
+  await expect(page.getByRole("toolbar", { name: "ابزارِ جدول" })).toHaveCount(0);
+  const table = page.locator(".tm-editor table");
+  await table.locator("td").first().click();
+  const tools = page.getByRole("toolbar", { name: "ابزارِ جدول" });
+  await expect(tools).toBeVisible();
+  await expect(table.locator("tr")).toHaveCount(3);
+  await tools.getByRole("button", { name: "ردیف بعد" }).click();
+  await expect(table.locator("tr")).toHaveCount(4);
+});

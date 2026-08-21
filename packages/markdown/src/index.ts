@@ -17,6 +17,7 @@ export type { LivePreviewState, LivePreviewOptions } from "./core/plugins/live-p
 
 export {
   tableEditingPlugin,
+  tableResizingPlugin,
   insertTable,
   setColumnAlign,
   addColumnAfter,
@@ -29,6 +30,10 @@ export {
   goToNextCell,
   isInTable,
 } from "./core/commands/table.js";
+
+export { getActiveLink, setLink, unsetLink } from "./core/commands/link.js";
+export type { ActiveLink } from "./core/commands/link.js";
+export { toggleTaskList, toggleTaskItemAt, isTaskList } from "./core/commands/task-list.js";
 
 export {
   isSafeHref,
@@ -83,6 +88,9 @@ export {
 export type { WritingModesState, WritingModesOptions } from "./core/plugins/writing-modes.js";
 
 export { inputRulesPlugin } from "./core/plugins/input-rules.js";
+export { autoPairPlugin } from "./core/plugins/auto-pair.js";
+export type { AutoPairOptions } from "./core/plugins/auto-pair.js";
+export { taskListPlugin } from "./core/plugins/task-list.js";
 export { keymapPlugin, insertZWNJ, toggleHeading } from "./core/plugins/keymap.js";
 export type { KeymapOptions } from "./core/plugins/keymap.js";
 
@@ -141,6 +149,10 @@ export type { Stats } from "./core/stats.js";
 
 export { Toolbar } from "./react/Toolbar/Toolbar.js";
 export type { ToolbarProps } from "./react/Toolbar/Toolbar.js";
+export { LinkPopover } from "./react/LinkPopover/LinkPopover.js";
+export type { LinkPopoverProps } from "./react/LinkPopover/LinkPopover.js";
+export { TableTools } from "./react/TableTools/TableTools.js";
+export type { TableToolsProps } from "./react/TableTools/TableTools.js";
 export { OutlineTree } from "./react/Outline/OutlineTree.js";
 export type { OutlineTreeProps } from "./react/Outline/OutlineTree.js";
 

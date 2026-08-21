@@ -12,6 +12,7 @@ import { undoInputRule } from "prosemirror-inputrules";
 import type { Plugin, Command } from "prosemirror-state";
 import { schema } from "../schema/index.js";
 import { goToNextCell, isInTable } from "../commands/table.js";
+import { toggleTaskList } from "../commands/task-list.js";
 
 /**
  * میان‌برها.
@@ -51,6 +52,8 @@ export interface KeymapOptions {
   onSearch?: () => void;
   /** `Ctrl+H` — بازکردنِ جایگزینی. */
   onReplace?: () => void;
+  /** `Ctrl+K` — بازکردنِ ویرایشگرِ لینک. */
+  onEditLink?: () => void;
 }
 
 export function keymapPlugin(options: KeymapOptions = {}): Plugin {
@@ -71,6 +74,7 @@ export function keymapPlugin(options: KeymapOptions = {}): Plugin {
 
     "Mod-Shift-8": wrapInList(schema.nodes.bullet_list),
     "Mod-Shift-7": wrapInList(schema.nodes.ordered_list),
+    "Mod-Shift-x": toggleTaskList,
 
     Enter: chainCommands(splitListItem(schema.nodes.list_item), baseKeymap.Enter!),
 
@@ -110,6 +114,13 @@ export function keymapPlugin(options: KeymapOptions = {}): Plugin {
   if (options.onToggleSource) {
     keys["Mod-/"] = () => {
       options.onToggleSource!();
+      return true;
+    };
+  }
+
+  if (options.onEditLink) {
+    keys["Mod-k"] = () => {
+      options.onEditLink!();
       return true;
     };
   }

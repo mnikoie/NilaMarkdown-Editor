@@ -3,7 +3,7 @@
 > این فایل را کامل بخوان **پیش از** هر تغییری. نوشته شده تا کد به هم
 > نریزد و کارِ بعدی بتواند از همین‌جا ادامه پیدا کند.
 >
-> آخرین به‌روزرسانی: پس از commitِ `598b523`.
+> آخرین به‌روزرسانی: پس از تکمیلِ امکاناتِ پایهٔ ویرایش در مقایسه با Typora.
 
 ---
 
@@ -87,9 +87,9 @@ packages/markdown/
     node-views/     ← بلوکِ کد، ریاضی، Mermaid، کارتِ مارک
     react/          ← MarkdownEditor، Toolbar، Outline، SearchPanel
     styles/index.css
-  tests/unit/       ← ۱۷ فایل، ۳۰۶ تست (Vitest + jsdom)
+  tests/unit/       ← ۱۸ فایل، ۳۱۶ تست (Vitest + jsdom)
   scripts/vendor-themes.mjs
-tests/e2e/          ← ۷ فایل، ۴۷ تست (Playwright، Chromium واقعی)
+tests/e2e/          ← ۷ فایل، ۵۰ تست (Playwright، Chromium واقعی)
 apps/web/app/markdown/page.tsx   ← صفحهٔ نمایشی (محصول نیست)
 ```
 
@@ -210,8 +210,8 @@ resolve نمی‌شود و هر چانکِ کناری جا می‌ماند. در
 تا این‌ها را انجام ندهی، کارِ بعدی سخت می‌شود:
 
 - [ ] `pnpm --filter @tamin/markdown typecheck` پاک
-- [ ] `pnpm --filter @tamin/markdown test` سبز (۳۰۶ تست)
-- [ ] `npx playwright test` سبز روی **بیلدِ تولیدی** (۴۷ تست)
+- [ ] `pnpm --filter @tamin/markdown test` سبز (۳۱۶ تست)
+- [ ] `npx playwright test` سبز روی **بیلدِ تولیدی** (۵۰ تست)
 - [ ] اگر تصمیمِ معماری گرفتی → `docs/decisions/0028-…`
 - [ ] اگر رفتارِ عمومی عوض شد → `packages/markdown/README.md`
 - [ ] commit با پیامِ فارسی که **دلیل** را می‌گوید

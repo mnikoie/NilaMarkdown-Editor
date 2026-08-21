@@ -13,11 +13,13 @@ import { livePreviewPlugin } from "../core/plugins/live-preview.js";
 import { foldPlugin } from "../core/plugins/fold.js";
 import { inputRulesPlugin } from "../core/plugins/input-rules.js";
 import { keymapPlugin } from "../core/plugins/keymap.js";
-import { tableEditingPlugin } from "../core/commands/table.js";
+import { isInTable, tableEditingPlugin, tableResizingPlugin } from "../core/commands/table.js";
 import { searchPlugin } from "../core/plugins/search.js";
 import { slashMenuPlugin } from "../core/plugins/slash-menu.js";
 import { writingModesPlugin } from "../core/plugins/writing-modes.js";
 import { pasteImagePlugin, type PasteImageOptions } from "../core/plugins/paste-image.js";
+import { autoPairPlugin } from "../core/plugins/auto-pair.js";
+import { taskListPlugin } from "../core/plugins/task-list.js";
 import { createNodeViews } from "../node-views/index.js";
 import type { Features } from "../node-views/index.js";
 import { buildOutline } from "../core/outline/build.js";
@@ -38,6 +40,7 @@ export interface UseEditorOptions {
   onToggleSource?: () => void;
   onSearch?: () => void;
   onReplace?: () => void;
+  onEditLink?: () => void;
   /** روشن/خاموش‌کردنِ بلوک‌های سنگین. */
   features?: Features;
   /** حالتِ تمرکز (بلوکِ فعال پررنگ، بقیه کم‌رنگ). */
@@ -51,6 +54,7 @@ export interface UseEditorOptions {
 export interface EditorHandle {
   view: EditorView | null;
   outline: OutlineNode[];
+  inTable: boolean;
   getMarkdown: () => string;
   setMarkdown: (md: string) => void;
   focus: () => void;
@@ -85,6 +89,7 @@ export function useEditor(options: UseEditorOptions): {
     onToggleSource,
     onSearch,
     onReplace,
+    onEditLink,
     features,
     focusMode,
     typewriterMode,
@@ -97,6 +102,7 @@ export function useEditor(options: UseEditorOptions): {
   /** آخرین مارک‌داونی که خودمان تولید کرده‌ایم — برای قاعدهٔ ۲. */
   const lastEmitted = useRef<string>(value ?? defaultValue);
   const [outline, setOutline] = useState<OutlineNode[]>([]);
+  const [inTable, setInTable] = useState(false);
 
   // پارامترهایی که در callbackها استفاده می‌شوند ولی نباید ادیتور را
   // بازسازی کنند.
@@ -110,6 +116,8 @@ export function useEditor(options: UseEditorOptions): {
   onSearchRef.current = onSearch;
   const onReplaceRef = useRef(onReplace);
   onReplaceRef.current = onReplace;
+  const onEditLinkRef = useRef(onEditLink);
+  onEditLinkRef.current = onEditLink;
   // ★ در وابستگی‌های ادیتور نیست: یک آبجکتِ نو در هر رندر، ادیتور را
   // بازمی‌ساخت و مکان‌نما را می‌پراند.
   const imagesRef = useRef(images);
@@ -142,8 +150,10 @@ export function useEditor(options: UseEditorOptions): {
           onToggleSource: () => onToggleSourceRef.current?.(),
           onSearch: () => onSearchRef.current?.(),
           onReplace: () => onReplaceRef.current?.(),
+          onEditLink: () => onEditLinkRef.current?.(),
         }),
         inputRulesPlugin(directives),
+        autoPairPlugin(),
         livePreviewPlugin(),
         foldPlugin({
           registry: directives,
@@ -156,6 +166,8 @@ export function useEditor(options: UseEditorOptions): {
         // و اولی که `true` برگرداند رویداد را مصرف می‌کند. با ترتیبِ
         // برعکس، رهاکردنِ عکس فقط مکان‌نما را جابه‌جا می‌کرد.
         pasteImagePlugin(imagesRef.current ?? {}),
+        taskListPlugin(),
+        tableResizingPlugin(),
         tableEditingPlugin(),
         dropCursor(),
         gapCursor(),
@@ -175,6 +187,8 @@ export function useEditor(options: UseEditorOptions): {
       dispatchTransaction(tr) {
         const next = view.state.apply(tr);
         view.updateState(next);
+
+        if (tr.selectionSet || tr.docChanged) setInTable(isInTable(next));
 
         if (tr.docChanged) {
           setOutline(buildOutline(next.doc, directives));
@@ -219,6 +233,7 @@ export function useEditor(options: UseEditorOptions): {
       return viewRef.current;
     },
     outline,
+    inTable,
     getMarkdown: () => (viewRef.current ? serialize(viewRef.current.state.doc) : lastEmitted.current),
     setMarkdown: (md: string) => {
       const view = viewRef.current;

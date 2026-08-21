@@ -60,8 +60,8 @@ test("★ فهرستِ شماره‌دار در سندِ فارسی رقمِ ف�
 });
 
 test("★ چک‌لیست مربع دارد، نه فقط متن", async ({ page }) => {
-  const box = await page.locator('.tm-editor li[data-checked]').first().evaluate((e) => {
-    const s = getComputedStyle(e, "::before");
+  const box = await page.locator(".tm-editor .tm-task-checkbox").first().evaluate((e) => {
+    const s = getComputedStyle(e);
     return { w: parseFloat(s.inlineSize || s.width), border: s.borderTopWidth };
   });
   expect(box.w).toBeGreaterThan(4);

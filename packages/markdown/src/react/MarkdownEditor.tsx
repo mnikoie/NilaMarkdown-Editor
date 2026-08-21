@@ -7,6 +7,8 @@ import { OutlineTree } from "./Outline/OutlineTree.js";
 import { Toolbar } from "./Toolbar/Toolbar.js";
 import { SearchPanel } from "./SearchPanel/SearchPanel.js";
 import { SlashMenu } from "./SlashMenu/SlashMenu.js";
+import { LinkPopover } from "./LinkPopover/LinkPopover.js";
+import { TableTools } from "./TableTools/TableTools.js";
 import { computeStats } from "../core/stats.js";
 import { exportPdf, type ExportPdfOptions } from "../core/export-pdf.js";
 import { useFullscreen } from "./useFullscreen.js";
@@ -123,6 +125,7 @@ export function MarkdownEditor({
   const [notice, setNotice] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchReplace, setSearchReplace] = useState(false);
+  const [linkOpen, setLinkOpen] = useState(false);
   const [sourceText, setSourceText] = useState("");
   const sourceRef = useRef<HTMLTextAreaElement>(null);
 
@@ -168,6 +171,7 @@ export function MarkdownEditor({
       setSearchReplace(true);
       setSearchOpen(true);
     },
+    onEditLink: () => setLinkOpen(true),
   });
 
   const handleRef = useRef(handle);
@@ -280,8 +284,12 @@ export function MarkdownEditor({
             onToggleFullscreen={fullscreen ? fs.toggle : undefined}
             fullscreen={fs.active}
             onExportPdf={pdf !== false ? runExportPdf : undefined}
+            onEditLink={() => setLinkOpen(true)}
           />
         ) : null}
+
+        <LinkPopover view={handle.view} open={linkOpen} onClose={() => setLinkOpen(false)} />
+        <TableTools view={handle.view} active={handle.inTable} enabled={mode === "live"} />
 
         {/* حالتِ سورس: یک textarea با فونتِ mono کافی است — CodeMirror لازم نیست. */}
         {mode === "source" ? (

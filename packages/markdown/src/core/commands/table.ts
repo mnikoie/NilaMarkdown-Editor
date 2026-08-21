@@ -8,8 +8,10 @@ import {
   deleteTable,
   goToNextCell,
   isInTable,
+  columnResizing,
   tableEditing,
 } from "prosemirror-tables";
+import { TextSelection } from "prosemirror-state";
 import type { Command, EditorState, Transaction } from "prosemirror-state";
 import type { Plugin } from "prosemirror-state";
 import { schema } from "../schema/index.js";
@@ -38,6 +40,11 @@ export function tableEditingPlugin(): Plugin {
   return tableEditing({ allowTableNodeSelection: false });
 }
 
+/** کشیدنِ مرزِ ستون‌ها؛ جداست تا APIِ قبلیِ `tableEditingPlugin` نشکند. */
+export function tableResizingPlugin(): Plugin {
+  return columnResizing({ handleWidth: 6, cellMinWidth: 48, lastColumnResizable: true });
+}
+
 /**
  * درجِ جدولِ نو.
  *
@@ -55,12 +62,17 @@ export function insertTable(rows = 3, cols = 3): Command {
     const node = table.create(null, [table_row.create(null, headerCells), ...bodyRows]);
 
     if (dispatch) {
+      const insertionStart = state.selection.from;
       const tr = state.tr.replaceSelectionWith(node);
       // اگر جدول در انتهای سند درج شود، جایی برای مکان‌نما بعدش نمی‌ماند.
       const end = tr.selection.$to.pos;
       if (tr.doc.nodeAt(end) === null && end >= tr.doc.content.size - 1) {
         tr.insert(tr.doc.content.size, paragraph.create());
       }
+      // بعد از درج، کاربر باید بی کلیکِ اضافه در سلولِ اول تایپ کند.
+      const tableStart = tr.mapping.map(insertionStart, -1);
+      const firstCell = Math.min(tableStart + 3, tr.doc.content.size);
+      tr.setSelection(TextSelection.near(tr.doc.resolve(firstCell), 1));
       dispatch(tr.scrollIntoView());
     }
     return true;
