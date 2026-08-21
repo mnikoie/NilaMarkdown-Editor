@@ -225,6 +225,17 @@ test("★★ اجرای اول همهٔ عنوان‌ها، فهرست‌ها و
   await expect(page.locator(".tm-math-block").first()).toBeHidden();
 });
 
+test("★★ فلشِ فهرستِ بسته در RTL و LTR به داخلِ زیرشاخه اشاره می‌کند", async ({ page }) => {
+  const toggle = page.locator(".tm-list-fold-toggle").first();
+  await expect(toggle).toHaveAttribute("aria-expanded", "false");
+  await expect(toggle).toHaveCSS("rotate", "90deg");
+
+  await page.getByRole("button", { name: "نمایش", exact: true }).click();
+  await page.getByRole("menuitemcheckbox", { name: "انگلیسی" }).click();
+  await expect(page.locator(".tm-root")).toHaveAttribute("dir", "ltr");
+  await expect(toggle).toHaveCSS("rotate", "-90deg");
+});
+
 test("★★ در حالت تمرکز، کلیک Outline خودِ عنوان را به دید می‌آورد", async ({ page }) => {
   await page.getByRole("button", { name: "نمایش", exact: true }).click();
   await page.getByRole("menuitem", { name: "بازکردن همهٔ بخش‌ها" }).click();

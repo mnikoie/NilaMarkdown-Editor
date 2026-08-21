@@ -1603,6 +1603,10 @@
     rotate: -90deg;
   }
 
+  .tm-root[dir="rtl"] .tm-editor .tm-list-node[data-list-folded="true"] > .tm-list-fold-toggle {
+    rotate: 90deg;
+  }
+
   .tm-editor .tm-list-folded-hidden {
     display: none !important;
   }
