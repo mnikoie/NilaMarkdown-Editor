@@ -17,11 +17,28 @@ function makeState(md = MD, initial: string[] = []) {
   });
 }
 
+/**
+ * فقط تزئیناتی که واقعاً چیزی را **پنهان** می‌کنند.
+ *
+ * ★ چرا شمردنِ کلِ تزئینات غلط است: از وقتی مثلثِ تاشدن کنارِ هر سرفصل
+ * اضافه شد، سندِ کاملاً بازِ هم چند تزئین دارد (دکمه‌ها و حالتِ
+ * `data-folded`). «صفر تزئین» دیگر معنیِ «چیزی پنهان نیست» نمی‌دهد.
+ */
+function hiddenCount(state: EditorState): number {
+  const set = foldKey.getState(state)!.decorations;
+  return set
+    .find()
+    .filter((d) => {
+      const spec = (d as unknown as { type?: { attrs?: Record<string, string> } }).type;
+      return spec?.attrs?.class === "tm-folded-hidden";
+    }).length;
+}
+
 describe("تاشدن", () => {
   it("در آغاز چیزی بسته نیست", () => {
     const state = makeState();
     expect(foldKey.getState(state)!.folded.size).toBe(0);
-    expect(foldKey.getState(state)!.decorations.find().length).toBe(0);
+    expect(hiddenCount(state)).toBe(0);
   });
 
   it("toggle یک بخش را می‌بندد و باز می‌کند", () => {
@@ -75,7 +92,7 @@ describe("تاشدن", () => {
 
     // هنوز در فهرستِ بسته‌هاست، ولی چیزی پنهان نمی‌شود.
     expect(isFolded(state, id)).toBe(true);
-    expect(foldKey.getState(state)!.decorations.find().length).toBe(0);
+    expect(hiddenCount(state)).toBe(0);
   });
 
   it("foldAll همه را می‌بندد و unfoldAll باز می‌کند", () => {

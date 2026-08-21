@@ -243,6 +243,15 @@ describe("جست‌وجو و تاشدن — با هم", () => {
 
     // بخش هنوز در فهرستِ بسته‌هاست، ولی محتوایش پنهان نیست
     expect(foldKey.getState(state)!.folded.has("فصل")).toBe(true);
-    expect(foldKey.getState(state)!.decorations.find()).toHaveLength(0);
+    // ★ کلِ تزئینات شمرده نمی‌شود: مثلثِ تاشدنِ هر سرفصل هم تزئین است و
+    // در سندِ باز هم وجود دارد. فقط پنهان‌کننده‌ها مهم‌اند.
+    const hidden = foldKey
+      .getState(state)!
+      .decorations.find()
+      .filter((d) => {
+        const t = (d as unknown as { type?: { attrs?: Record<string, string> } }).type;
+        return t?.attrs?.class === "tm-folded-hidden";
+      });
+    expect(hidden).toHaveLength(0);
   });
 });

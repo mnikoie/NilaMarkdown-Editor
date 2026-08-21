@@ -105,17 +105,85 @@ function sectionEnd(doc: PMNode, all: OutlineNode[], node: OutlineNode): number 
   return doc.content.size;
 }
 
+/**
+ * مثلثِ تاشدن کنارِ سرفصل — **در خودِ متن**، نه فقط در پنلِ کناری.
+ *
+ * ★ چرا widget و نه دکمهٔ واقعی در سند: هر چیزی که وارد سند شود، وارد
+ * مارک‌داون هم می‌شود و رفت‌وبرگشت را می‌شکند. این فقط لایهٔ نمایش است —
+ * همان قاعدهٔ ۱ بالای فایل.
+ *
+ * ★ `side: -1` تا **پیش از** متنِ سرفصل بنشیند، و
+ * `ignoreSelection` تا کلیک روی آن مکان‌نما را نپراند.
+ */
+/**
+ * مثلثِ تاشدن کنارِ سرفصل — **در خودِ متن**، نه فقط در پنلِ کناری.
+ *
+ * ★ چرا widget و نه چیزی در سند: هر چیزی که وارد سند شود، وارد
+ * مارک‌داون هم می‌شود و رفت‌وبرگشت را می‌شکند. این فقط لایهٔ نمایش است —
+ * همان قاعدهٔ ۱ بالای فایل.
+ *
+ * ★ **حالتِ باز/بسته روی خودِ سرفصل می‌نشیند، نه روی دکمه.**
+ *
+ * این تنها راهی بود که کار کرد، و دو تلاشِ ناموفق پشتش است:
+ *
+ * ۱. `key` شاملِ حالت (`handle-${id}-${isFolded}`): با هر تاکردن
+ *    ProseMirror دکمه را دور می‌انداخت و از نو می‌ساخت. کلیکِ بعدیِ
+ *    کاربر روی عنصرِ جداشده می‌نشست و بخش دیگر باز نمی‌شد.
+ *
+ * ۲. `key` ثابت + به‌روزکردنِ صفت داخلِ سازنده: ProseMirror widget را
+ *    با کلید cache می‌کند و سازنده را **اصلاً دوباره صدا نمی‌زند**، پس
+ *    `aria-expanded` روی `true` می‌ماند در حالی که بخش بسته است —
+ *    یعنی صفحه‌خوان دروغ می‌شنود. در مرورگر اندازه‌گیری شد.
+ *
+ * `Decoration.node` بر اساسِ **صفات** مقایسه می‌شود نه کلید، پس با
+ * تغییرِ حالت درست به‌روز می‌شود. دکمه ثابت می‌ماند (کلیک نمی‌شکند) و
+ * CSS از روی صفتِ والد، جهتِ مثلث را می‌چرخاند.
+ */
+function foldHandle(node: OutlineNode): Decoration {
+  return Decoration.widget(
+    node.from + 1,
+    () => {
+      const el = document.createElement("button");
+      el.type = "button";
+      el.className = "tm-inline-fold";
+      el.setAttribute("data-fold-id", node.id);
+      el.setAttribute("contenteditable", "false");
+      el.textContent = "⌄";
+      return el;
+    },
+    { side: -1, key: `handle-${node.id}`, ignoreSelection: true },
+  );
+}
+
+/** حالتِ باز/بسته روی گرهِ سرفصل — این یکی درست diff می‌شود. */
+function foldState(node: OutlineNode, isFolded: boolean, size: number): Decoration {
+  return Decoration.node(node.from, node.from + size, {
+    "data-folded": String(isFolded),
+    "aria-expanded": String(!isFolded),
+  });
+}
+
 function buildDecorations(
   state: EditorState,
   folded: Set<string>,
   registry: MarkRegistry,
 ): DecorationSet {
-  if (folded.size === 0) return DecorationSet.empty;
-
   const { doc, selection } = state;
   const tree = buildOutline(doc, registry);
   const flat = flattenOutline(tree);
   const decos: Decoration[] = [];
+
+  // ★ مثلث برای **همهٔ** سرفصل‌هایی که چیزی زیرشان هست — نه فقط
+  // بسته‌ها. وگرنه کاربر راهی برای بستنِ یک بخشِ باز ندارد.
+  for (const node of flat) {
+    if (node.kind !== "heading") continue;
+    const end = sectionEnd(doc, tree, node);
+    const resolved = doc.nodeAt(node.from);
+    // بخشِ خالی مثلث نمی‌گیرد — دکمه‌ای که کاری نمی‌کند بدتر از نبودنش است.
+    if (!resolved || end <= node.from + resolved.nodeSize) continue;
+    decos.push(foldHandle(node));
+    decos.push(foldState(node, folded.has(node.id), resolved.nodeSize));
+  }
 
   for (const node of flat) {
     if (!folded.has(node.id)) continue;
@@ -151,6 +219,7 @@ function buildDecorations(
     );
   }
 
+  if (decos.length === 0) return DecorationSet.empty;
   return DecorationSet.create(doc, decos);
 }
 
@@ -213,12 +282,26 @@ export function foldPlugin(options: FoldOptions = {}): Plugin<FoldState> {
         return foldKey.getState(state)?.decorations ?? DecorationSet.empty;
       },
 
-      handleClick(view, _pos, event) {
-        const target = event.target as HTMLElement;
-        const id = target.closest("[data-fold-id]")?.getAttribute("data-fold-id");
-        if (!id) return false;
-        view.dispatch(view.state.tr.setMeta(foldKey, { type: "toggle", id }));
-        return true;
+      /**
+       * ★ `mousedown` و نه `click`.
+       *
+       * `Decoration.node` روی سرفصل باعث می‌شود ProseMirror با هر تغییرِ
+       * حالت، DOMِ آن گره را از نو بسازد. اگر منتظرِ `click` بمانیم، دکمه
+       * بینِ `mousedown` و `mouseup` جایگزین شده و رویدادِ `click` هرگز
+       * کامل نمی‌شود — در مرورگر دیده شد: بستن کار می‌کرد ولی بازکردن نه.
+       *
+       * `mousedown` قبل از هر بازسازی می‌رسد.
+       */
+      handleDOMEvents: {
+        mousedown(view, event) {
+          const target = event.target as HTMLElement;
+          const id = target.closest("[data-fold-id]")?.getAttribute("data-fold-id");
+          if (!id) return false;
+          // جلوی گرفتنِ فوکوس و جابه‌جاییِ مکان‌نما را بگیر.
+          event.preventDefault();
+          view.dispatch(view.state.tr.setMeta(foldKey, { type: "toggle", id }));
+          return true;
+        },
       },
     },
   });

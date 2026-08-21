@@ -187,6 +187,80 @@
     transform: translateX(100%);
   }
 
+  /* ── مثلثِ تاشدن کنارِ سرفصل، در خودِ متن ──
+   *
+   * ★ **در حاشیه می‌نشیند، نه در جریانِ متن.** همان قاعده‌ای که برای
+   * نشانه‌های پیش‌نمایشِ زنده رعایت شد: اگر عنصری عرض بگیرد،
+   * ظاهر/پنهان‌شدنش متن را می‌پراند.
+   *
+   * ★ **پیش‌فرض کم‌رنگ است و با hover پررنگ می‌شود** — سندِ پر از مثلثِ
+   * پررنگ شلوغ دیده می‌شود. ولی وقتی بخش **بسته** است همیشه دیده
+   * می‌شود، چون تنها راهِ فهمیدنِ اینکه چیزی پنهان است همان است.
+   */
+  .tm-inline-fold {
+    position: absolute;
+    transform: translateX(-100%);
+    inline-size: 1.25rem;
+    block-size: 1.25rem;
+    display: inline-grid;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    border-radius: 0.25rem;
+    background: none;
+    color: var(--tm-muted);
+    font-size: 0.875rem;
+    line-height: 1;
+    cursor: pointer;
+    user-select: none;
+    opacity: 0;
+    transition: opacity 120ms;
+  }
+
+  .tm-root[dir="rtl"] .tm-inline-fold {
+    transform: translateX(100%);
+  }
+
+  /* دیده‌شدن: با hoverِ سرفصل، با فوکوسِ کیبورد، یا وقتی بسته است.
+   *
+   * ★ حالتِ بسته از **صفتِ سرفصل** خوانده می‌شود نه از خودِ دکمه —
+   * دلیلش در `fold.ts` کنارِ `foldState` نوشته شده. */
+  .tm-editor h1:hover .tm-inline-fold,
+  .tm-editor h2:hover .tm-inline-fold,
+  .tm-editor h3:hover .tm-inline-fold,
+  .tm-editor h4:hover .tm-inline-fold,
+  .tm-editor h5:hover .tm-inline-fold,
+  .tm-editor h6:hover .tm-inline-fold,
+  .tm-inline-fold:focus-visible,
+  .tm-editor [data-folded="true"] .tm-inline-fold {
+    opacity: 1;
+  }
+
+  .tm-inline-fold:hover {
+    background: var(--tm-code-bg);
+    color: var(--tm-fg);
+  }
+
+  .tm-inline-fold:focus-visible {
+    outline: 2px solid var(--tm-accent);
+    outline-offset: 1px;
+  }
+
+  /* بسته → مثلث می‌چرخد. جهتِ چرخش در RTL برعکس است. */
+  .tm-editor [data-folded="true"] .tm-inline-fold {
+    transform: translateX(-100%) rotate(-90deg);
+  }
+
+  .tm-root[dir="rtl"] .tm-editor [data-folded="true"] .tm-inline-fold {
+    transform: translateX(100%) rotate(90deg);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .tm-inline-fold {
+      transition: none;
+    }
+  }
+
   /* ── تاشدن ── */
   .tm-folded-hidden {
     display: none;
@@ -876,6 +950,36 @@
   .tm-outline-item:focus-visible {
     outline: 2px solid var(--tm-accent);
     outline-offset: 1px;
+  }
+
+  /* ★ **جای‌گیرِ مثلث — هم‌عرضِ خودِ دکمه.**
+   *
+   * گرهی که فرزند ندارد دکمهٔ تاشدن نمی‌گیرد. بی این جای‌گیر، عنوانش
+   * ۱۶ پیکسل جلوتر از هم‌سطح‌های دکمه‌دارش می‌افتاد و **دقیقاً توهمِ
+   * زیرمجموعه‌بودن** می‌ساخت: «فصل اول» (بی فرزند) و «فصل دوم»
+   * (بافرزند) هر دو `aria-level="1"` بودند ولی هم‌تراز دیده نمی‌شدند.
+   *
+   * اندازه‌گیری‌شده در مرورگر: ۱۰۴۷ در برابر ۱۰۳۱ پیکسل.
+   *
+   * عرض باید با `.tm-fold-toggle` یکی بماند؛ هر دو از همین متغیر
+   * می‌خوانند تا با هم عوض شوند.
+   */
+  .tm-outline {
+    --tm-fold-size: 1rem;
+  }
+
+  .tm-fold-spacer {
+    flex: none;
+    inline-size: var(--tm-fold-size);
+    block-size: var(--tm-fold-size);
+  }
+
+  .tm-outline .tm-fold-toggle {
+    flex: none;
+    inline-size: var(--tm-fold-size);
+    block-size: var(--tm-fold-size);
+    display: grid;
+    place-items: center;
   }
 
   /* تورفتگیِ سلسله‌مراتب — با متغیر تا در RTL هم درست بیفتد. */
