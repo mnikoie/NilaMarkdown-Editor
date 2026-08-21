@@ -486,6 +486,7 @@ export function MarkdownEditor({
         <input
           ref={documentInputRef}
           type="file"
+          suppressHydrationWarning
           accept=".md,.markdown,.txt,text/markdown,text/plain"
           hidden
           aria-hidden="true"
@@ -505,6 +506,7 @@ export function MarkdownEditor({
         <input
           ref={imageInputRef}
           type="file"
+          suppressHydrationWarning
           accept="image/*"
           multiple
           hidden
@@ -529,6 +531,7 @@ export function MarkdownEditor({
           <textarea
             ref={sourceRef}
             className="tm-source"
+            suppressHydrationWarning
             defaultValue={sourceText}
             readOnly={readOnly}
             dir="ltr"
