@@ -41,6 +41,24 @@ export {
 } from "./core/security.js";
 export type { HtmlMode } from "./core/security.js";
 
+export {
+  searchPlugin,
+  searchKey,
+  search,
+  searchNext,
+  searchPrev,
+  clearSearch,
+  replaceActive,
+  replaceAll,
+  getSearchState,
+  findMatches,
+  normalizeForSearch,
+} from "./core/plugins/search.js";
+export type { SearchState, SearchOptions, SearchMatch } from "./core/plugins/search.js";
+
+export { SearchPanel } from "./react/SearchPanel/SearchPanel.js";
+export type { SearchPanelProps } from "./react/SearchPanel/SearchPanel.js";
+
 export { inputRulesPlugin } from "./core/plugins/input-rules.js";
 export { keymapPlugin, insertZWNJ, toggleHeading } from "./core/plugins/keymap.js";
 export type { KeymapOptions } from "./core/plugins/keymap.js";

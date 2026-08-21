@@ -47,6 +47,10 @@ function toggleHeading(level: number): Command {
 export interface KeymapOptions {
   /** `Ctrl+/` — عوض‌کردنِ حالتِ سورس. لایهٔ React پیاده‌اش می‌کند. */
   onToggleSource?: () => void;
+  /** `Ctrl+F` — بازکردنِ جست‌وجو. */
+  onSearch?: () => void;
+  /** `Ctrl+H` — بازکردنِ جایگزینی. */
+  onReplace?: () => void;
 }
 
 export function keymapPlugin(options: KeymapOptions = {}): Plugin {
@@ -87,6 +91,20 @@ export function keymapPlugin(options: KeymapOptions = {}): Plugin {
 
   for (let i = 1; i <= 6; i++) {
     keys[`Mod-${i}`] = toggleHeading(i);
+  }
+
+  if (options.onSearch) {
+    keys["Mod-f"] = () => {
+      options.onSearch!();
+      return true;
+    };
+  }
+
+  if (options.onReplace) {
+    keys["Mod-h"] = () => {
+      options.onReplace!();
+      return true;
+    };
   }
 
   if (options.onToggleSource) {

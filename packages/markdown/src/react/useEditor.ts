@@ -14,6 +14,7 @@ import { foldPlugin } from "../core/plugins/fold.js";
 import { inputRulesPlugin } from "../core/plugins/input-rules.js";
 import { keymapPlugin } from "../core/plugins/keymap.js";
 import { tableEditingPlugin } from "../core/commands/table.js";
+import { searchPlugin } from "../core/plugins/search.js";
 import { createNodeViews } from "../node-views/index.js";
 import type { Features } from "../node-views/index.js";
 import { buildOutline } from "../core/outline/build.js";
@@ -32,6 +33,8 @@ export interface UseEditorOptions {
   foldedIds?: string[];
   onFoldChange?: (ids: string[]) => void;
   onToggleSource?: () => void;
+  onSearch?: () => void;
+  onReplace?: () => void;
   /** روشن/خاموش‌کردنِ بلوک‌های سنگین. */
   features?: Features;
 }
@@ -71,6 +74,8 @@ export function useEditor(options: UseEditorOptions): {
     foldedIds,
     onFoldChange,
     onToggleSource,
+    onSearch,
+    onReplace,
     features,
   } = options;
 
@@ -89,6 +94,10 @@ export function useEditor(options: UseEditorOptions): {
   onFoldChangeRef.current = onFoldChange;
   const onToggleSourceRef = useRef(onToggleSource);
   onToggleSourceRef.current = onToggleSource;
+  const onSearchRef = useRef(onSearch);
+  onSearchRef.current = onSearch;
+  const onReplaceRef = useRef(onReplace);
+  onReplaceRef.current = onReplace;
 
   const ref = (node: HTMLElement | null) => {
     mountRef.current = node;
@@ -103,7 +112,11 @@ export function useEditor(options: UseEditorOptions): {
       schema,
       plugins: [
         history(),
-        keymapPlugin({ onToggleSource: () => onToggleSourceRef.current?.() }),
+        keymapPlugin({
+          onToggleSource: () => onToggleSourceRef.current?.(),
+          onSearch: () => onSearchRef.current?.(),
+          onReplace: () => onReplaceRef.current?.(),
+        }),
         inputRulesPlugin(directives),
         livePreviewPlugin(),
         foldPlugin({
@@ -111,6 +124,7 @@ export function useEditor(options: UseEditorOptions): {
           initial: foldedIds,
           onChange: (ids) => onFoldChangeRef.current?.(ids),
         }),
+        searchPlugin(),
         tableEditingPlugin(),
         dropCursor(),
         gapCursor(),

@@ -5,6 +5,7 @@ import { Selection } from "prosemirror-state";
 import { useEditor } from "./useEditor.js";
 import { OutlineTree } from "./Outline/OutlineTree.js";
 import { Toolbar } from "./Toolbar/Toolbar.js";
+import { SearchPanel } from "./SearchPanel/SearchPanel.js";
 import { computeStats } from "../core/stats.js";
 import { foldKey, toggleFold } from "../core/plugins/fold.js";
 import { BUILTIN_MARKS } from "../core/directives/builtin.js";
@@ -78,6 +79,8 @@ export function MarkdownEditor({
   className,
 }: MarkdownEditorProps) {
   const [mode, setMode] = useState<"live" | "source">("live");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchReplace, setSearchReplace] = useState(false);
   const [sourceText, setSourceText] = useState("");
   const sourceRef = useRef<HTMLTextAreaElement>(null);
 
@@ -106,6 +109,14 @@ export function MarkdownEditor({
       onFoldChange?.(ids);
     },
     onToggleSource: toggleSource,
+    onSearch: () => {
+      setSearchReplace(false);
+      setSearchOpen(true);
+    },
+    onReplace: () => {
+      setSearchReplace(true);
+      setSearchOpen(true);
+    },
   });
 
   const handleRef = useRef(handle);
@@ -155,6 +166,13 @@ export function MarkdownEditor({
       ) : null}
 
       <div className="tm-main">
+        <SearchPanel
+          view={handle.view}
+          open={searchOpen}
+          withReplace={searchReplace}
+          onClose={() => setSearchOpen(false)}
+        />
+
         {toolbar ? (
           <Toolbar
             view={handle.view}

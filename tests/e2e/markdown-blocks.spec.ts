@@ -160,3 +160,60 @@ test("★ نوارِ آمار، کلمه‌ها را می‌شمارد", async (
   await expect(stats).toContainText("کلمه");
   await expect(stats).toContainText("دقیقه خواندن");
 });
+
+test("★ جست‌وجو با Ctrl+F", async ({ page }) => {
+  await page.locator(".tm-editor p").first().click();
+  await page.keyboard.press("Control+f");
+
+  const panel = page.locator('[role="search"]');
+  await expect(panel).toBeVisible();
+
+  await panel.locator(".tm-search-input").first().fill("ماده");
+  await expect(page.locator(".tm-search-match").first()).toBeAttached();
+
+  const count = await page.locator(".tm-search-match").count();
+  expect(count).toBeGreaterThan(1);
+  await expect(page.locator(".tm-search-active")).toHaveCount(1);
+  await expect(panel.locator(".tm-search-count")).toContainText("از");
+
+  // بعدی
+  await panel.getByRole("button", { name: "بعدی" }).click();
+  await expect(page.locator(".tm-search-active")).toHaveCount(1);
+
+  // Escape می‌بندد و همه‌چیز پاک می‌شود
+  await page.keyboard.press("Escape");
+  await expect(panel).toBeHidden();
+  await expect(page.locator(".tm-search-match")).toHaveCount(0);
+});
+
+test("★ جست‌وجو، املای عربی/فارسی را یکی می‌بیند", async ({ page }) => {
+  await page.locator(".tm-editor p").first().click();
+  await page.keyboard.press("Control+f");
+  const panel = page.locator('[role="search"]');
+
+  // «تأمین» در سند هست؛ با «تامین» (بی همزه) هم باید پیدا شود
+  await panel.locator(".tm-search-input").first().fill("تامین");
+  await expect(page.locator(".tm-search-match").first()).toBeAttached();
+  await page.keyboard.press("Escape");
+});
+
+test("★ جایگزینیِ همه با Ctrl+H — یک قدمِ undo", async ({ page }) => {
+  await page.locator(".tm-editor p").first().click();
+  await page.keyboard.press("Control+h");
+  const panel = page.locator('[role="search"]');
+  await expect(panel).toBeVisible();
+
+  await panel.locator(".tm-search-input").first().fill("جریمه");
+  await expect(page.locator(".tm-search-match").first()).toBeAttached();
+
+  await panel.locator(".tm-search-input").nth(1).fill("خسارت");
+  await panel.getByRole("button", { name: /همه/ }).click();
+
+  await expect(page.locator(".tm-editor")).toContainText("خسارت");
+
+  // یک Ctrl+Z همه را برمی‌گرداند
+  await page.keyboard.press("Escape");
+  await page.locator(".tm-editor p").first().click();
+  await page.keyboard.press("Control+z");
+  await expect(page.locator(".tm-editor")).toContainText("جریمه");
+});
