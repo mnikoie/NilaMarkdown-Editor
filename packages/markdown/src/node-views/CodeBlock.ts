@@ -1,5 +1,6 @@
 import type { Node as PMNode } from "prosemirror-model";
 import type { EditorView, NodeView, ViewMutationRecord } from "prosemirror-view";
+import { highlight as highlightInWorker } from "../core/highlight/client.js";
 
 /**
  * بلوکِ کد با رنگ‌آمیزی و دکمهٔ کپی.
@@ -12,23 +13,18 @@ import type { EditorView, NodeView, ViewMutationRecord } from "prosemirror-view"
  * قابلِ ویرایش می‌ماند و HTMLِ رنگی زیرش به‌عنوانِ پس‌زمینه می‌نشیند.
  * اگر HTMLِ Shiki را داخلِ `contentDOM` بگذاریم، ProseMirror آن را
  * محتوای سند می‌بیند و با اولین تایپ همه‌چیز خراب می‌شود.
+ *
+ * ★ **خودِ رنگ‌آمیزی اینجا اجرا نمی‌شود.** به Web Worker سپرده شده
+ * (`core/highlight/`). دلیلش اندازه‌گیری‌شده است و در همان‌جا نوشته
+ * شده. اینجا فقط درخواست می‌رود و HTMLِ آماده برمی‌گردد.
  */
-
-/** بارگذاریِ تنبل — یک‌بار برای کلِ برنامه. */
-let shikiLoader: Promise<ShikiHighlighter | null> | null = null;
-
-interface ShikiHighlighter {
-  codeToHtml(code: string, options: { lang: string; themes: { light: string; dark: string } }): string;
-  getLoadedLanguages(): string[];
-  loadLanguage(lang: string): Promise<void>;
-}
 
 /**
  * محیط، مرورگرِ واقعی است؟
  *
- * Shiki و Mermaid به APIهایی نیاز دارند که jsdom و Node ندارند (WASM،
- * Canvas، اندازه‌گیریِ متن). بارگذاری‌شان آنجا فقط وقت می‌گیرد و در
- * بهترین حالت شکست می‌خورد — در بدترین حالت پروسه را می‌کُشد.
+ * Mermaid به APIهایی نیاز دارد که jsdom و Node ندارند (Canvas، اندازه‌گیریِ
+ * متن). بارگذاری‌اش آنجا فقط وقت می‌گیرد و در بهترین حالت شکست می‌خورد —
+ * در بدترین حالت پروسه را می‌کُشد.
  *
  * `jsdom` خودش را در userAgent اعلام می‌کند؛ همان علامتِ کافی است.
  */
@@ -41,14 +37,14 @@ export function isRealBrowser(): boolean {
 /**
  * `import()` با نامِ متغیر.
  *
- * ★ چرا این‌طور و نه `import("shiki")` مستقیم: باندلرها (Vite، webpack)
+ * ★ چرا این‌طور و نه `import("mermaid")` مستقیم: باندلرها (Vite، webpack)
  * `import()`ِ با رشتهٔ ثابت را **در زمانِ بیلد** پیدا می‌کنند و پکیج را
  * از پیش آماده می‌کنند — حتی اگر در زمانِ اجرا هرگز صدا نشود. برای
- * Shiki که ده‌ها مگابایت گرامر دارد، این یعنی تستِ ۱ ثانیه‌ای به ۹۰
- * ثانیه می‌رسد و گاهی پروسه می‌میرد.
+ * پکیج‌های چند‌مگابایتی این یعنی تستِ ۱ ثانیه‌ای به ۹۰ ثانیه می‌رسد و
+ * گاهی پروسه می‌میرد.
  *
- * با متغیر، تحلیلِ ایستا نمی‌تواند اسم را بفهمد و پکیج فقط وقتی بار
- * می‌شود که واقعاً لازم شود — که هدفِ «وابستگیِ اختیاری» هم همین بود.
+ * جدولِ زیر هر دو مسئله را حل می‌کند: رشته‌ها ثابت‌اند پس باندلر درست کار
+ * می‌کند، و چون داخلِ تابع‌های تنبل‌اند، فقط با صداکردن اجرا می‌شوند.
  */
 export async function importOptional<T>(name: string): Promise<T | null> {
   try {
@@ -62,57 +58,10 @@ export async function importOptional<T>(name: string): Promise<T | null> {
   }
 }
 
-/**
- * جدولِ بارگذارها.
- *
- * ★ چرا جدول و نه `import(name)`ِ مستقیم:
- *
- * - با **رشتهٔ ثابت** (`import("shiki")`)، باندلر پکیج را پیدا و آماده
- *   می‌کند. درست است، ولی Vite در تست هم همین کار را می‌کند و ۹۰ ثانیه
- *   طول می‌کشد.
- * - با **متغیر** (`import(name)`)، باندلر نمی‌فهمد چه چیزی لازم است و
- *   یا context-require می‌سازد یا — با `webpackIgnore` — رشته را
- *   دست‌نخورده به مرورگر می‌دهد که `Failed to resolve module specifier`
- *   می‌گیرد. اندازه‌گیری شد: KaTeX هرگز بار نمی‌شد.
- *
- * جدول هر دو را حل می‌کند: رشته‌ها ثابت‌اند پس باندلر درست کار می‌کند، و
- * چون داخلِ تابع‌های تنبل‌اند، فقط با صداکردن اجرا می‌شوند.
- */
 const OPTIONAL_LOADERS: Record<string, () => Promise<unknown>> = {
   katex: () => import("katex"),
-  shiki: () => import("shiki"),
   mermaid: () => import("mermaid"),
 };
-
-async function loadShiki(): Promise<ShikiHighlighter | null> {
-  if (!isRealBrowser()) return null;
-  try {
-    const shiki = await importOptional<{
-      createHighlighter: (o: unknown) => Promise<ShikiHighlighter>;
-    }>("shiki");
-    if (!shiki) return null;
-    return await shiki.createHighlighter({
-      // ★ هیچ زبانی از پیش بار نمی‌شود.
-      //
-      // نسخهٔ اول ده زبان و دو تم را با هم می‌گرفت. نتیجه: رشتهٔ اصلی
-      // چند ثانیه قفل می‌شد و صفحه اصلاً پاسخ نمی‌داد — حتی
-      // `page.evaluate` هم timeout می‌خورد. هر زبان فقط وقتی بار می‌شود
-      // که سندی واقعاً از آن استفاده کند (`loadLanguage` در `highlight`).
-      themes: ["github-light", "github-dark"],
-      langs: [],
-    });
-  } catch {
-    return null;
-  }
-}
-
-function getShiki(): Promise<ShikiHighlighter | null> {
-  // بیرونِ مرورگر اصلاً promise نساز — نه حتی یکِ حل‌شده. در محیطِ تست،
-  // promiseهای معلق باعث می‌شوند worker تمام نشود.
-  if (!isRealBrowser()) return Promise.resolve(null);
-  shikiLoader ??= loadShiki();
-  return shikiLoader;
-}
 
 export class CodeBlockView implements NodeView {
   dom: HTMLElement;
@@ -124,6 +73,8 @@ export class CodeBlockView implements NodeView {
   private copyButton: HTMLButtonElement;
   private copyTimer: ReturnType<typeof setTimeout> | null = null;
   private destroyed = false;
+  /** شمارندهٔ نسخه — پاسخِ کهنهٔ worker را بی‌اثر می‌کند. */
+  private highlightToken = 0;
 
   constructor(
     private node: PMNode,
@@ -180,51 +131,63 @@ export class CodeBlockView implements NodeView {
   private render() {
     const lang = this.language;
     this.langLabel.textContent = lang || "متن";
-    this.dom.setAttribute("data-language", lang);
+    if (this.dom.getAttribute("data-language") !== lang) {
+      this.dom.setAttribute("data-language", lang);
+    }
     this.highlighted = this.highlight();
   }
 
   private async highlight() {
     const lang = this.language;
     const code = this.node.textContent;
+    // نسخهٔ فعلی — پاسخِ کهنه نباید روی نسخهٔ تازه بنشیند.
+    const token = ++this.highlightToken;
 
     if (!lang || !code) {
-      this.highlightLayer.textContent = "";
-      this.dom.removeAttribute("data-highlighted");
+      this.clearHighlight(null);
       return;
     }
 
     if (!this.highlightEnabled) {
-      this.highlightLayer.textContent = "";
-      this.dom.setAttribute("data-highlighted", "false");
+      this.clearHighlight("false");
       return;
     }
 
-    const shiki = await getShiki();
-    if (this.destroyed) return;
+    // تا وقتی پاسخ نیامده، متن **خوانا و قابلِ ویرایش** است. فقط بی‌رنگ.
+    this.setState("pending");
 
-    // Shiki نصب نیست → کدِ خام. این حالتِ عادی است، نه خطا.
-    if (!shiki) {
-      this.highlightLayer.textContent = "";
-      this.dom.setAttribute("data-highlighted", "false");
+    const result = await highlightInWorker(code, lang);
+
+    // بلوک پاک شد، یا کاربر بینِ درخواست و پاسخ تایپ کرد → دور بریز.
+    if (this.destroyed || token !== this.highlightToken) return;
+
+    if (!result) {
+      // Shiki نصب نیست، زبان ناشناخته، یا worker در دسترس نیست →
+      // کدِ خام. این حالتِ عادی است، نه خطا.
+      this.clearHighlight("false");
       return;
     }
 
-    try {
-      if (!shiki.getLoadedLanguages().includes(lang)) {
-        await shiki.loadLanguage(lang);
-        if (this.destroyed) return;
-      }
-      this.highlightLayer.innerHTML = shiki.codeToHtml(code, {
-        lang,
-        themes: { light: "github-light", dark: "github-dark" },
-      });
-      this.dom.setAttribute("data-highlighted", "true");
-    } catch {
-      // زبانِ ناشناخته → خام. باز هم نه خطا.
-      this.highlightLayer.textContent = "";
-      this.dom.setAttribute("data-highlighted", "false");
-    }
+    this.highlightLayer.innerHTML = result.html;
+    this.setState("true");
+  }
+
+  /**
+   * صفت را فقط وقتی می‌نویسد که واقعاً عوض شده باشد.
+   *
+   * نوشتنِ صفتِ تکراری یک جهشِ DOM اضافه است — و هر جهشِ اضافه یک فرصتِ
+   * تازه برای همان حلقه‌ای که در `ignoreMutation` توضیح داده شد.
+   */
+  private setState(state: string | null) {
+    const current = this.dom.getAttribute("data-highlighted");
+    if (current === state) return;
+    if (state === null) this.dom.removeAttribute("data-highlighted");
+    else this.dom.setAttribute("data-highlighted", state);
+  }
+
+  private clearHighlight(state: string | null) {
+    if (this.highlightLayer.firstChild) this.highlightLayer.textContent = "";
+    this.setState(state);
   }
 
   private async copy() {
@@ -257,7 +220,20 @@ export class CodeBlockView implements NodeView {
   ignoreMutation(mutation: ViewMutationRecord): boolean {
     // لایهٔ رنگ‌آمیزی را خودمان عوض می‌کنیم؛ ProseMirror نباید آن را
     // تغییرِ سند بفهمد.
-    return this.highlightLayer.contains(mutation.target);
+    if (this.highlightLayer.contains(mutation.target)) return true;
+
+    // ★ صفاتی که خودمان روی ریشه می‌گذاریم (`data-highlighted`،
+    // `data-language`) هم تغییرِ سند نیستند.
+    //
+    // بی این، یک **حلقهٔ بی‌پایان** درست می‌شود و اندازه‌گیری شد: نوشتنِ
+    // صفت → ProseMirror آن را جهشِ DOM می‌بیند → NodeView را دوباره
+    // می‌سازد → `render()` → درخواستِ رنگ‌آمیزی → پاسخ → نوشتنِ صفت…
+    // در مرورگر هزاران درخواست در چند ثانیه شمرده شد و صفحه از پا
+    // درآمد.
+    if (mutation.type === "attributes" && mutation.target === this.dom) return true;
+
+    // تنها چیزی که واقعاً محتواست، خودِ `contentDOM` است.
+    return !this.contentDOM.contains(mutation.target);
   }
 
   destroy() {

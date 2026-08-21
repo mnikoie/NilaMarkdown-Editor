@@ -71,10 +71,15 @@ test("★ KaTeX در مرورگرِ واقعی رندر می‌شود", async ({
   await expect(page.locator(".katex").first()).toBeVisible();
 });
 
-test("★ بی Shiki هم کد خوانا و قابلِ کپی است", async ({ page }) => {
-  const code = page.locator(".tm-code").first();
-  await expect(code).toHaveAttribute("data-highlighted", "false");
-  await expect(code.locator("code")).toContainText("const x");
+test("★ کد بی‌رنگ هم خوانا و قابلِ کپی است", async ({ page }) => {
+  // ★ زبانی که رنگ‌آمیز نمی‌شناسدش — همان حالتی که قبلاً پیش‌فرضِ همهٔ
+  // بلوک‌ها بود و حالا فقط برای زبانِ ناشناخته می‌ماند.
+  //
+  // (رنگ‌آمیزی از وقتی به Web Worker رفت پیش‌فرض **روشن** است؛ تستش در
+  // `highlight-worker.spec.ts` است.)
+  const code = page.locator('.tm-code[data-language="brainfuck"]');
+  await expect(code).toHaveAttribute("data-highlighted", "false", { timeout: 30000 });
+  await expect(code.locator("> pre > code")).toContainText("++++++++[");
   await expect(code.locator(".tm-code-copy")).toHaveText("کپی");
 });
 

@@ -63,13 +63,17 @@ describe("معماری", () => {
   it("هیچ رنگی در TS هارد-کد نشده", () => {
     // بندِ ۹: همهٔ رنگ‌ها از متغیرِ CSS.
     //
-    // دو استثنا:
+    // سه استثنا:
     //  - `builtin.ts` رنگِ **پایهٔ** مارک‌های پیش‌فرض را تعریف می‌کند و
     //    همان‌ها هم به `--tm-mark-base` می‌روند.
     //  - `export-html.ts` یک CSSِ **مستقل** برای فایلِ صادرشده دارد؛
     //    آن فایل باید بی هیچ وابستگی و در ایمیل و چاپ هم کار کند، پس
     //    مقدارِ اولیهٔ متغیرها باید داخلش باشد.
-    const EXCEPTIONS = ["builtin.ts", "export-html.ts"];
+    //  - `highlight/themes.ts` **ساخته می‌شود**، دست‌نویس نیست: دو تمِ
+    //    Shiki که با `scripts/vendor-themes.mjs` درون‌خط شده‌اند. رنگ‌هایش
+    //    مالِ ما نیستند و از متغیرِ CSS هم نمی‌آیند — Shiki آن‌ها را
+    //    مستقیم در `style`ِ درون‌خطیِ خروجی می‌گذارد.
+    const EXCEPTIONS = ["builtin.ts", "export-html.ts", "themes.ts"];
     for (const file of filesIn("src")) {
       if (EXCEPTIONS.some((e) => file.includes(e))) continue;
       // توضیحات مستثنا هستند: مثالِ رنگ در JSDoc، رنگِ هارد-کد نیست.

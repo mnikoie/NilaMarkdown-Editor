@@ -24,18 +24,18 @@ export interface Features {
   mermaid?: boolean;
 
   /**
-   * رنگ‌آمیزیِ کد با Shiki. پیش‌فرض **خاموش**.
+   * رنگ‌آمیزیِ کد با Shiki. پیش‌فرض **روشن**.
    *
-   * ★ چرا خاموش: در مرورگرِ واقعی اندازه گرفتم — بارگذاریِ Shiki (موتورِ
-   * WASM) صفحه را چند ثانیه بی‌پاسخ می‌کند، تا حدی که `page.evaluate`
-   * هم timeout می‌خورد. حتی با `langs: []` هم همین است، پس مسئله
-   * گرامرها نیستند بلکه خودِ ماژول است.
+   * ★ تا نسخهٔ قبل خاموش بود: بارگذاریِ Shiki در رشتهٔ اصلی صفحه را چند
+   * ثانیه بی‌پاسخ می‌کرد — اندازه‌گیری‌شده در مرورگرِ واقعی، تا حدی که
+   * `page.evaluate` هم timeout می‌خورد.
    *
-   * بی آن، کد **خوانا و قابلِ ویرایش** است، فقط بی‌رنگ. این معاملهٔ
-   * درستی است: صفحه‌ای که کار می‌کند بهتر از صفحهٔ رنگیِ قفل‌شده است.
+   * حالا رنگ‌آمیزی در **Web Worker** انجام می‌شود (`core/highlight/`)،
+   * پس رشتهٔ اصلی اصلاً درگیرِ بارگذاری نیست و دلیلِ خاموش‌بودن از بین
+   * رفته است.
    *
-   * اگر می‌خواهیدش، صریح روشنش کنید — ترجیحاً پس از انتقالِ رنگ‌آمیزی
-   * به Web Worker (بندِ ۱۳ پرامپت).
+   * ★ اگر Shiki نصب نباشد یا Worker در دسترس نباشد، کد **خام** می‌ماند —
+   * خوانا و قابلِ ویرایش و قابلِ کپی، فقط بی‌رنگ. خطا نمی‌دهد.
    */
   highlight?: boolean;
 
@@ -64,7 +64,7 @@ export function createNodeViews(
   registry: MarkRegistry,
   features: Features = {},
 ): Record<string, NodeViewConstructor> {
-  const { math = true, mermaid = false, highlight = false, html = "escape" } = features;
+  const { math = true, mermaid = false, highlight = true, html = "escape" } = features;
 
   const views: Record<string, NodeViewConstructor> = {
     directive_block: (node, view, getPos) => new MarkCardView(node, view, getPos, registry),

@@ -74,6 +74,8 @@
     }
   },
   "devDependencies": {
+    "@shikijs/langs": "4.4.3",
+    "@shikijs/themes": "4.4.3",
     "@tailwindcss/cli": "^4.3.3",
     "@types/mdast": "^4.0.4",
     "@types/node": "^20.19.9",

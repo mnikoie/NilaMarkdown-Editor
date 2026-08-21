@@ -116,6 +116,14 @@ export {
   createNodeViews,
 } from "./node-views/index.js";
 export type { Features } from "./node-views/index.js";
+export {
+  highlight,
+  resetHighlighter,
+  highlighterStatus,
+  highlighterWorkerType,
+} from "./core/highlight/client.js";
+export type { HighlightResult } from "./core/highlight/client.js";
+
 export { exportHtml, exportStats } from "./core/export-html.js";
 export type { ExportHtmlOptions } from "./core/export-html.js";
 
