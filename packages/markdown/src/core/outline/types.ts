@@ -24,6 +24,8 @@ export interface OutlineNode {
   /** موقعیتِ گره در سندِ ProseMirror. */
   from: number;
   to: number;
+  /** آیا این گره واقعاً محتوایی برای باز و بسته‌کردن دارد؟ */
+  foldable: boolean;
   children: OutlineNode[];
 }
 

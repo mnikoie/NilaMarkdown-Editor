@@ -158,6 +158,18 @@ describe("تاشدن", () => {
     expect(foldKey.getState(state)!.decorations.find().length).toBeGreaterThan(0);
   });
 
+  it("★★ بستنِ عنوانِ اصلی، مقدمه و همهٔ فصل‌های لنگردار را پنهان می‌کند", () => {
+    const md =
+      "# عنوان بخشنامه\n\nمقدمه\n\n" +
+      "# فصل اول {#فصل-۱}\n\nمتن یک\n\n" +
+      "# فصل دوم {#فصل-۲}\n\nمتن دو\n";
+    let state = makeState(md);
+    const root = buildOutline(state.doc)[0]!;
+    expect(root.children).toHaveLength(2);
+    toggleFold(root.id, root.from)(state, (tr) => (state = state.apply(tr)));
+    expect(hiddenCount(state)).toBeGreaterThanOrEqual(5);
+  });
+
   it("حالتِ آغازینِ all همهٔ عنوان‌ها را می‌بندد", () => {
     const state = EditorState.create({
       doc: parse(MD),

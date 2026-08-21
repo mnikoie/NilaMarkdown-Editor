@@ -55,6 +55,23 @@ describe("درختِ ساختار", () => {
     ]);
   });
 
+  it("★★ عنوانِ بی‌لنگرِ ابتدای سند، والدِ فصل‌های لنگردار است", () => {
+    const doc = parse(
+      "# عنوان بخشنامه\n\nمقدمه\n\n# فصل اول {#فصل-۱}\n\nمتن یک\n\n# فصل دوم {#فصل-۲}\n\nمتن دو\n",
+    );
+    const tree = buildOutline(doc);
+    expect(tree).toHaveLength(1);
+    expect(tree[0]!.title).toBe("عنوان بخشنامه");
+    expect(tree[0]!.level).toBe(0);
+    expect(tree[0]!.children.map((node) => node.id)).toEqual(["فصل-۱", "فصل-۲"]);
+  });
+
+  it("عنوانِ بی‌فرزندِ ساختاری ولی دارای متن، از Outline قابلِ تاشدن است", () => {
+    const [node] = buildOutline(parse("# فصل\n\nیک پاراگراف\n"));
+    expect(node!.children).toEqual([]);
+    expect(node!.foldable).toBe(true);
+  });
+
   it("مارکِ غیرساختاری در درخت نمی‌آید", () => {
     // «نکته» anchor ندارد — یادداشتِ نویسنده است، نه گرهِ ساختار.
     const doc = parse("# یک\n\n:::نکته\nمتن\n:::\n");

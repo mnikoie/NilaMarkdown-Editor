@@ -156,10 +156,17 @@
 }
 
 .markdown-workspace .tm-demo-editor > .tm-main {
+  display: flex;
+  flex-direction: column;
   height: 100%;
   max-width: none;
   overflow-y: auto;
-  padding: 0 2rem 3rem;
+  padding: 0 2rem;
+}
+
+.markdown-workspace .tm-demo-editor .tm-editor-wrap {
+  flex: 1 0 auto;
+  padding-block-end: 3rem;
 }
 
 .markdown-workspace .tm-demo-editor .tm-editor {
@@ -180,6 +187,12 @@
   position: sticky;
   bottom: 0;
   z-index: 5;
+  flex: none;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding-inline: 0.75rem;
+  box-sizing: border-box;
   background: var(--background);
 }
 
@@ -192,15 +205,6 @@
     display: block;
     inline-size: var(--tm-sidebar-width, 17rem);
     box-shadow: 0 0 1.5rem rgb(0 0 0 / 0.16);
-  }
-
-  .markdown-workspace .tm-demo-editor > .tm-sidebar .tm-outline-toggle-sidebar {
-    position: sticky;
-    inset-block-start: 0;
-    z-index: 1;
-    display: inline-grid;
-    margin-inline-start: auto;
-    margin-block-end: 0.5rem;
   }
 
   .markdown-workspace .tm-demo-editor > .tm-sidebar-resizer {

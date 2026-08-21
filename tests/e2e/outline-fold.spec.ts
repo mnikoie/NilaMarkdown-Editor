@@ -4,10 +4,9 @@ import { test, expect } from "@playwright/test";
  * درختِ ساختار و تاشدنِ فصل.
  *
  * ★ هر دو باگی که اینجا تست می‌شوند، **دیداری** بودند و از دیدِ
- * تست‌های ساختاری نامرئی: درخت از اول درست ساخته می‌شد
- * (`aria-level` هر دو فصل ۱ بود) ولی چون فصلِ بی‌فرزند جای مثلث را
- * خالی می‌گذاشت، عنوانش ۱۶ پیکسل جابه‌جا می‌افتاد و **مثلِ زیرمجموعه
- * دیده می‌شد**.
+ * تست‌های ساختاری نامرئی: درخت از اول درست ساخته می‌شد ولی هم‌ترازی،
+ * چسبیدن statusbar و امکانِ تاشدنِ عنوانِ دارای متن فقط در مرورگرِ واقعی
+ * قابلِ اثبات‌اند.
  */
 
 test.beforeEach(async ({ page }) => {
@@ -29,20 +28,17 @@ test("★★ فصل‌های هم‌سطح واقعاً هم‌تراز دیده
       .evaluate((e) => Math.round(e.getBoundingClientRect().right));
 
   const [a, b] = await Promise.all([right("fasl-1"), right("fasl-2")]);
-  // «فصل اول» فرزند ندارد و «فصل دوم» دارد؛ با این حال باید هم‌تراز باشند.
+  // تعدادِ زیرگره‌های ساختاری نباید هم‌ترازیِ عنوان را عوض کند.
   expect(Math.abs(a - b)).toBeLessThanOrEqual(1);
 });
 
-test("★ جای‌گیر هم‌عرضِ دکمهٔ تاشدن است", async ({ page }) => {
-  const w = (s: string) =>
-    page.locator(s).first().evaluate((e) => Math.round(e.getBoundingClientRect().width));
-
-  const [spacer, toggle] = await Promise.all([
-    w(".tm-outline .tm-fold-spacer"),
-    w(".tm-outline .tm-fold-toggle"),
-  ]);
-  expect(spacer).toBe(toggle);
-  expect(spacer).toBeGreaterThan(0);
+test("★ همهٔ بخش‌های دارای متن دکمهٔ تاشدنِ هم‌اندازه دارند", async ({ page }) => {
+  const toggles = page.locator(".tm-outline .tm-fold-toggle");
+  await expect(toggles).toHaveCount(2);
+  const widths = await toggles.evaluateAll((elements) =>
+    elements.map((element) => Math.round(element.getBoundingClientRect().width)),
+  );
+  expect(new Set(widths).size).toBe(1);
 });
 
 test("★ سرفصل در خودِ متن مثلثِ تاشدن دارد", async ({ page }) => {
@@ -260,6 +256,8 @@ test("★ در فارسی پنلِ ساختار سمت راست و در انگل
 test("★★ دکمهٔ همبرگری پنلِ ساختار را می‌بندد و باز می‌کند", async ({ page }) => {
   const close = page.getByRole("button", { name: "بستن پنل ساختار" });
   await expect(close).toBeVisible();
+  await expect(page.locator(".tm-sidebar").getByRole("button", { name: "بستن پنل ساختار" })).toBeVisible();
+  await expect(page.locator(".tm-top-menu-row").getByRole("button", { name: "بستن پنل ساختار" })).toHaveCount(0);
   await close.click();
   await expect(page.getByRole("complementary", { name: "پنلِ ساختار" })).toHaveCount(0);
   await expect(page.getByRole("separator", { name: "تغییر عرض پنل ساختار" })).toHaveCount(0);
@@ -267,6 +265,32 @@ test("★★ دکمهٔ همبرگری پنلِ ساختار را می‌بند�
   const open = page.getByRole("button", { name: "بازکردن پنل ساختار" });
   await open.click();
   await expect(page.getByRole("complementary", { name: "پنلِ ساختار" })).toBeVisible();
+});
+
+test("★★ عنوانِ دارای متن از خودِ Outline هم باز و بسته می‌شود", async ({ page }) => {
+  await page.getByRole("button", { name: "نمایش", exact: true }).click();
+  await page.getByRole("menuitem", { name: "بازکردن همهٔ بخش‌ها" }).click();
+  const item = page.locator('[data-outline-id="fasl-1"]');
+  const toggle = item.getByRole("button", { name: /بستنِ فصل اول/ });
+  await expect(toggle).toBeVisible();
+  await toggle.click();
+  await expect(page.locator(".tm-editor h1").first()).toHaveAttribute("data-folded", "true");
+  await item.getByRole("button", { name: /بازکردنِ فصل اول/ }).click();
+  await expect(page.locator(".tm-editor h1").first()).toHaveAttribute("data-folded", "false");
+});
+
+test("★★ نوارِ وضعیت همیشه به لبهٔ پایین صفحه چسبیده است", async ({ page }) => {
+  const main = page.locator(".tm-main");
+  const status = page.locator(".tm-main > .tm-stats");
+  const bottoms = async () => Promise.all([
+    main.evaluate((element) => Math.round(element.getBoundingClientRect().bottom)),
+    status.evaluate((element) => Math.round(element.getBoundingClientRect().bottom)),
+  ]);
+  let [mainBottom, statusBottom] = await bottoms();
+  expect(Math.abs(mainBottom - statusBottom)).toBeLessThanOrEqual(1);
+  await main.evaluate((element) => { element.scrollTop = element.scrollHeight; });
+  [mainBottom, statusBottom] = await bottoms();
+  expect(Math.abs(mainBottom - statusBottom)).toBeLessThanOrEqual(1);
 });
 
 test("★★ عرضِ پنل با ماوس و کیبورد تغییر می‌کند", async ({ page }) => {

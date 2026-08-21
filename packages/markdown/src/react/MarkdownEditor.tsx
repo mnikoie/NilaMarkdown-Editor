@@ -571,18 +571,19 @@ export function MarkdownEditor({
         />
       ) : null}
 
+      {outline && !outlineVisible ? (
+        <button
+          type="button"
+          className="tm-outline-toggle tm-outline-toggle-rail"
+          aria-label={t("بازکردن پنل ساختار")}
+          aria-expanded="false"
+          onClick={() => setOutlineVisible(true)}
+        >
+          <Menu size={18} aria-hidden />
+        </button>
+      ) : null}
+
       <div className="tm-main">
-        {outline && !toolbar ? (
-          <button
-            type="button"
-            className="tm-outline-toggle"
-            aria-label={t(outlineVisible ? "بستن پنل ساختار" : "بازکردن پنل ساختار")}
-            aria-expanded={outlineVisible}
-            onClick={() => setOutlineVisible((visible) => !visible)}
-          >
-            <Menu size={18} aria-hidden />
-          </button>
-        ) : null}
         {!toolbar ? (
           <SearchPanel
             view={handle.view}
@@ -600,19 +601,8 @@ export function MarkdownEditor({
               withReplace={searchReplace}
               onClose={() => setSearchOpen(false)}
             />
-            {outline || fileMenu || editMenu || paragraphMenu || formatMenu || viewMenu ? (
+            {fileMenu || editMenu || paragraphMenu || formatMenu || viewMenu ? (
               <div className="tm-top-menu-row">
-                {outline ? (
-                  <button
-                    type="button"
-                    className="tm-outline-toggle"
-                    aria-label={t(outlineVisible ? "بستن پنل ساختار" : "بازکردن پنل ساختار")}
-                    aria-expanded={outlineVisible}
-                    onClick={() => setOutlineVisible((visible) => !visible)}
-                  >
-                    <Menu size={18} aria-hidden />
-                  </button>
-                ) : null}
                 {fileMenu ? (
                   <FileMenu
                     onNew={() => replaceDocument("")}

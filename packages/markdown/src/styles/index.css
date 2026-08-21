@@ -951,6 +951,16 @@
     cursor: pointer;
   }
 
+  /* عنوانِ بسته مثلِ سرِ یک آکاردئون دیده می‌شود؛ فضای سفیدِ بزرگ میان
+   * عنوان و خلاصه حذف می‌شود و وضعیتِ بسته فقط به چرخشِ فلش وابسته نیست. */
+  .tm-editor :is(h1, h2, h3, h4, h5, h6)[data-folded="true"] {
+    margin-block-end: 0.25rem;
+    padding: 0.625rem 0.75rem;
+    border: 1px solid var(--tm-border);
+    border-radius: 0.625rem;
+    background: color-mix(in oklab, var(--tm-code-bg) 65%, var(--tm-bg));
+  }
+
   .tm-outline-toggle:hover,
   .tm-outline-toggle:focus-visible,
   .tm-outline-toggle[aria-expanded="true"] {
@@ -964,7 +974,20 @@
   }
 
   .tm-outline-toggle-sidebar {
-    display: none;
+    position: sticky;
+    inset-block-start: 0;
+    z-index: 2;
+    display: inline-grid;
+    margin-inline-start: auto;
+    margin-block-end: 0.5rem;
+  }
+
+  .tm-outline-toggle-rail {
+    position: sticky;
+    inset-block-start: 0.5rem;
+    z-index: 7;
+    align-self: flex-start;
+    margin: 0.5rem 0.25rem;
   }
 
   .tm-editor-controls .tm-toolbar {

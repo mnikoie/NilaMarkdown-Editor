@@ -65,6 +65,27 @@ export function buildOutline(
   const stack: OutlineNode[] = [];
   let index = 0;
 
+  // اگر سند با یک H1 بی‌لنگر شروع شود و بعد H1 دیگری داشته باشد، اولی
+  // عنوانِ خودِ سند است، نه فصلِ هم‌سطح. این الگوی فایل‌های واقعیِ واردشده
+  // است: «عنوان بخشنامه» سپس «فصل اول {#...}». بدون این قاعده، بستنِ عنوان
+  // فقط مقدمه را پنهان می‌کرد و نه کل سند را.
+  const first = doc.firstChild;
+  let h1Count = 0;
+  let anchoredH1Count = 0;
+  doc.descendants((node) => {
+    if (node.type.name === "heading" && node.attrs.level === 1) {
+      h1Count++;
+      if (node.attrs.id) anchoredH1Count++;
+    }
+    return true;
+  });
+  const hasDocumentTitle =
+    first?.type.name === "heading" &&
+    first.attrs.level === 1 &&
+    !first.attrs.id &&
+    h1Count > 1 &&
+    anchoredH1Count > 0;
+
   doc.descendants((node, pos) => {
     let entry: OutlineNode | null = null;
 
@@ -74,10 +95,11 @@ export function buildOutline(
       entry = {
         id: makeUnique(explicit || slug(title, index), seen),
         kind: "heading",
-        level: headingRank(node.attrs.level as number),
+        level: hasDocumentTitle && pos === 0 ? 0 : headingRank(node.attrs.level as number),
         title,
         from: pos,
         to: pos + node.nodeSize,
+        foldable: false,
         children: [],
       };
     } else if (node.type.name === "directive_block") {
@@ -95,6 +117,7 @@ export function buildOutline(
           status: attrs["وضعیت"],
           from: pos,
           to: pos + node.nodeSize,
+          foldable: false,
           children: [],
         };
       }
@@ -115,6 +138,29 @@ export function buildOutline(
     stack.push(entry);
     return true;
   });
+
+  // «فرزندِ ساختاری ندارد» به معنیِ «قابل‌تاشدن نیست» نیست. یک H2 که
+  // چند پاراگراف دارد نیز از Outline باید باز و بسته شود. این مقدار را از
+  // بازهٔ واقعیِ هر بخش می‌گیریم تا پنل و مثلثِ داخلِ متن یک رفتار داشته
+  // باشند.
+  const flat = flattenOutline(roots);
+  for (let i = 0; i < flat.length; i++) {
+    const node = flat[i]!;
+    const resolved = doc.nodeAt(node.from);
+    if (!resolved) continue;
+    if (node.kind !== "heading") {
+      node.foldable = resolved.childCount > 0;
+      continue;
+    }
+    let end = doc.content.size;
+    for (let j = i + 1; j < flat.length; j++) {
+      if (flat[j]!.level <= node.level) {
+        end = flat[j]!.from;
+        break;
+      }
+    }
+    node.foldable = end > node.from + resolved.nodeSize;
+  }
 
   return roots;
 }

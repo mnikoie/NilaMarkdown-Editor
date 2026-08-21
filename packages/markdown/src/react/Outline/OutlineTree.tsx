@@ -100,7 +100,7 @@ export function OutlineTree({
           e.preventDefault();
           const rtl = getComputedStyle(e.currentTarget).direction === "rtl";
           const opening = rtl ? e.key === "ArrowLeft" : e.key === "ArrowRight";
-          if (node.children.length === 0) break;
+          if (!node.foldable) break;
           const isFolded = folded?.has(node.id) ?? false;
           if (opening === isFolded) onToggleFold?.(node);
           break;
@@ -133,6 +133,7 @@ export function OutlineTree({
     >
       <Branch
         nodes={nodes}
+        depth={1}
         activeId={activeId}
         currentId={current}
         folded={folded}
@@ -145,6 +146,7 @@ export function OutlineTree({
 
 interface BranchProps {
   nodes: OutlineNode[];
+  depth: number;
   activeId: string | null;
   currentId: string | null;
   folded?: ReadonlySet<string>;
@@ -152,12 +154,13 @@ interface BranchProps {
   onToggleFold?: (node: OutlineNode) => void;
 }
 
-function Branch({ nodes, activeId, currentId, folded, onNavigate, onToggleFold }: BranchProps) {
+function Branch({ nodes, depth, activeId, currentId, folded, onNavigate, onToggleFold }: BranchProps) {
   const { locale } = useMarkdownI18n();
   return (
     <ul role="group" className="tm-outline-children">
       {nodes.map((node) => {
         const hasChildren = node.children.length > 0;
+        const isFoldable = node.foldable;
         const isFolded = folded?.has(node.id) ?? false;
         return (
           <li key={node.id} role="none">
@@ -167,12 +170,12 @@ function Branch({ nodes, activeId, currentId, folded, onNavigate, onToggleFold }
               data-outline-id={node.id}
               aria-selected={node.id === activeId}
               aria-current={node.id === activeId ? "true" : undefined}
-              aria-expanded={hasChildren ? !isFolded : undefined}
-              aria-level={node.level}
+              aria-expanded={isFoldable ? !isFolded : undefined}
+              aria-level={depth}
               className="tm-outline-item"
               onClick={() => onNavigate?.(node)}
             >
-              {hasChildren ? (
+              {isFoldable ? (
                 <button
                   type="button"
                   className="tm-fold-toggle"
@@ -205,6 +208,7 @@ function Branch({ nodes, activeId, currentId, folded, onNavigate, onToggleFold }
             {hasChildren && !isFolded ? (
               <Branch
                 nodes={node.children}
+                depth={depth + 1}
                 activeId={activeId}
                 currentId={currentId}
                 folded={folded}
