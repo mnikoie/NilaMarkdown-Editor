@@ -2,6 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
+import type {
+  KeyboardEvent as ReactKeyboardEvent,
+  PointerEvent as ReactPointerEvent,
+} from "react";
+import { Menu } from "lucide-react";
 import { Selection } from "prosemirror-state";
 import { useEditor } from "./useEditor.js";
 import { OutlineTree } from "./Outline/OutlineTree.js";
@@ -70,6 +75,11 @@ export interface MarkdownEditorProps {
 
   /** پنلِ ساختار. */
   outline?: boolean;
+
+  /** عرضِ آغازینِ پنلِ ساختار برحسب پیکسل. */
+  outlineWidth?: number;
+  /** پس از تغییرِ عرض با ماوس یا کیبورد. */
+  onOutlineWidthChange?: (width: number) => void;
 
   /** نوارِ ابزار. `true` کامل است؛ `"compact"` فقط ابزارهای پرتکرار. */
   toolbar?: boolean | "compact";
@@ -171,6 +181,8 @@ export function MarkdownEditor({
   onLocaleChange,
   directives = BUILTIN_MARKS,
   outline = false,
+  outlineWidth = 240,
+  onOutlineWidthChange,
   toolbar = false,
   paragraphMenu = true,
   formatMenu = true,
@@ -206,6 +218,9 @@ export function MarkdownEditor({
   const [referenceLinkOpen, setReferenceLinkOpen] = useState(false);
   const [imageOpen, setImageOpen] = useState(false);
   const [outlineVisible, setOutlineVisible] = useState(outline);
+  const [activeOutlineWidth, setActiveOutlineWidth] = useState(() => Math.min(480, Math.max(176, outlineWidth)));
+  const [outlineResizing, setOutlineResizing] = useState(false);
+  const outlineResizeRef = useRef<{ startX: number; startWidth: number } | null>(null);
   const [statusVisible, setStatusVisible] = useState(stats);
   const [wordCountOpen, setWordCountOpen] = useState(false);
   const [zoom, setZoom] = useState(100);
@@ -216,6 +231,10 @@ export function MarkdownEditor({
   const [documentFileName, setDocumentFileName] = useState(fileName);
 
   useEffect(() => setOutlineVisible(outline), [outline]);
+  useEffect(
+    () => setActiveOutlineWidth(Math.min(480, Math.max(176, outlineWidth))),
+    [outlineWidth],
+  );
   useEffect(() => setStatusVisible(stats), [stats]);
   useEffect(() => setDocumentFileName(fileName), [fileName]);
   useEffect(() => setActiveLocale(locale), [locale]);
@@ -226,6 +245,49 @@ export function MarkdownEditor({
   const effectiveDir = dir === "auto" ? (activeLocale === "fa" ? "rtl" : "ltr") : dir;
 
   const clampZoom = useCallback((value: number) => setZoom(Math.min(200, Math.max(50, value))), []);
+  const setOutlineWidth = useCallback(
+    (width: number) => {
+      const next = Math.round(Math.min(480, Math.max(176, width)));
+      setActiveOutlineWidth(next);
+      onOutlineWidthChange?.(next);
+    },
+    [onOutlineWidthChange],
+  );
+
+  const onOutlineResizeStart = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    outlineResizeRef.current = { startX: event.clientX, startWidth: activeOutlineWidth };
+    setOutlineResizing(true);
+  }, [activeOutlineWidth]);
+
+  const onOutlineResizeMove = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+    const start = outlineResizeRef.current;
+    if (!start) return;
+    const direction = effectiveDir === "rtl" ? -1 : 1;
+    setOutlineWidth(start.startWidth + (event.clientX - start.startX) * direction);
+  }, [effectiveDir, setOutlineWidth]);
+
+  const onOutlineResizeEnd = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!outlineResizeRef.current) return;
+    outlineResizeRef.current = null;
+    setOutlineResizing(false);
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  }, []);
+
+  const onOutlineResizeKey = useCallback((event: ReactKeyboardEvent<HTMLDivElement>) => {
+    let next: number | null = null;
+    if (event.key === "Home") next = 176;
+    else if (event.key === "End") next = 480;
+    else if (event.key === "ArrowLeft") next = activeOutlineWidth + (effectiveDir === "rtl" ? 12 : -12);
+    else if (event.key === "ArrowRight") next = activeOutlineWidth + (effectiveDir === "rtl" ? -12 : 12);
+    if (next === null) return;
+    event.preventDefault();
+    setOutlineWidth(next);
+  }, [activeOutlineWidth, effectiveDir, setOutlineWidth]);
 
   const toggleSource = useCallback(() => {
     setMode((current) => {
@@ -463,10 +525,24 @@ export function MarkdownEditor({
       dir={effectiveDir}
       lang={activeLocale}
       data-locale={activeLocale}
+      data-outline-resizing={outlineResizing ? "true" : undefined}
       style={{ "--tm-content-zoom": zoom / 100 } as CSSProperties}
     >
       {outlineVisible ? (
-        <aside className="tm-sidebar" aria-label={t("پنلِ ساختار")}>
+        <aside
+          className="tm-sidebar"
+          aria-label={t("پنلِ ساختار")}
+          style={{ "--tm-sidebar-width": `${activeOutlineWidth}px` } as CSSProperties}
+        >
+          <button
+            type="button"
+            className="tm-outline-toggle tm-outline-toggle-sidebar"
+            aria-label={t("بستن پنل ساختار")}
+            aria-expanded={outlineVisible}
+            onClick={() => setOutlineVisible(false)}
+          >
+            <Menu size={18} aria-hidden />
+          </button>
           <OutlineTree
             nodes={handle.outline}
             folded={folded}
@@ -476,7 +552,37 @@ export function MarkdownEditor({
         </aside>
       ) : null}
 
+      {outlineVisible ? (
+        <div
+          className="tm-sidebar-resizer"
+          role="separator"
+          aria-label={t("تغییر عرض پنل ساختار")}
+          aria-orientation="vertical"
+          aria-valuemin={176}
+          aria-valuemax={480}
+          aria-valuenow={activeOutlineWidth}
+          tabIndex={0}
+          onPointerDown={onOutlineResizeStart}
+          onPointerMove={onOutlineResizeMove}
+          onPointerUp={onOutlineResizeEnd}
+          onPointerCancel={onOutlineResizeEnd}
+          onLostPointerCapture={onOutlineResizeEnd}
+          onKeyDown={onOutlineResizeKey}
+        />
+      ) : null}
+
       <div className="tm-main">
+        {outline && !toolbar ? (
+          <button
+            type="button"
+            className="tm-outline-toggle"
+            aria-label={t(outlineVisible ? "بستن پنل ساختار" : "بازکردن پنل ساختار")}
+            aria-expanded={outlineVisible}
+            onClick={() => setOutlineVisible((visible) => !visible)}
+          >
+            <Menu size={18} aria-hidden />
+          </button>
+        ) : null}
         {!toolbar ? (
           <SearchPanel
             view={handle.view}
@@ -494,8 +600,19 @@ export function MarkdownEditor({
               withReplace={searchReplace}
               onClose={() => setSearchOpen(false)}
             />
-            {fileMenu || editMenu || paragraphMenu || formatMenu || viewMenu ? (
+            {outline || fileMenu || editMenu || paragraphMenu || formatMenu || viewMenu ? (
               <div className="tm-top-menu-row">
+                {outline ? (
+                  <button
+                    type="button"
+                    className="tm-outline-toggle"
+                    aria-label={t(outlineVisible ? "بستن پنل ساختار" : "بازکردن پنل ساختار")}
+                    aria-expanded={outlineVisible}
+                    onClick={() => setOutlineVisible((visible) => !visible)}
+                  >
+                    <Menu size={18} aria-hidden />
+                  </button>
+                ) : null}
                 {fileMenu ? (
                   <FileMenu
                     onNew={() => replaceDocument("")}

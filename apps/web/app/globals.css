@@ -136,6 +136,7 @@
 }
 
 .markdown-workspace .tm-demo-editor {
+  position: relative;
   width: 100%;
   height: 100%;
   gap: 0;
@@ -144,12 +145,12 @@
 
 .markdown-workspace .tm-demo-editor > .tm-sidebar {
   position: relative;
-  flex: 0 0 17rem;
+  flex-basis: var(--tm-sidebar-width, 17rem);
   max-height: none;
   height: 100%;
   padding: 0.75rem;
   border: 0;
-  border-right: 1px solid color-mix(in srgb, var(--foreground) 13%, transparent);
+  border-inline-end: 1px solid color-mix(in srgb, var(--foreground) 13%, transparent);
   border-radius: 0;
   background: color-mix(in srgb, var(--background) 96%, var(--foreground));
 }
@@ -184,6 +185,25 @@
 
 @media (max-width: 52rem) {
   .markdown-workspace .tm-demo-editor > .tm-sidebar {
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    z-index: 20;
+    display: block;
+    inline-size: var(--tm-sidebar-width, 17rem);
+    box-shadow: 0 0 1.5rem rgb(0 0 0 / 0.16);
+  }
+
+  .markdown-workspace .tm-demo-editor > .tm-sidebar .tm-outline-toggle-sidebar {
+    position: sticky;
+    inset-block-start: 0;
+    z-index: 1;
+    display: inline-grid;
+    margin-inline-start: auto;
+    margin-block-end: 0.5rem;
+  }
+
+  .markdown-workspace .tm-demo-editor > .tm-sidebar-resizer {
     display: none;
   }
 

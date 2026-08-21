@@ -235,7 +235,7 @@ test("★★ رابط دو زبانه است و جهت هر بلوک مستقل 
   );
 });
 
-test("★ چیدمانِ صفحه مثل Typora تمام‌قد و پنلِ ساختار در چپ است", async ({ page }) => {
+test("★ در فارسی پنلِ ساختار سمت راست و در انگلیسی سمت چپ است", async ({ page }) => {
   await expect(page.locator(".markdown-workspace")).toBeVisible();
   await expect(page.getByRole("heading", { name: "@tamin/markdown" })).toHaveCount(0);
 
@@ -245,6 +245,44 @@ test("★ چیدمانِ صفحه مثل Typora تمام‌قد و پنلِ سا
     page.locator(".tm-main").boundingBox(),
   ]);
   expect(workspace?.height).toBeGreaterThanOrEqual(700);
-  expect(sidebar!.x).toBeLessThan(editor!.x);
+  expect(sidebar!.x).toBeGreaterThan(editor!.x);
   expect(Math.abs(sidebar!.height - workspace!.height)).toBeLessThanOrEqual(1);
+
+  await page.getByRole("button", { name: "نمایش", exact: true }).click();
+  await page.getByRole("menuitemcheckbox", { name: "انگلیسی" }).click();
+  const [englishSidebar, englishEditor] = await Promise.all([
+    page.locator(".tm-sidebar").boundingBox(),
+    page.locator(".tm-main").boundingBox(),
+  ]);
+  expect(englishSidebar!.x).toBeLessThan(englishEditor!.x);
+});
+
+test("★★ دکمهٔ همبرگری پنلِ ساختار را می‌بندد و باز می‌کند", async ({ page }) => {
+  const close = page.getByRole("button", { name: "بستن پنل ساختار" });
+  await expect(close).toBeVisible();
+  await close.click();
+  await expect(page.getByRole("complementary", { name: "پنلِ ساختار" })).toHaveCount(0);
+  await expect(page.getByRole("separator", { name: "تغییر عرض پنل ساختار" })).toHaveCount(0);
+
+  const open = page.getByRole("button", { name: "بازکردن پنل ساختار" });
+  await open.click();
+  await expect(page.getByRole("complementary", { name: "پنلِ ساختار" })).toBeVisible();
+});
+
+test("★★ عرضِ پنل با ماوس و کیبورد تغییر می‌کند", async ({ page }) => {
+  const sidebar = page.locator(".tm-sidebar");
+  const resizer = page.getByRole("separator", { name: "تغییر عرض پنل ساختار" });
+  const before = await sidebar.boundingBox();
+  const handle = await resizer.boundingBox();
+
+  await page.mouse.move(handle!.x + handle!.width / 2, handle!.y + 100);
+  await page.mouse.down();
+  await page.mouse.move(handle!.x - 80, handle!.y + 100);
+  await page.mouse.up();
+  await expect.poll(async () => (await sidebar.boundingBox())!.width).toBeGreaterThan(before!.width + 60);
+
+  const afterMouse = (await sidebar.boundingBox())!.width;
+  await resizer.focus();
+  await page.keyboard.press("ArrowRight");
+  await expect.poll(async () => (await sidebar.boundingBox())!.width).toBeLessThan(afterMouse);
 });

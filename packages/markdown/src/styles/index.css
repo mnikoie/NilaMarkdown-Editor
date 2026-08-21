@@ -315,22 +315,57 @@
    * کنارِ هم و در مرکز نگه می‌دارد. */
   .tm-root {
     display: flex;
-    gap: 1.5rem;
+    gap: 0;
     align-items: flex-start;
     justify-content: center;
   }
 
-  /* مثل Typora، پنلِ ساختار در سندِ RTL هم در سمتِ فیزیکیِ چپ می‌ماند. */
+  /* `row` با direction هماهنگ است: فارسی پنل را راست و انگلیسی چپ می‌گذارد. */
   .tm-root[dir="rtl"] {
-    flex-direction: row-reverse;
+    flex-direction: row;
   }
 
   .tm-sidebar {
-    flex: 0 0 15rem;
+    flex: 0 0 var(--tm-sidebar-width, 15rem);
+    inline-size: var(--tm-sidebar-width, 15rem);
+    min-inline-size: 11rem;
+    max-inline-size: 30rem;
     position: sticky;
     top: 0;
     max-height: 100vh;
     overflow-y: auto;
+  }
+
+  .tm-sidebar-resizer {
+    position: relative;
+    flex: 0 0 1.5rem;
+    align-self: stretch;
+    min-block-size: 12rem;
+    cursor: col-resize;
+    touch-action: none;
+    outline: none;
+  }
+
+  .tm-sidebar-resizer::after {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: calc(50% - 1px);
+    inline-size: 2px;
+    background: transparent;
+    transition: background 120ms, inline-size 120ms;
+  }
+
+  .tm-sidebar-resizer:hover::after,
+  .tm-sidebar-resizer:focus-visible::after,
+  .tm-root[data-outline-resizing="true"] .tm-sidebar-resizer::after {
+    inline-size: 3px;
+    background: var(--tm-accent);
+  }
+
+  .tm-root[data-outline-resizing="true"] {
+    cursor: col-resize;
+    user-select: none;
   }
 
   .tm-main {
@@ -901,6 +936,35 @@
     flex-wrap: wrap;
     justify-content: flex-start;
     gap: 0.375rem;
+  }
+
+  .tm-outline-toggle {
+    inline-size: 2.375rem;
+    block-size: 2.375rem;
+    flex: none;
+    display: inline-grid;
+    place-items: center;
+    border: 1px solid var(--tm-border);
+    border-radius: 0.5rem;
+    background: var(--tm-bg);
+    color: var(--tm-fg);
+    cursor: pointer;
+  }
+
+  .tm-outline-toggle:hover,
+  .tm-outline-toggle:focus-visible,
+  .tm-outline-toggle[aria-expanded="true"] {
+    border-color: var(--tm-accent);
+    color: var(--tm-accent);
+  }
+
+  .tm-outline-toggle:focus-visible {
+    outline: 2px solid var(--tm-accent);
+    outline-offset: 2px;
+  }
+
+  .tm-outline-toggle-sidebar {
+    display: none;
   }
 
   .tm-editor-controls .tm-toolbar {
