@@ -16,6 +16,7 @@ import { keymapPlugin } from "../core/plugins/keymap.js";
 import { tableEditingPlugin } from "../core/commands/table.js";
 import { searchPlugin } from "../core/plugins/search.js";
 import { slashMenuPlugin } from "../core/plugins/slash-menu.js";
+import { writingModesPlugin } from "../core/plugins/writing-modes.js";
 import { createNodeViews } from "../node-views/index.js";
 import type { Features } from "../node-views/index.js";
 import { buildOutline } from "../core/outline/build.js";
@@ -38,6 +39,10 @@ export interface UseEditorOptions {
   onReplace?: () => void;
   /** روشن/خاموش‌کردنِ بلوک‌های سنگین. */
   features?: Features;
+  /** حالتِ تمرکز (بلوکِ فعال پررنگ، بقیه کم‌رنگ). */
+  focusMode?: boolean;
+  /** حالتِ ماشین‌تحریر (خطِ فعال وسطِ صفحه). */
+  typewriterMode?: boolean;
 }
 
 export interface EditorHandle {
@@ -78,6 +83,8 @@ export function useEditor(options: UseEditorOptions): {
     onSearch,
     onReplace,
     features,
+    focusMode,
+    typewriterMode,
   } = options;
 
   const viewRef = useRef<EditorView | null>(null);
@@ -136,6 +143,7 @@ export function useEditor(options: UseEditorOptions): {
           onChange: (ids) => onFoldChangeRef.current?.(ids),
         }),
         searchPlugin(),
+        writingModesPlugin({ focus: focusMode, typewriter: typewriterMode }),
         tableEditingPlugin(),
         dropCursor(),
         gapCursor(),
@@ -179,7 +187,7 @@ export function useEditor(options: UseEditorOptions): {
     };
     // `value` عمداً در وابستگی‌ها نیست — تغییرش سند را بازسازی نمی‌کند.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [directives, debounceMs, readOnly, features]);
+  }, [directives, debounceMs, readOnly, features, focusMode, typewriterMode]);
 
   /** حالتِ کنترل‌شده — فقط وقتی `value` از بیرون واقعاً فرق کرده. */
   useEffect(() => {

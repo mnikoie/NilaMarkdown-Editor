@@ -73,6 +73,15 @@ export type { SlashState, SlashItem, SlashOptions } from "./core/plugins/slash-m
 export { SlashMenu } from "./react/SlashMenu/SlashMenu.js";
 export type { SlashMenuProps } from "./react/SlashMenu/SlashMenu.js";
 
+export {
+  writingModesPlugin,
+  writingModesKey,
+  toggleFocusMode,
+  toggleTypewriterMode,
+  getWritingModes,
+} from "./core/plugins/writing-modes.js";
+export type { WritingModesState, WritingModesOptions } from "./core/plugins/writing-modes.js";
+
 export { inputRulesPlugin } from "./core/plugins/input-rules.js";
 export { keymapPlugin, insertZWNJ, toggleHeading } from "./core/plugins/keymap.js";
 export type { KeymapOptions } from "./core/plugins/keymap.js";

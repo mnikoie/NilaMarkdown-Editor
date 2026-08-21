@@ -160,3 +160,46 @@ describe("جدول", () => {
     expect(doc.child(0).child(1).child(0).type.name).toBe("table_cell");
   });
 });
+
+describe("فوت‌نوت", () => {
+  const cases: Record<string, string> = {
+    ساده: "متن با فوت‌نوت[^1]\n\n[^1]: توضیحِ فوت‌نوت\n",
+    شناسهٔ_فارسی: "متن[^۱]\n\n[^۱]: توضیح\n",
+    شناسهٔ_متنی: "متن[^منبع]\n\n[^منبع]: کتابِ فلان\n",
+    چند_تا: "الف[^1] و ب[^2]\n\n[^1]: یک\n\n[^2]: دو\n",
+    با_تأکید: "متن[^1]\n\n[^1]: توضیحِ **پررنگ**\n",
+  };
+  for (const [name, md] of Object.entries(cases)) {
+    it(name, () => {
+      expect(serialize(parse(md))).toBe(md);
+    });
+  }
+
+  it("★ ارجاع و تعریف به گره‌های درست می‌روند", () => {
+    const doc = parse("متن[^1]\n\n[^1]: توضیح\n");
+    let ref: string | null = null;
+    let def: string | null = null;
+    doc.descendants((n) => {
+      if (n.type.name === "footnote_reference") ref = n.attrs.identifier as string;
+      if (n.type.name === "footnote_definition") def = n.attrs.identifier as string;
+      return true;
+    });
+    expect(ref).toBe("1");
+    expect(def).toBe("1");
+  });
+
+  it("★ ارجاعِ بی‌تعریف، سند را نمی‌شکند", () => {
+    // کاربر ممکن است تعریف را پاک کند.
+    //
+    // نکته: بی تعریف، این اصلاً فوت‌نوت نیست — GFM آن را متنِ عادی
+    // می‌بیند. remark هم `[` را escape می‌کند (`متن\[^گمشده]`) تا بارِ
+    // بعد به‌اشتباه فوت‌نوت خوانده نشود. پس شرط، پایداری است نه
+    // هم‌سانیِ بایتی: محتوا نمی‌پرد و بارِ دوم دیگر عوض نمی‌شود.
+    const md = "متن[^گمشده]\n";
+    expect(() => parse(md)).not.toThrow();
+
+    const once = serialize(parse(md));
+    expect(once).toContain("گمشده");
+    expect(serialize(parse(once))).toBe(once);
+  });
+});

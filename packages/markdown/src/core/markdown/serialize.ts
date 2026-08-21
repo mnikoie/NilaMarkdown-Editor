@@ -134,6 +134,13 @@ function inlineOf(node: PMNode): MdastNode[] {
       case "math_inline":
         out.push({ type: "inlineMath", value: child.attrs.value });
         break;
+      case "footnote_reference":
+        out.push({
+          type: "footnoteReference",
+          identifier: child.attrs.identifier,
+          label: child.attrs.label ?? child.attrs.identifier,
+        });
+        break;
       case "directive_inline":
         out.push({
           type: "textDirective",
@@ -257,6 +264,15 @@ function blockOf(node: PMNode): MdastNode[] {
 
       case "math_block":
         out.push({ type: "math", value: child.attrs.value });
+        break;
+
+      case "footnote_definition":
+        out.push({
+          type: "footnoteDefinition",
+          identifier: child.attrs.identifier,
+          label: child.attrs.label ?? child.attrs.identifier,
+          children: blockOf(child),
+        });
         break;
 
       case "front_matter":

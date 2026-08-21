@@ -40,6 +40,12 @@ export interface MarkdownEditorProps {
   /** شمارشِ کلمه و زمانِ خواندن. */
   stats?: boolean;
 
+  /** حالتِ تمرکز — بلوکِ فعال پررنگ، بقیه کم‌رنگ. */
+  focusMode?: boolean;
+
+  /** حالتِ ماشین‌تحریر — خطِ فعال وسطِ صفحه می‌ماند. */
+  typewriterMode?: boolean;
+
   /**
    * بلوک‌های سنگین. `mermaid` پیش‌فرض خاموش است — کدِ دلخواه اجرا
    * می‌کند و اگر محتوا از کاربرِ دیگری بیاید، خطرِ امنیتی است.
@@ -74,6 +80,8 @@ export function MarkdownEditor({
   outline = false,
   toolbar = false,
   stats = false,
+  focusMode = false,
+  typewriterMode = false,
   features,
   foldedIds,
   onFoldChange,
@@ -104,6 +112,8 @@ export function MarkdownEditor({
     readOnly,
     directives,
     features,
+    focusMode,
+    typewriterMode,
     foldedIds,
     onFoldChange: (ids) => {
       setFolded(new Set(ids));

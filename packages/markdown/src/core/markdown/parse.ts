@@ -126,6 +126,14 @@ function inline(node: MdastNode, marks: readonly Mark[], ctx: Ctx): PMNode[] {
         ),
       ];
 
+    case "footnoteReference":
+      return [
+        schema.nodes.footnote_reference.create({
+          identifier: String(node.identifier ?? ""),
+          label: node.label ?? null,
+        }),
+      ];
+
     case "html":
       // HTML درون‌خطی: به‌صورتِ متنِ خام نگه داشته می‌شود تا گم نشود.
       return node.value ? [schema.text(node.value, marks as Mark[])] : [];
@@ -247,6 +255,17 @@ function block(node: MdastNode, ctx: Ctx): PMNode[] {
 
     case "math":
       return [schema.nodes.math_block.create({ value: String(node.value ?? "") })];
+
+    case "footnoteDefinition":
+      return [
+        schema.nodes.footnote_definition.create(
+          {
+            identifier: String(node.identifier ?? ""),
+            label: node.label ?? null,
+          },
+          blockChildren(node.children, ctx),
+        ),
+      ];
 
     case "yaml":
       return [

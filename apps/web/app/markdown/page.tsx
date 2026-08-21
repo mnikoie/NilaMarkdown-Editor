@@ -77,6 +77,14 @@ const x: number = 1; // بلوکِ کد همیشه LTR است
 
 <img src="x" onerror="window.__XSS2__ = true">
 
+## فوت‌نوت
+
+این ادعا منبع دارد[^۱] و این یکی هم[^منبع].
+
+[^۱]: بخشنامهٔ شمارهٔ ۶۲۲۸۵۳۶۰
+
+[^منبع]: قانون تأمین اجتماعی، ماده ۵۰
+
 ## جدول
 
 | ماده | وضعیت | تاریخ |
@@ -122,6 +130,7 @@ const MARKS: MarkRegistry = {
 export default function MarkdownDemoPage() {
   const [markdown, setMarkdown] = useState(SANAD);
   const [showSource, setShowSource] = useState(false);
+  const [focus, setFocus] = useState(false);
 
   return (
     <main className="p-6" dir="rtl">
@@ -138,6 +147,13 @@ export default function MarkdownDemoPage() {
         >
           {showSource ? "پنهان‌کردنِ خروجی" : "نمایشِ خروجیِ مارک‌داون"}
         </button>
+        <button
+          type="button"
+          className="mt-2 ms-2 rounded border px-3 py-1 text-sm"
+          onClick={() => setFocus((v) => !v)}
+        >
+          {focus ? "خروج از حالتِ تمرکز" : "حالتِ تمرکز"}
+        </button>
       </header>
 
       <MarkdownEditor
@@ -147,6 +163,7 @@ export default function MarkdownDemoPage() {
         outline
         toolbar
         stats
+        focusMode={focus}
         dir="rtl"
         placeholder="بنویسید…"
       />

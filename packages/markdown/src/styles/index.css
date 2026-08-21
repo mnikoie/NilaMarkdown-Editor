@@ -429,6 +429,56 @@
     color: var(--tm-muted);
   }
 
+  /* ── فوت‌نوت ── */
+  .tm-footnote-ref {
+    color: var(--tm-accent);
+    font-size: 0.75em;
+    cursor: pointer;
+    /* عدد در متنِ فارسی نباید جهت را به هم بزند. */
+    unicode-bidi: isolate;
+  }
+
+  .tm-footnote-def {
+    display: flex;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--tm-muted);
+    border-inline-start: 2px solid var(--tm-border);
+    padding-inline-start: 0.75rem;
+    margin-block: 0.5rem;
+  }
+
+  .tm-footnote-def::before {
+    content: "[" attr(data-identifier) "]";
+    color: var(--tm-accent);
+    flex-shrink: 0;
+    unicode-bidi: isolate;
+  }
+
+  .tm-footnote-def > :first-child {
+    margin-block-start: 0;
+  }
+
+  /* ── حالتِ تمرکز و ماشین‌تحریر ── */
+  .tm-dimmed {
+    opacity: 0.35;
+    transition: opacity 200ms;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .tm-dimmed {
+      transition: none;
+    }
+  }
+
+  /*
+   * ماشین‌تحریر: فضای خالی در بالا و پایین تا خطِ اول و آخر هم بتوانند
+   * وسطِ صفحه بیایند. بی این، پاراگرافِ اولِ سند هرگز به وسط نمی‌رسد.
+   */
+  .tm-typewriter-mode {
+    padding-block: 40vh;
+  }
+
   /* ── منوی / ── */
   .tm-editor-wrap {
     position: relative;

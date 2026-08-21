@@ -221,6 +221,45 @@ const math_block: NodeSpec = {
   toDOM: () => ["div", { class: "tm-math-block" }],
 };
 
+/**
+ * ارجاعِ فوت‌نوت — `[^۱]` در متن.
+ *
+ * `atom` است چون محتوایش در تعریف است نه اینجا. `identifier` هرچه
+ * باشد نگه داشته می‌شود، حتی فارسی — تست شد که `[^۱]` درست parse
+ * می‌شود.
+ */
+const footnote_reference: NodeSpec = {
+  attrs: { identifier: { default: "" }, label: { default: null } },
+  inline: true,
+  group: "inline",
+  atom: true,
+  toDOM: (n) => [
+    "sup",
+    {
+      class: "tm-footnote-ref",
+      "data-identifier": n.attrs.identifier as string,
+    },
+    `[${(n.attrs.label as string) ?? (n.attrs.identifier as string)}]`,
+  ],
+};
+
+/** تعریفِ فوت‌نوت — `[^۱]: توضیح` که معمولاً ته سند می‌آید. */
+const footnote_definition: NodeSpec = {
+  attrs: { identifier: { default: "" }, label: { default: null } },
+  content: "block+",
+  group: "block",
+  defining: true,
+  isolating: true,
+  toDOM: (n) => [
+    "div",
+    {
+      class: "tm-footnote-def",
+      "data-identifier": n.attrs.identifier as string,
+    },
+    0,
+  ],
+};
+
 const math_inline: NodeSpec = {
   attrs: { value: { default: "" } },
   inline: true,
@@ -249,5 +288,7 @@ export const nodes = {
   html_block,
   math_block,
   math_inline,
+  footnote_reference,
+  footnote_definition,
   text,
 };

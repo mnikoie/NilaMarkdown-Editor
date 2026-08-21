@@ -287,3 +287,33 @@ test("★ منوی / با Escape بسته می‌شود و متن می‌مان�
   // متن دست‌نخورده می‌ماند — کاربر شاید واقعاً می‌خواست `/عنوان` بنویسد
   await expect(page.locator(".tm-editor")).toContainText("/عنوان");
 });
+
+test("★ فوت‌نوت رندر می‌شود", async ({ page }) => {
+  // ارجاع در متن
+  const refs = page.locator(".tm-footnote-ref");
+  await expect(refs).toHaveCount(2);
+  await expect(refs.first()).toHaveAttribute("data-identifier", "۱");
+
+  // تعریف‌ها ته سند
+  const defs = page.locator(".tm-footnote-def");
+  await expect(defs).toHaveCount(2);
+  await expect(defs.first()).toContainText("۶۲۲۸۵۳۶۰");
+
+  // شناسهٔ متنیِ فارسی هم کار می‌کند
+  await expect(page.locator('[data-identifier="منبع"]').first()).toBeAttached();
+});
+
+test("★ حالتِ تمرکز — بقیهٔ بلوک‌ها کم‌رنگ می‌شوند", async ({ page }) => {
+  await expect(page.locator(".tm-dimmed")).toHaveCount(0);
+
+  await page.getByRole("button", { name: "حالتِ تمرکز" }).click();
+  await page.locator(".tm-editor p", { hasText: "جریمه" }).first().click();
+
+  // بلوک‌های دیگر کم‌رنگ‌اند، بلوکِ فعال نه
+  expect(await page.locator(".tm-dimmed").count()).toBeGreaterThan(0);
+  await expect(page.locator(".tm-editor")).toHaveClass(/tm-focus-mode/);
+
+  // خروج
+  await page.getByRole("button", { name: "خروج از حالتِ تمرکز" }).click();
+  await expect(page.locator(".tm-dimmed")).toHaveCount(0);
+});
