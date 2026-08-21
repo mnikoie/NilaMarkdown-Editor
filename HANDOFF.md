@@ -89,7 +89,7 @@ packages/markdown/
     styles/index.css
   tests/unit/       ← ۲۰ فایل، ۳۵۲ تست (Vitest + jsdom)
   scripts/vendor-themes.mjs
-tests/e2e/          ← ۸ فایل، ۷۴ تست + ماتریس ۱۲۵ اجرا (پنج مرورگر)
+tests/e2e/          ← ۸ فایل، ۷۵ تست + ماتریس ۱۲۵ اجرا (پنج مرورگر)
 apps/web/app/markdown/page.tsx   ← صفحهٔ نمایشی (محصول نیست)
 ```
 
@@ -214,7 +214,7 @@ resolve نمی‌شود و هر چانکِ کناری جا می‌ماند. در
 
 - [ ] `pnpm --filter @tamin/markdown typecheck` پاک
 - [ ] `pnpm --filter @tamin/markdown test` سبز (۳۵۲ تست)
-- [ ] `npx playwright test` سبز روی **بیلدِ تولیدی** (۷۴ تست)
+- [ ] `npx playwright test` سبز روی **بیلدِ تولیدی** (۷۵ تست)
 - [ ] اگر تاشدن را عوض کردی → ماتریسِ پنج‌مرورگری (۱۲۵ اجرا)
 - [ ] اگر تصمیمِ معماری گرفتی → `docs/decisions/0033-…`
 - [ ] اگر رفتارِ عمومی عوض شد → `packages/markdown/README.md`

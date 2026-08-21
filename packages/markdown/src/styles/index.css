@@ -388,6 +388,8 @@
     position: relative;
     max-width: var(--tm-measure);
     outline: none;
+    /* خودِ caret نشان می‌دهد فوکوس کجاست؛ دورِ کلِ سند کادر نمی‌کشیم. */
+    caret-color: var(--tm-accent);
     padding-block: 1rem;
     /* ★ ستونِ متن **وسط** ظرفش می‌نشیند، نه چسبیده به یک لبه.
      *
@@ -401,12 +403,6 @@
   .tm-editor [data-auto-dir="true"] {
     text-align: start;
     unicode-bidi: plaintext;
-  }
-
-  .tm-editor:focus-visible {
-    /* حلقهٔ فوکوس باید دیده شود — `outline: none` بی جایگزین ممنوع. */
-    outline: 2px solid var(--tm-accent);
-    outline-offset: 4px;
   }
 
   .tm-editor p.is-empty:first-child::before {

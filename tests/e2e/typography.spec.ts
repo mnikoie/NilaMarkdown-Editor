@@ -21,6 +21,21 @@ test.beforeEach(async ({ page }) => {
   await page.getByRole("menuitem", { name: "بازکردن همهٔ بخش‌ها" }).click();
 });
 
+test("★ فوکوسِ ویرایشگر کادرِ آبی دورِ کل سند نمی‌کشد", async ({ page }) => {
+  const editor = page.locator(".tm-editor");
+  await editor.focus();
+  await expect(editor).toHaveCSS("outline-style", "none");
+  expect(await editor.evaluate((element) => {
+    const style = getComputedStyle(element);
+    const probe = document.createElement("span");
+    probe.style.color = style.getPropertyValue("--tm-accent");
+    element.append(probe);
+    const accent = getComputedStyle(probe).color;
+    probe.remove();
+    return style.caretColor === accent;
+  })).toBe(true);
+});
+
 test("★ سرفصل از پاراگراف بزرگ‌تر و پررنگ‌تر است", async ({ page }) => {
   const size = (s: string) =>
     page.locator(s).first().evaluate((e) => parseFloat(getComputedStyle(e).fontSize));
