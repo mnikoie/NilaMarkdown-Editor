@@ -274,6 +274,58 @@ test("★ منوی View حالت‌های نمایشیِ قابل‌انتقال
   await expect(page.getByRole("complementary", { name: "شمارش کلمات" })).toContainText("کلمه");
 });
 
+test("★ منوی File سند را ذخیره، خالی و از فایل باز می‌کند", async ({ page }) => {
+  await page.getByRole("button", { name: "File" }).click();
+  const fileMenu = page.getByRole("menu", { name: "File" });
+  await expect(fileMenu.getByRole("menuitem", { name: "سند جدید" })).toBeVisible();
+  await expect(fileMenu.getByRole("menuitem", { name: "بازکردن…" })).toBeVisible();
+  await expect(fileMenu.getByRole("menuitem", { name: "خروجی" })).toBeVisible();
+
+  const downloadPromise = page.waitForEvent("download");
+  await fileMenu.getByRole("menuitem", { name: /^ذخیره Ctrl/ }).click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toBe("document.md");
+
+  await page.getByRole("button", { name: "File" }).click();
+  await page.getByRole("menuitem", { name: "سند جدید" }).click();
+  await expect(page.locator(".tm-editor")).toHaveText("");
+
+  const chooserPromise = page.waitForEvent("filechooser");
+  await page.getByRole("button", { name: "File" }).click();
+  await page.getByRole("menuitem", { name: "بازکردن…" }).click();
+  const chooser = await chooserPromise;
+  await chooser.setFiles({
+    name: "opened.md",
+    mimeType: "text/markdown",
+    buffer: Buffer.from("# سند بازشده\n\nمتن فایل\n"),
+  });
+  await expect(page.locator(".tm-editor h1")).toContainText("سند بازشده");
+  await expect(page.locator(".tm-editor")).toContainText("متن فایل");
+});
+
+test("★ منوی Edit تکثیر، undo و پنلِ جایگزینی را اجرا می‌کند", async ({ page }) => {
+  const target = page.locator(".tm-editor p", { hasText: "این بخشنامه در اجرای" }).first();
+  await target.click();
+  const initialCount = await page.locator(".tm-editor p", { hasText: "این بخشنامه در اجرای" }).count();
+
+  await page.getByRole("button", { name: "Edit" }).click();
+  const editMenu = page.getByRole("menu", { name: "Edit" });
+  await expect(editMenu.getByRole("menuitem", { name: "کپی به‌عنوان" })).toBeVisible();
+  await editMenu.getByRole("menuitem", { name: "تکثیر" }).click();
+  await expect(page.locator(".tm-editor p", { hasText: "این بخشنامه در اجرای" })).toHaveCount(initialCount + 1);
+
+  await page.getByRole("button", { name: "Edit" }).click();
+  await page.getByRole("menuitem", { name: "واگرد" }).click();
+  await expect(page.locator(".tm-editor p", { hasText: "این بخشنامه در اجرای" })).toHaveCount(initialCount);
+
+  await page.getByRole("button", { name: "Edit" }).click();
+  await page.getByRole("menuitem", { name: "جست‌وجو و جایگزینی" }).click();
+  await page.getByRole("menuitem", { name: /^جایگزینی/ }).click();
+  const searchPanel = page.getByRole("search");
+  await expect(searchPanel).toBeVisible();
+  await expect(searchPanel.getByRole("textbox", { name: "متنِ جایگزین" })).toBeVisible();
+});
+
 test("★ ارجاع لینک از منوی Paragraph ساخته می‌شود", async ({ page }) => {
   const paragraph = page.locator(".tm-editor p", { hasText: "پررنگ" }).first();
   await paragraph.click();

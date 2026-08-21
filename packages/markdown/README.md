@@ -22,6 +22,7 @@
 | قواعدِ ورودی و میان‌برها | ✅ | یکپارچه |
 | منوی کاملِ Paragraph، هم‌تراز با Typora | ✅ | ۱۴ تست + e2e |
 | منوهای Format و View، هم‌تراز با Typora | ✅ | واحد + e2e |
+| منوهای File و Edit، سازگار با مرورگر و قابل‌اتصال به میزبان | ✅ | ۶ تست + ۲ e2e |
 | جفت‌کردنِ خودکارِ براکت و گیومه | ✅ | ۳ تست |
 | ساخت و ویرایشِ لینک (`Ctrl+K`) | ✅ | واحد + e2e |
 | ویرایشگرِ React (`MarkdownEditor`) | ✅ | ۱۹ تستِ یکپارچه |
@@ -49,13 +50,13 @@
 | **خمیرکردن و رهاکردنِ تصویر** | ✅ | ۱۰ تست + ۲ e2e |
 | **تایپوگرافیِ متن** (سرفصل، فهرست، نقلِ‌قول) | ✅ | ۱۰ e2e |
 
-مجموع: **۳۳۴ تستِ واحد + ۵۵ تستِ سرتاسری** (Chromium واقعی، روی بیلدِ
+مجموع: **۳۴۰ تستِ واحد + ۵۷ تستِ سرتاسری** (Chromium واقعی، روی بیلدِ
 تولیدی). اندازه‌ها با بیلدِ واقعی سنجیده شده‌اند:
 
 | خروجی | gzip | کِی دانلود می‌شود |
 |---|---|---|
 | `@tamin/markdown/viewer` (بی ProseMirror) | ۴٫۴ کیلوبایت | با import |
-| `@tamin/markdown` | ۵۵٫۶ کیلوبایت | با import |
+| `@tamin/markdown` | ۵۸٫۱ کیلوبایت | با import |
 | `styles.css` | ۵٫۴ کیلوبایت | با import |
 | `worker.js` (رنگ‌آمیزی) | ۱۵۳٫۰ کیلوبایت | **فقط اگر سند بلوکِ کد داشته باشد** — در رشتهٔ پس‌زمینه |
 
@@ -410,6 +411,23 @@ Code، Strike، Comment، لینک و کارهای لینک، درجِ تصوی�
 ```tsx
 <MarkdownEditor toolbar formatMenu={false} viewMenu={false} />
 // برای چیدمانِ میزبان: FormatMenu و ViewMenu را جدا import کنید.
+```
+
+### File و Edit
+
+`File` در محیط مرورگر سند جدید، بازکردن فایل‌های Markdown/Text، ذخیرهٔ
+Markdown، خروجیِ مستقل HTML و PDF/چاپ را اجرا می‌کند. `Edit` شاملِ undo و
+redo، برش و کپی، Copy as Markdown/HTML/Text، چسباندنِ متن ساده، انتخاب همه،
+جابه‌جایی ردیف جدول، تکثیر/حذف و جست‌وجو/جایگزینی است.
+
+گزینه‌های وابسته به پوستهٔ دسکتاپِ Typora—پنجرهٔ جدید، Open Folder/Recent،
+Move To، File Location، Delete File، Preferences و Close—در کامپوننت
+پیاده نشده‌اند. میزبان می‌تواند `FileMenu` و `EditMenu` را جدا import کند؛
+`FileMenu` همهٔ عملیات را با callback می‌گیرد و برای Close نیز callback دارد.
+
+```tsx
+<MarkdownEditor toolbar fileMenu={false} editMenu={false} fileName="بخشنامه.md" />
+// برای چیدمان میزبان: FileMenu و EditMenu را جدا import کنید.
 ```
 
 ## سریالایزر — انتخاب‌های ثابت

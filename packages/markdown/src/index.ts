@@ -62,6 +62,12 @@ export {
 } from "./core/commands/paragraph.js";
 export { autoIndentCode, codeContent } from "./core/commands/code.js";
 export { clearFormatting, clearAllFormatting, insertImage } from "./core/commands/format.js";
+export {
+  selectedText,
+  selectedMarkdown,
+  duplicateSelectionOrBlock,
+  deleteSelectionOrBlock,
+} from "./core/commands/edit.js";
 
 export {
   isSafeHref,
@@ -194,6 +200,10 @@ export { FormatMenu } from "./react/FormatMenu/FormatMenu.js";
 export type { FormatMenuProps } from "./react/FormatMenu/FormatMenu.js";
 export { ViewMenu } from "./react/ViewMenu/ViewMenu.js";
 export type { ViewMenuProps } from "./react/ViewMenu/ViewMenu.js";
+export { FileMenu } from "./react/FileMenu/FileMenu.js";
+export type { FileMenuProps } from "./react/FileMenu/FileMenu.js";
+export { EditMenu } from "./react/EditMenu/EditMenu.js";
+export type { EditMenuProps } from "./react/EditMenu/EditMenu.js";
 export { ImagePopover } from "./react/ImagePopover/ImagePopover.js";
 export type { ImagePopoverProps } from "./react/ImagePopover/ImagePopover.js";
 export { ReferenceLinkPopover } from "./react/ReferenceLinkPopover/ReferenceLinkPopover.js";

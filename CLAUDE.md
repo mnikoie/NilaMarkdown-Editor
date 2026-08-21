@@ -13,7 +13,7 @@
 > **مدرکِ واقعی** گرفته شده‌اند (شمارشِ فایل، `ls node_modules`)، نه از
 > روی `package.json`.
 >
-> آخرین به‌روزرسانی: پس از تکمیلِ منوهای Format و View بر اساس Typora.
+> آخرین به‌روزرسانی: پس از تکمیلِ منوهای File و Edit بر اساس Typora.
 
 تصمیم‌های پایه **گرفته شده‌اند** و در `docs/decisions/0002` تا `0021`
 ثبت‌اند: pnpm، Turborepo، Next.js، NestJS، FastAPI، Postgres،
@@ -23,7 +23,7 @@ Meilisearch، MinIO، BullMQ، Auth.js، Playwright.
 
 | بخش | کد | وضعیت |
 |---|---|---|
-| `packages/markdown` | ۸۶ فایل | ✅ **کامل** — v0.1 تا v0.4، تنها بخشِ پخته |
+| `packages/markdown` | ۹۰ فایل | ✅ **کامل** — v0.1 تا v0.4، تنها بخشِ پخته |
 | `apps/web` | ۷ فایل | 🟡 اسکلت + صفحهٔ نمایشیِ مارک‌داون |
 | `apps/api` | ۶ فایل | 🟡 اسکلت |
 | `apps/ai-service` | ۱ فایل | 🟡 فقط `main.py` (`.venv` ساخته شده) |

@@ -13,12 +13,17 @@ import { TableTools } from "./TableTools/TableTools.js";
 import { ParagraphMenu } from "./ParagraphMenu/ParagraphMenu.js";
 import { FormatMenu } from "./FormatMenu/FormatMenu.js";
 import { ViewMenu } from "./ViewMenu/ViewMenu.js";
+import { FileMenu } from "./FileMenu/FileMenu.js";
+import { EditMenu } from "./EditMenu/EditMenu.js";
 import { ImagePopover } from "./ImagePopover/ImagePopover.js";
 import { ReferenceLinkPopover } from "./ReferenceLinkPopover/ReferenceLinkPopover.js";
 import { computeStats } from "../core/stats.js";
 import { exportPdf, type ExportPdfOptions } from "../core/export-pdf.js";
+import { exportHtml } from "../core/export-html.js";
+import { parse } from "../core/markdown/parse.js";
 import { useFullscreen } from "./useFullscreen.js";
 import { insertImageFiles, type PasteImageOptions } from "../core/plugins/paste-image.js";
+import { selectedMarkdown } from "../core/commands/edit.js";
 import { foldKey, toggleFold } from "../core/plugins/fold.js";
 import { BUILTIN_MARKS } from "../core/directives/builtin.js";
 import type { MarkRegistry } from "../core/directives/types.js";
@@ -60,6 +65,18 @@ export interface MarkdownEditorProps {
 
   /** منوی حالت‌های نمایشِ قابل‌انتقال به کامپوننت. */
   viewMenu?: boolean;
+
+  /** منوی عملیاتِ سند: جدید، بازکردن، ذخیره و خروجی. */
+  fileMenu?: boolean;
+
+  /** منوی ویرایش: undo/redo، کلیپ‌بورد، انتخاب و جست‌وجو. */
+  editMenu?: boolean;
+
+  /** نامِ پیشنهادی هنگامِ ذخیرهٔ Markdown/HTML. */
+  fileName?: string;
+
+  /** عملیاتِ «بستن سند» فقط وقتی میزبان آن را پیاده کرده باشد نشان داده می‌شود. */
+  onCloseDocument?: () => void;
 
   /** شمارشِ کلمه و زمانِ خواندن. */
   stats?: boolean;
@@ -130,6 +147,10 @@ export function MarkdownEditor({
   paragraphMenu = true,
   formatMenu = true,
   viewMenu = true,
+  fileMenu = true,
+  editMenu = true,
+  fileName = "document.md",
+  onCloseDocument,
   stats = false,
   focusMode = false,
   typewriterMode = false,
@@ -157,9 +178,12 @@ export function MarkdownEditor({
   const [sourceText, setSourceText] = useState("");
   const sourceRef = useRef<HTMLTextAreaElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
+  const documentInputRef = useRef<HTMLInputElement>(null);
+  const [documentFileName, setDocumentFileName] = useState(fileName);
 
   useEffect(() => setOutlineVisible(outline), [outline]);
   useEffect(() => setStatusVisible(stats), [stats]);
+  useEffect(() => setDocumentFileName(fileName), [fileName]);
 
   const clampZoom = useCallback((value: number) => setZoom(Math.min(200, Math.max(50, value))), []);
 
@@ -215,6 +239,33 @@ export function MarkdownEditor({
   const handleRef = useRef(handle);
   handleRef.current = handle;
 
+  const currentMarkdown = useCallback(
+    () =>
+      mode === "source"
+        ? (sourceRef.current?.value ?? sourceText)
+        : handleRef.current.getMarkdown(),
+    [mode, sourceText],
+  );
+
+  const replaceDocument = useCallback((markdown: string) => {
+    handleRef.current.setMarkdown(markdown);
+    setSourceText(markdown);
+    if (sourceRef.current) sourceRef.current.value = markdown;
+  }, []);
+
+  const saveMarkdown = useCallback(() => {
+    downloadText(currentMarkdown(), documentFileName, "text/markdown;charset=utf-8");
+  }, [currentMarkdown, documentFileName]);
+
+  const saveHtml = useCallback(() => {
+    const html = exportHtml(parse(currentMarkdown()), {
+      directives,
+      dir: dir === "auto" ? "rtl" : dir,
+      standalone: true,
+    });
+    downloadText(html, replaceExtension(documentFileName, ".html"), "text/html;charset=utf-8");
+  }, [currentMarkdown, directives, dir, documentFileName]);
+
   const onNavigate = useCallback((node: OutlineNode) => {
     const view = handleRef.current.view;
     if (!view) return;
@@ -237,17 +288,15 @@ export function MarkdownEditor({
   const fs = useFullscreen(() => rootRef.current);
 
   const runExportPdf = useCallback(() => {
-    const view = handleRef.current.view;
-    if (!view) return;
     const opts = typeof pdf === "object" ? pdf : {};
-    void exportPdf(view.state.doc, {
+    void exportPdf(parse(currentMarkdown()), {
       directives,
       dir: dir === "auto" ? "rtl" : dir,
       ...opts,
     }).then((r) => {
       if (!r.ok) setNotice(r.reason ?? "خروجیِ PDF شکست خورد.");
     });
-  }, [pdf, directives, dir]);
+  }, [pdf, directives, dir, currentMarkdown]);
 
   /**
    * میان‌برها.
@@ -267,11 +316,42 @@ export function MarkdownEditor({
       if (pdf !== false && (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "p") {
         e.preventDefault();
         runExportPdf();
+        return;
+      }
+      if (
+        editMenu &&
+        mode === "live" &&
+        (e.ctrlKey || e.metaKey) &&
+        e.shiftKey &&
+        e.key.toLowerCase() === "c"
+      ) {
+        const view = handleRef.current.view;
+        const markdown = view ? selectedMarkdown(view.state) : "";
+        if (markdown) {
+          e.preventDefault();
+          void navigator.clipboard
+            .writeText(markdown)
+            .catch(() => setNotice("دسترسی به کلیپ‌بورد ممکن نشد."));
+        }
+        return;
+      }
+      if (fileMenu && (e.ctrlKey || e.metaKey)) {
+        const key = e.key.toLowerCase();
+        if (key === "n") {
+          e.preventDefault();
+          replaceDocument("");
+        } else if (key === "o") {
+          e.preventDefault();
+          documentInputRef.current?.click();
+        } else if (key === "s") {
+          e.preventDefault();
+          saveMarkdown();
+        }
       }
     };
     root.addEventListener("keydown", onKey);
     return () => root.removeEventListener("keydown", onKey);
-  }, [fullscreen, pdf, fs, runExportPdf]);
+  }, [fullscreen, pdf, fs, runExportPdf, fileMenu, editMenu, mode, replaceDocument, saveMarkdown]);
 
   /** پیام پس از چند ثانیه خودش می‌رود — کاربر نباید ببنددش. */
   useEffect(() => {
@@ -317,8 +397,33 @@ export function MarkdownEditor({
 
         {toolbar ? (
           <div className="tm-editor-controls">
-            {paragraphMenu || formatMenu || viewMenu ? (
+            {fileMenu || editMenu || paragraphMenu || formatMenu || viewMenu ? (
               <div className="tm-top-menu-row">
+                {fileMenu ? (
+                  <FileMenu
+                    onNew={() => replaceDocument("")}
+                    onOpen={() => documentInputRef.current?.click()}
+                    onSave={saveMarkdown}
+                    onSaveAs={saveMarkdown}
+                    onExportHtml={saveHtml}
+                    onExportPdf={pdf !== false ? runExportPdf : undefined}
+                    onClose={onCloseDocument}
+                  />
+                ) : null}
+                {editMenu ? (
+                  <EditMenu
+                    view={mode === "live" ? handle.view : null}
+                    onFind={() => {
+                      setSearchReplace(false);
+                      setSearchOpen(true);
+                    }}
+                    onReplace={() => {
+                      setSearchReplace(true);
+                      setSearchOpen(true);
+                    }}
+                    onNotice={setNotice}
+                  />
+                ) : null}
                 {paragraphMenu ? (
                   <ParagraphMenu
                     view={mode === "live" ? handle.view : null}
@@ -378,6 +483,25 @@ export function MarkdownEditor({
           onClose={() => setReferenceLinkOpen(false)}
         />
         <ImagePopover view={handle.view} open={imageOpen} onClose={() => setImageOpen(false)} />
+        <input
+          ref={documentInputRef}
+          type="file"
+          accept=".md,.markdown,.txt,text/markdown,text/plain"
+          hidden
+          aria-hidden="true"
+          onChange={(event) => {
+            const file = event.currentTarget.files?.[0];
+            event.currentTarget.value = "";
+            if (!file) return;
+            void file
+              .text()
+              .then((markdown) => {
+                replaceDocument(markdown);
+                setDocumentFileName(file.name);
+              })
+              .catch(() => setNotice("خواندنِ فایل ممکن نشد."));
+          }}
+        />
         <input
           ref={imageInputRef}
           type="file"
@@ -450,6 +574,21 @@ function StatsBar({ view }: { view: import("prosemirror-view").EditorView | null
       <span>~{fa(s.readingMinutes)} دقیقه خواندن</span>
     </div>
   );
+}
+
+function replaceExtension(fileName: string, extension: string): string {
+  const base = fileName.replace(/\.[^.]+$/, "") || "document";
+  return `${base}${extension}`;
+}
+
+function downloadText(text: string, fileName: string, type: string) {
+  const url = URL.createObjectURL(new Blob([text], { type }));
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = fileName;
+  anchor.click();
+  anchor.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
 function StatsPopover({
