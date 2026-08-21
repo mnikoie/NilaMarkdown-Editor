@@ -6,6 +6,7 @@ import remarkMath from "remark-math";
 import remarkFrontmatter from "remark-frontmatter";
 import { directiveToMarkdown } from "mdast-util-directive";
 import type { Node as PMNode, Mark } from "prosemirror-model";
+import { schema } from "../schema/index.js";
 
 /**
  * جایگزینِ `remark-directive` در مسیرِ نوشتن.
@@ -127,7 +128,16 @@ function inlineOf(node: PMNode): MdastNode[] {
   const out: MdastNode[] = [];
   node.forEach((child) => {
     if (child.isText) {
-      out.push(applyMarks(child.text ?? "", child.marks));
+      const text = child.text ?? "";
+      if (schema.marks.comment.isInSet(child.marks)) {
+        out.push({ type: "html", value: `<!--${text}-->` });
+        return;
+      }
+      const underline = schema.marks.underline.isInSet(child.marks);
+      const regularMarks = child.marks.filter((mark) => mark.type !== schema.marks.underline);
+      if (underline) out.push({ type: "html", value: "<u>" });
+      out.push(applyMarks(text, regularMarks));
+      if (underline) out.push({ type: "html", value: "</u>" });
       return;
     }
     switch (child.type.name) {

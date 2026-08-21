@@ -67,7 +67,30 @@ interface Ctx {
 
 function inlineChildren(nodes: MdastNode[] | undefined, marks: readonly Mark[], ctx: Ctx): PMNode[] {
   if (!nodes) return [];
-  return nodes.flatMap((n) => inline(n, marks, ctx));
+  const out: PMNode[] = [];
+  let active = [...marks];
+
+  for (const node of nodes) {
+    if (node.type === "html") {
+      const html = String(node.value ?? "");
+      if (/^<u(?:\s[^>]*)?>$/i.test(html)) {
+        if (!schema.marks.underline.isInSet(active)) active.push(schema.marks.underline.create());
+        continue;
+      }
+      if (/^<\/u\s*>$/i.test(html)) {
+        active = active.filter((mark) => mark.type !== schema.marks.underline);
+        continue;
+      }
+      const comment = /^<!--[\s\S]*-->$/.test(html) ? html.slice(4, -3) : null;
+      if (comment !== null) {
+        if (comment) out.push(schema.text(comment, [...active, schema.marks.comment.create()]));
+        continue;
+      }
+    }
+    out.push(...inline(node, active, ctx));
+  }
+
+  return out;
 }
 
 function inline(node: MdastNode, marks: readonly Mark[], ctx: Ctx): PMNode[] {

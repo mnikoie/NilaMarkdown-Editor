@@ -225,6 +225,55 @@ test("★ منوی Paragraph گزینه‌های Typora را دسته‌بندی
   await expect(alerts.getByRole("menuitem", { name: "احتیاط (Caution)" })).toBeVisible();
 });
 
+test("★ منوی Format قالب‌های Typora و درج تصویر را اجرا می‌کند", async ({ page }) => {
+  const paragraph = page.locator(".tm-editor p", { hasText: "پررنگ" }).first();
+  await paragraph.click();
+  await page.evaluate(() => {
+    const node = [...document.querySelectorAll(".tm-editor p")]
+      .find((element) => element.textContent?.includes("پررنگ"))?.firstChild;
+    if (!node) throw new Error("متن پیدا نشد");
+    const range = document.createRange();
+    range.setStart(node, 0);
+    range.setEnd(node, Math.min(4, node.textContent?.length ?? 0));
+    const selection = window.getSelection()!;
+    selection.removeAllRanges();
+    selection.addRange(range);
+  });
+
+  await page.getByRole("button", { name: "Format" }).click();
+  const format = page.getByRole("menu", { name: "Format" });
+  await expect(format.getByRole("menuitemcheckbox", { name: /زیرخط/ })).toBeVisible();
+  await expect(format.getByRole("menuitemcheckbox", { name: /توضیح پنهان/ })).toBeVisible();
+  await format.getByRole("menuitemcheckbox", { name: /زیرخط/ }).click();
+  await expect(paragraph.locator("u")).toHaveCount(1);
+
+  await page.getByRole("button", { name: "Format" }).click();
+  await page.getByRole("menuitem", { name: "تصویر" }).click();
+  await page.getByRole("menuitem", { name: /درج تصویر از نشانی/ }).click();
+  const form = page.getByRole("form", { name: "درجِ تصویر" });
+  await form.getByRole("textbox", { name: "متن جایگزین" }).fill("نمونه");
+  await form.getByRole("textbox", { name: "نشانی تصویر" }).fill("https://example.com/a.png");
+  await form.getByRole("button", { name: "درج" }).click();
+  await expect(page.locator('.tm-editor img[alt="نمونه"]')).toHaveCount(1);
+});
+
+test("★ منوی View حالت‌های نمایشیِ قابل‌انتقال را کنترل می‌کند", async ({ page }) => {
+  await expect(page.getByRole("complementary", { name: "پنلِ ساختار" })).toBeVisible();
+  await page.getByRole("button", { name: "View" }).click();
+  const viewMenu = page.getByRole("menu", { name: "View" });
+  await expect(viewMenu.getByRole("menuitemcheckbox", { name: /حالت تمرکز/ })).toBeVisible();
+  await viewMenu.getByRole("menuitemcheckbox", { name: /نمایش نوار کناری/ }).click();
+  await expect(page.getByRole("complementary", { name: "پنلِ ساختار" })).toHaveCount(0);
+
+  await page.getByRole("button", { name: "View" }).click();
+  await page.getByRole("menuitem", { name: /بزرگ‌نمایی/ }).click();
+  await expect(page.locator(".tm-editor-wrap")).toHaveCSS("zoom", "1.1");
+
+  await page.getByRole("button", { name: "View" }).click();
+  await page.getByRole("menuitemcheckbox", { name: /پنجرهٔ شمارش کلمات/ }).click();
+  await expect(page.getByRole("complementary", { name: "شمارش کلمات" })).toContainText("کلمه");
+});
+
 test("★ ارجاع لینک از منوی Paragraph ساخته می‌شود", async ({ page }) => {
   const paragraph = page.locator(".tm-editor p", { hasText: "پررنگ" }).first();
   await paragraph.click();

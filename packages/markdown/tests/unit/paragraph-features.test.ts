@@ -13,6 +13,7 @@ import {
 } from "../../src/core/commands/paragraph.js";
 import { setReferenceLink } from "../../src/core/commands/link.js";
 import { moveColumn, moveRow } from "../../src/core/commands/table.js";
+import { clearFormatting, insertImage } from "../../src/core/commands/format.js";
 import { listFoldKey, listFoldPlugin } from "../../src/core/plugins/list-fold.js";
 
 function run(state: EditorState, command: import("prosemirror-state").Command): EditorState {
@@ -119,6 +120,34 @@ describe("قابلیت‌های منوی Paragraph", () => {
     state = state.apply(state.tr.setSelection(TextSelection.create(state.doc, pos)));
     state = run(state, moveColumn(1));
     expect(serialize(state.doc)).toContain("| سر۲ | سر۱ |");
+  });
+
+  it("زیرخطِ Typora با HTML رفت‌وبرگشت می‌کند", () => {
+    const md = "متن <u>زیرخط</u> عادی\n";
+    const doc = parse(md);
+    expect(doc.firstChild?.child(1).marks.some((mark) => mark.type === schema.marks.underline)).toBe(true);
+    expect(serialize(doc)).toBe(md);
+  });
+
+  it("Comment پنهان حذف نمی‌شود", () => {
+    const md = "قبل <!--یادداشت--> بعد\n";
+    const doc = parse(md);
+    expect(doc.textContent).toContain("یادداشت");
+    expect(serialize(doc)).toBe(md);
+  });
+
+  it("پاک‌کردن قالب‌بندی متن را نگه می‌دارد", () => {
+    let state = EditorState.create({ schema, doc: parse("**متن**\n") });
+    state = state.apply(state.tr.setSelection(TextSelection.create(state.doc, 1, 4)));
+    state = run(state, clearFormatting);
+    expect(state.doc.textContent).toBe("متن");
+    expect(state.doc.firstChild?.firstChild?.marks).toHaveLength(0);
+  });
+
+  it("تصویر نشانی‌محور درج می‌شود", () => {
+    let state = EditorState.create({ schema, doc: parse("متن\n") });
+    state = run(state, insertImage("https://example.com/a.png", "نمونه"));
+    expect(serialize(state.doc)).toContain("![نمونه](https://example.com/a.png)");
   });
 });
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { CSSProperties } from "react";
 import { Selection } from "prosemirror-state";
 import { useEditor } from "./useEditor.js";
 import { OutlineTree } from "./Outline/OutlineTree.js";
@@ -10,11 +11,14 @@ import { SlashMenu } from "./SlashMenu/SlashMenu.js";
 import { LinkPopover } from "./LinkPopover/LinkPopover.js";
 import { TableTools } from "./TableTools/TableTools.js";
 import { ParagraphMenu } from "./ParagraphMenu/ParagraphMenu.js";
+import { FormatMenu } from "./FormatMenu/FormatMenu.js";
+import { ViewMenu } from "./ViewMenu/ViewMenu.js";
+import { ImagePopover } from "./ImagePopover/ImagePopover.js";
 import { ReferenceLinkPopover } from "./ReferenceLinkPopover/ReferenceLinkPopover.js";
 import { computeStats } from "../core/stats.js";
 import { exportPdf, type ExportPdfOptions } from "../core/export-pdf.js";
 import { useFullscreen } from "./useFullscreen.js";
-import type { PasteImageOptions } from "../core/plugins/paste-image.js";
+import { insertImageFiles, type PasteImageOptions } from "../core/plugins/paste-image.js";
 import { foldKey, toggleFold } from "../core/plugins/fold.js";
 import { BUILTIN_MARKS } from "../core/directives/builtin.js";
 import type { MarkRegistry } from "../core/directives/types.js";
@@ -50,6 +54,12 @@ export interface MarkdownEditorProps {
    * `ParagraphMenu` را جداگانه استفاده کرد.
    */
   paragraphMenu?: boolean;
+
+  /** منوی قالب‌بندیِ Typora؛ مثل Paragraph قابلِ حذف و جای‌گذاریِ مستقل است. */
+  formatMenu?: boolean;
+
+  /** منوی حالت‌های نمایشِ قابل‌انتقال به کامپوننت. */
+  viewMenu?: boolean;
 
   /** شمارشِ کلمه و زمانِ خواندن. */
   stats?: boolean;
@@ -118,6 +128,8 @@ export function MarkdownEditor({
   outline = false,
   toolbar = false,
   paragraphMenu = true,
+  formatMenu = true,
+  viewMenu = true,
   stats = false,
   focusMode = false,
   typewriterMode = false,
@@ -137,8 +149,19 @@ export function MarkdownEditor({
   const [searchReplace, setSearchReplace] = useState(false);
   const [linkOpen, setLinkOpen] = useState(false);
   const [referenceLinkOpen, setReferenceLinkOpen] = useState(false);
+  const [imageOpen, setImageOpen] = useState(false);
+  const [outlineVisible, setOutlineVisible] = useState(outline);
+  const [statusVisible, setStatusVisible] = useState(stats);
+  const [wordCountOpen, setWordCountOpen] = useState(false);
+  const [zoom, setZoom] = useState(100);
   const [sourceText, setSourceText] = useState("");
   const sourceRef = useRef<HTMLTextAreaElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => setOutlineVisible(outline), [outline]);
+  useEffect(() => setStatusVisible(stats), [stats]);
+
+  const clampZoom = useCallback((value: number) => setZoom(Math.min(200, Math.max(50, value))), []);
 
   const toggleSource = useCallback(() => {
     setMode((current) => {
@@ -183,6 +206,10 @@ export function MarkdownEditor({
       setSearchOpen(true);
     },
     onEditLink: () => setLinkOpen(true),
+    onToggleOutline: () => setOutlineVisible((visible) => !visible),
+    onActualSize: () => clampZoom(100),
+    onZoomIn: () => setZoom((value) => Math.min(200, value + 10)),
+    onZoomOut: () => setZoom((value) => Math.max(50, value - 10)),
   });
 
   const handleRef = useRef(handle);
@@ -267,8 +294,9 @@ export function MarkdownEditor({
       data-theme={theme === "auto" ? undefined : theme}
       data-fullscreen={fs.active ? (fs.soft ? "soft" : "real") : undefined}
       dir={dir === "auto" ? undefined : dir}
+      style={{ "--tm-content-zoom": zoom / 100 } as CSSProperties}
     >
-      {outline ? (
+      {outlineVisible ? (
         <aside className="tm-sidebar" aria-label="پنلِ ساختار">
           <OutlineTree
             nodes={handle.outline}
@@ -289,13 +317,45 @@ export function MarkdownEditor({
 
         {toolbar ? (
           <div className="tm-editor-controls">
-            {paragraphMenu ? (
-              <div className="tm-paragraph-menu-row">
-                <ParagraphMenu
-                  view={mode === "live" ? handle.view : null}
-                  onInsertReferenceLink={() => setReferenceLinkOpen(true)}
-                  onNotice={setNotice}
-                />
+            {paragraphMenu || formatMenu || viewMenu ? (
+              <div className="tm-top-menu-row">
+                {paragraphMenu ? (
+                  <ParagraphMenu
+                    view={mode === "live" ? handle.view : null}
+                    onInsertReferenceLink={() => setReferenceLinkOpen(true)}
+                    onNotice={setNotice}
+                  />
+                ) : null}
+                {formatMenu ? (
+                  <FormatMenu
+                    view={mode === "live" ? handle.view : null}
+                    onEditLink={() => setLinkOpen(true)}
+                    onInsertImage={() => setImageOpen(true)}
+                    onInsertLocalImage={() => imageInputRef.current?.click()}
+                    onNotice={setNotice}
+                  />
+                ) : null}
+                {viewMenu ? (
+                  <ViewMenu
+                    view={handle.view}
+                    outlineVisible={outlineVisible}
+                    onToggleOutline={() => setOutlineVisible((visible) => !visible)}
+                    sourceMode={mode === "source"}
+                    onToggleSource={toggleSource}
+                    statusVisible={statusVisible}
+                    onToggleStatus={() => setStatusVisible((visible) => !visible)}
+                    wordCountOpen={wordCountOpen}
+                    onToggleWordCount={() => setWordCountOpen((visible) => !visible)}
+                    onSearch={() => {
+                      setSearchReplace(false);
+                      setSearchOpen(true);
+                    }}
+                    fullscreen={fs.active}
+                    onToggleFullscreen={fullscreen ? fs.toggle : undefined}
+                    zoom={zoom}
+                    onZoom={clampZoom}
+                  />
+                ) : null}
               </div>
             ) : null}
             <Toolbar
@@ -316,6 +376,27 @@ export function MarkdownEditor({
           view={handle.view}
           open={referenceLinkOpen}
           onClose={() => setReferenceLinkOpen(false)}
+        />
+        <ImagePopover view={handle.view} open={imageOpen} onClose={() => setImageOpen(false)} />
+        <input
+          ref={imageInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          hidden
+          aria-hidden="true"
+          onChange={(event) => {
+            const files = [...(event.currentTarget.files ?? [])];
+            event.currentTarget.value = "";
+            if (!handle.view || files.length === 0) return;
+            void insertImageFiles(handle.view, files, {
+              ...images,
+              onError: (message) => {
+                setNotice(message);
+                images?.onError?.(message);
+              },
+            });
+          }}
         />
         <TableTools view={handle.view} active={handle.inTable} enabled={mode === "live"} />
 
@@ -343,7 +424,8 @@ export function MarkdownEditor({
           />
         </div>
 
-        {stats ? <StatsBar view={handle.view} /> : null}
+        {wordCountOpen ? <StatsPopover view={handle.view} onClose={() => setWordCountOpen(false)} /> : null}
+        {statusVisible ? <StatsBar view={handle.view} /> : null}
 
         {/* ★ `role="status"` تا صفحه‌خوان هم بشنود — بندِ ۱۲. */}
         {notice ? (
@@ -367,5 +449,22 @@ function StatsBar({ view }: { view: import("prosemirror-view").EditorView | null
       <span>{fa(s.characters)} کاراکتر</span>
       <span>~{fa(s.readingMinutes)} دقیقه خواندن</span>
     </div>
+  );
+}
+
+function StatsPopover({
+  view,
+  onClose,
+}: {
+  view: import("prosemirror-view").EditorView | null;
+  onClose: () => void;
+}) {
+  const stats = view ? computeStats(view.state.doc) : null;
+  if (!stats) return null;
+  return (
+    <aside className="tm-word-count-popover" aria-label="شمارش کلمات">
+      <StatsBar view={view} />
+      <button type="button" onClick={onClose} aria-label="بستن شمارش کلمات">×</button>
+    </aside>
   );
 }

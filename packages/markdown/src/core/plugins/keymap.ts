@@ -20,6 +20,8 @@ import {
   moveColumnVisual,
 } from "../commands/table.js";
 import { toggleTaskList } from "../commands/task-list.js";
+import { clearFormatting } from "../commands/format.js";
+import { toggleFocusMode, toggleTypewriterMode } from "./writing-modes.js";
 import {
   changeHeadingLevel,
   insertMathBlock,
@@ -67,6 +69,11 @@ export interface KeymapOptions {
   onReplace?: () => void;
   /** `Ctrl+K` — بازکردنِ ویرایشگرِ لینک. */
   onEditLink?: () => void;
+  /** `Ctrl+Shift+L` — نمایش/پنهان‌کردنِ پنلِ ساختار. */
+  onToggleOutline?: () => void;
+  onActualSize?: () => void;
+  onZoomIn?: () => void;
+  onZoomOut?: () => void;
 }
 
 export function keymapPlugin(options: KeymapOptions = {}): Plugin {
@@ -81,7 +88,13 @@ export function keymapPlugin(options: KeymapOptions = {}): Plugin {
 
     "Mod-b": toggleMark(schema.marks.strong),
     "Mod-i": toggleMark(schema.marks.em),
+    "Mod-u": toggleMark(schema.marks.underline),
     "Mod-`": toggleMark(schema.marks.code),
+    "Mod-Shift-`": toggleMark(schema.marks.code),
+    "Alt-Shift-5": toggleMark(schema.marks.strike),
+    "Mod-\\": clearFormatting,
+    F8: toggleFocusMode,
+    F9: toggleTypewriterMode,
 
     "Shift-Space": insertZWNJ,
 
@@ -147,6 +160,17 @@ export function keymapPlugin(options: KeymapOptions = {}): Plugin {
       return true;
     };
   }
+
+  if (options.onToggleOutline) {
+    keys["Mod-Shift-l"] = () => {
+      options.onToggleOutline!();
+      return true;
+    };
+  }
+
+  if (options.onActualSize) keys["Mod-Shift-9"] = () => (options.onActualSize!(), true);
+  if (options.onZoomIn) keys["Mod-Shift-="] = () => (options.onZoomIn!(), true);
+  if (options.onZoomOut) keys["Mod-Shift--"] = () => (options.onZoomOut!(), true);
 
   return keymap(keys);
 }

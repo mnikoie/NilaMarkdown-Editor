@@ -26,6 +26,18 @@ const strike: MarkSpec = {
   toDOM: () => ["s", 0],
 };
 
+/** Typora زیرخط را به‌صورتِ HTML در Markdown نگه می‌دارد. */
+const underline: MarkSpec = {
+  parseDOM: [{ tag: "u" }],
+  toDOM: () => ["u", 0],
+};
+
+/** متنِ داخلِ `<!-- -->`؛ در ویرایشگر دیده می‌شود تا قابلِ بازیابی باشد. */
+const comment: MarkSpec = {
+  parseDOM: [{ tag: "span[data-tm-comment]" }],
+  toDOM: () => ["span", { class: "tm-comment", "data-tm-comment": "true" }, 0],
+};
+
 const code: MarkSpec = {
   /** تعدادِ بک‌تیک — `` `a` `` و ``` ``a`b`` ``` فرق دارند. */
   attrs: { ticks: { default: 1 } },
@@ -63,4 +75,4 @@ const link: MarkSpec = {
   ],
 };
 
-export const marks = { strong, em, strike, code, link };
+export const marks = { strong, em, underline, strike, comment, code, link };

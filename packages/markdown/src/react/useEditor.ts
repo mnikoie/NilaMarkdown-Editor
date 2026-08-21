@@ -42,6 +42,10 @@ export interface UseEditorOptions {
   onSearch?: () => void;
   onReplace?: () => void;
   onEditLink?: () => void;
+  onToggleOutline?: () => void;
+  onActualSize?: () => void;
+  onZoomIn?: () => void;
+  onZoomOut?: () => void;
   /** روشن/خاموش‌کردنِ بلوک‌های سنگین. */
   features?: Features;
   /** حالتِ تمرکز (بلوکِ فعال پررنگ، بقیه کم‌رنگ). */
@@ -91,6 +95,10 @@ export function useEditor(options: UseEditorOptions): {
     onSearch,
     onReplace,
     onEditLink,
+    onToggleOutline,
+    onActualSize,
+    onZoomIn,
+    onZoomOut,
     features,
     focusMode,
     typewriterMode,
@@ -119,6 +127,14 @@ export function useEditor(options: UseEditorOptions): {
   onReplaceRef.current = onReplace;
   const onEditLinkRef = useRef(onEditLink);
   onEditLinkRef.current = onEditLink;
+  const onToggleOutlineRef = useRef(onToggleOutline);
+  onToggleOutlineRef.current = onToggleOutline;
+  const onActualSizeRef = useRef(onActualSize);
+  onActualSizeRef.current = onActualSize;
+  const onZoomInRef = useRef(onZoomIn);
+  onZoomInRef.current = onZoomIn;
+  const onZoomOutRef = useRef(onZoomOut);
+  onZoomOutRef.current = onZoomOut;
   // ★ در وابستگی‌های ادیتور نیست: یک آبجکتِ نو در هر رندر، ادیتور را
   // بازمی‌ساخت و مکان‌نما را می‌پراند.
   const imagesRef = useRef(images);
@@ -153,6 +169,10 @@ export function useEditor(options: UseEditorOptions): {
           onSearch: () => onSearchRef.current?.(),
           onReplace: () => onReplaceRef.current?.(),
           onEditLink: () => onEditLinkRef.current?.(),
+          onToggleOutline: () => onToggleOutlineRef.current?.(),
+          onActualSize: () => onActualSizeRef.current?.(),
+          onZoomIn: () => onZoomInRef.current?.(),
+          onZoomOut: () => onZoomOutRef.current?.(),
         }),
         inputRulesPlugin(directives),
         autoPairPlugin(),

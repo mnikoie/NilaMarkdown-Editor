@@ -260,7 +260,7 @@ export function ParagraphMenu({ view, onInsertReferenceLink, onNotice }: Paragra
   return (
     <div
       ref={rootRef}
-      className="tm-paragraph-menu"
+      className="tm-editor-menu"
       onKeyDown={(event) => {
         if (event.key === "Escape") {
           event.preventDefault();

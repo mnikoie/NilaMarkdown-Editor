@@ -75,7 +75,7 @@ function faSize(bytes: number): string {
  * رها کرده و فقط آخری را نمی‌خواهد، نباید چهارتای دیگر را هم از دست
  * بدهد.
  */
-async function insertFiles(
+export async function insertImageFiles(
   view: EditorView,
   files: File[],
   options: PasteImageOptions,
@@ -188,7 +188,7 @@ export function pasteImagePlugin(options: PasteImageOptions = {}): Plugin<PasteI
         // ★ متنِ همراه را نگه نمی‌داریم: وقتی کلیپ‌بورد تصویر دارد،
         // متنِ کنارش معمولاً نامِ فایل است، نه چیزی که کاربر بخواهد.
         event.preventDefault();
-        void insertFiles(view, files, options);
+        void insertImageFiles(view, files, options);
         return true;
       },
 
@@ -200,7 +200,7 @@ export function pasteImagePlugin(options: PasteImageOptions = {}): Plugin<PasteI
         // ★ جای رهاشدن، نه جای مکان‌نما. کاربر عکس را جایی رها کرده و
         // انتظار دارد همان‌جا بنشیند.
         const at = view.posAtCoords({ left: event.clientX, top: event.clientY });
-        void insertFiles(view, files, options, at?.pos);
+        void insertImageFiles(view, files, options, at?.pos);
         return true;
       },
     },

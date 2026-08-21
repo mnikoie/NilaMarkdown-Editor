@@ -61,6 +61,7 @@ export {
   insertFootnote,
 } from "./core/commands/paragraph.js";
 export { autoIndentCode, codeContent } from "./core/commands/code.js";
+export { clearFormatting, clearAllFormatting, insertImage } from "./core/commands/format.js";
 
 export {
   isSafeHref,
@@ -172,7 +173,7 @@ export type { ExportHtmlOptions } from "./core/export-html.js";
 export { exportPdf, buildPrintHtml } from "./core/export-pdf.js";
 export type { ExportPdfOptions, PrintResult } from "./core/export-pdf.js";
 
-export { pasteImagePlugin, pasteImageKey } from "./core/plugins/paste-image.js";
+export { pasteImagePlugin, pasteImageKey, insertImageFiles } from "./core/plugins/paste-image.js";
 export type { PasteImageOptions, PasteImageState } from "./core/plugins/paste-image.js";
 
 export { useFullscreen } from "./react/useFullscreen.js";
@@ -189,6 +190,12 @@ export { TableTools } from "./react/TableTools/TableTools.js";
 export type { TableToolsProps } from "./react/TableTools/TableTools.js";
 export { ParagraphMenu } from "./react/ParagraphMenu/ParagraphMenu.js";
 export type { ParagraphMenuProps } from "./react/ParagraphMenu/ParagraphMenu.js";
+export { FormatMenu } from "./react/FormatMenu/FormatMenu.js";
+export type { FormatMenuProps } from "./react/FormatMenu/FormatMenu.js";
+export { ViewMenu } from "./react/ViewMenu/ViewMenu.js";
+export type { ViewMenuProps } from "./react/ViewMenu/ViewMenu.js";
+export { ImagePopover } from "./react/ImagePopover/ImagePopover.js";
+export type { ImagePopoverProps } from "./react/ImagePopover/ImagePopover.js";
 export { ReferenceLinkPopover } from "./react/ReferenceLinkPopover/ReferenceLinkPopover.js";
 export type { ReferenceLinkPopoverProps } from "./react/ReferenceLinkPopover/ReferenceLinkPopover.js";
 export { OutlineTree } from "./react/Outline/OutlineTree.js";

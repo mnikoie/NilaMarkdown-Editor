@@ -60,6 +60,13 @@ function inlineHtml(node: PMNode, options: Required<Pick<ExportHtmlOptions, "htm
           case "strike":
             text = `<s>${text}</s>`;
             break;
+          case "underline":
+            text = `<u>${text}</u>`;
+            break;
+          case "comment":
+            // Comment برای نویسنده است و در خروجیِ خواندنی دیده نمی‌شود.
+            text = "";
+            break;
           case "link": {
             const href = escapeHtml(safeHref((mark.attrs.href as string) ?? ""));
             const title = mark.attrs.title ? ` title="${escapeHtml(mark.attrs.title as string)}"` : "";
