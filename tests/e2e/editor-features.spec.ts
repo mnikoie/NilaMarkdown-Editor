@@ -194,7 +194,24 @@ test("★ ابزارِ جدول فقط داخلِ جدول می‌آید و رد
 });
 
 test("★ منوی Paragraph گزینه‌های Typora را دسته‌بندی می‌کند", async ({ page }) => {
-  await page.getByRole("button", { name: "پاراگراف" }).click();
+  const paragraphTrigger = page.getByRole("button", { name: "پاراگراف" });
+  const toolbar = page.getByRole("toolbar", { name: "ابزارِ قالب‌بندی" });
+
+  // منوی بلوکی یک ردیفِ مستقل بالای نوارِ سریعِ کامل است.
+  const [paragraphBox, toolbarBox] = await Promise.all([
+    paragraphTrigger.boundingBox(),
+    toolbar.boundingBox(),
+  ]);
+  expect(paragraphBox).not.toBeNull();
+  expect(toolbarBox).not.toBeNull();
+  expect(paragraphBox!.y + paragraphBox!.height).toBeLessThanOrEqual(toolbarBox!.y);
+
+  // نوار سریع دیگر compact نیست و ابزارهای بلوکیِ پرکاربرد را هم دارد.
+  await expect(toolbar.getByRole("button", { name: /عنوانِ ۱/ })).toBeVisible();
+  await expect(toolbar.getByRole("button", { name: /فهرستِ نقطه‌ای/ })).toBeVisible();
+  await expect(toolbar.getByRole("button", { name: "جدول" })).toBeVisible();
+
+  await paragraphTrigger.click();
   const menu = page.getByRole("menu", { name: "پاراگراف" });
   await expect(menu).toBeVisible();
   await expect(menu.getByRole("menuitem", { name: "عنوان 6" })).toBeVisible();

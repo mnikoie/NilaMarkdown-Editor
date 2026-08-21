@@ -41,8 +41,15 @@ export interface MarkdownEditorProps {
   /** پنلِ ساختار. */
   outline?: boolean;
 
-  /** نوارِ ابزار. */
-  toolbar?: boolean;
+  /** نوارِ ابزار. `true` کامل است؛ `"compact"` فقط ابزارهای پرتکرار. */
+  toolbar?: boolean | "compact";
+
+  /**
+   * منوی فرمان‌های بلوکیِ Paragraph در ردیفِ مستقلِ بالای نوار ابزار.
+   * برای چیدمانِ سفارشیِ نرم‌افزار میزبان می‌توان آن را خاموش کرد و
+   * `ParagraphMenu` را جداگانه استفاده کرد.
+   */
+  paragraphMenu?: boolean;
 
   /** شمارشِ کلمه و زمانِ خواندن. */
   stats?: boolean;
@@ -110,6 +117,7 @@ export function MarkdownEditor({
   directives = BUILTIN_MARKS,
   outline = false,
   toolbar = false,
+  paragraphMenu = true,
   stats = false,
   focusMode = false,
   typewriterMode = false,
@@ -281,14 +289,18 @@ export function MarkdownEditor({
 
         {toolbar ? (
           <div className="tm-editor-controls">
-            <ParagraphMenu
-              view={mode === "live" ? handle.view : null}
-              onInsertReferenceLink={() => setReferenceLinkOpen(true)}
-              onNotice={setNotice}
-            />
+            {paragraphMenu ? (
+              <div className="tm-paragraph-menu-row">
+                <ParagraphMenu
+                  view={mode === "live" ? handle.view : null}
+                  onInsertReferenceLink={() => setReferenceLinkOpen(true)}
+                  onNotice={setNotice}
+                />
+              </div>
+            ) : null}
             <Toolbar
               view={handle.view}
-              compact
+              compact={toolbar === "compact"}
               onToggleSource={toggleSource}
               sourceMode={mode === "source"}
               onToggleFullscreen={fullscreen ? fs.toggle : undefined}
