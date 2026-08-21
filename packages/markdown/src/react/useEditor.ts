@@ -15,6 +15,7 @@ import { inputRulesPlugin } from "../core/plugins/input-rules.js";
 import { keymapPlugin } from "../core/plugins/keymap.js";
 import { tableEditingPlugin } from "../core/commands/table.js";
 import { searchPlugin } from "../core/plugins/search.js";
+import { slashMenuPlugin } from "../core/plugins/slash-menu.js";
 import { createNodeViews } from "../node-views/index.js";
 import type { Features } from "../node-views/index.js";
 import { buildOutline } from "../core/outline/build.js";
@@ -112,6 +113,16 @@ export function useEditor(options: UseEditorOptions): {
       schema,
       plugins: [
         history(),
+
+        // ★ منوی `/` باید **قبل از** keymap بیاید.
+        //
+        // ProseMirror افزونه‌ها را به ترتیب صدا می‌زند و اولی که `true`
+        // برگرداند، کلید را مصرف می‌کند. اگر keymap جلوتر باشد، `Enter`
+        // را `splitListItem`/`baseKeymap` می‌گیرد و منو هرگز آیتم را
+        // درج نمی‌کند — دقیقاً همان چیزی که در مرورگر دیدیم: منو بسته
+        // می‌شد ولی `/جدول` سرِ جایش می‌ماند.
+        slashMenuPlugin({ registry: directives }),
+
         keymapPlugin({
           onToggleSource: () => onToggleSourceRef.current?.(),
           onSearch: () => onSearchRef.current?.(),

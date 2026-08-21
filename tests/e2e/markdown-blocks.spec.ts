@@ -7,6 +7,31 @@ import { test, expect } from "@playwright/test";
  * چیدمانِ RTL، و اینکه صفحه واقعاً پاسخ‌گو می‌ماند.
  */
 
+/**
+ * مکان‌نما را در انتهای یک پاراگرافِ عادی می‌گذارد.
+ *
+ * ناوبری با کلید (`End`، `Control+End`) در سندی که front-matter و
+ * بلوکِ کد دارد، جاهای غیرمنتظره می‌افتد. این تابع مستقیم روی گرهٔ
+ * متنیِ مشخص می‌نشیند.
+ */
+async function placeCursorInParagraph(page: import("@playwright/test").Page, contains: string) {
+  await page.evaluate((needle) => {
+    const p = [...document.querySelectorAll(".tm-editor p")].find((e) =>
+      e.textContent?.includes(needle),
+    );
+    if (!p?.firstChild) throw new Error("پاراگراف پیدا نشد: " + needle);
+    const range = document.createRange();
+    range.selectNodeContents(p);
+    range.collapse(false);
+    const sel = window.getSelection()!;
+    sel.removeAllRanges();
+    sel.addRange(range);
+    (document.querySelector(".tm-editor") as HTMLElement).focus();
+  }, contains);
+  // یک خطِ نو بساز تا `/` در ابتدای بلوک باشد
+  await page.keyboard.press("Enter");
+}
+
 test.beforeEach(async ({ page }) => {
   await page.goto("/markdown");
   await page.waitForSelector(".tm-editor", { timeout: 25000 });
@@ -216,4 +241,49 @@ test("★ جایگزینیِ همه با Ctrl+H — یک قدمِ undo", async (
   await page.locator(".tm-editor p").first().click();
   await page.keyboard.press("Control+z");
   await expect(page.locator(".tm-editor")).toContainText("جریمه");
+});
+
+test("★ منوی / — درجِ بلوک", async ({ page }) => {
+  // ⚠️ ناوبری با کلید در این سند قابلِ اتکا نیست: `Control+End` داخلِ
+  // بلوکِ mermaid می‌افتد و `End`+`Enter` داخلِ front-matter — هر دو
+  // جاهایی که منو عمداً کار نمی‌کند. پس مکان‌نما را صریح در یک
+  // پاراگرافِ عادی می‌گذاریم.
+  await placeCursorInParagraph(page, "جریمه");
+
+  await page.keyboard.type("/");
+  const menu = page.locator('[role="listbox"]');
+  await expect(menu).toBeVisible();
+
+  // ★ مارک‌های سفارشی هم در منو هستند
+  await expect(menu).toContainText("نکتهٔ نویسنده");
+  await expect(menu).toContainText("جدول");
+
+  // فیلتر با تایپ.
+  // منو با رویدادهای DOM دوباره رندر می‌شود، پس تا وقتی گزینهٔ فعال
+  // واقعاً «جدول» نشده، Enter را نمی‌زنیم — وگرنه آیتمِ دیگری درج
+  // می‌شود و تست به‌شکلِ نامنظم می‌افتد.
+  await page.keyboard.type("جدول");
+  await expect(menu.locator('[role="option"]')).toHaveCount(1);
+  await expect(menu.locator('[aria-selected="true"]')).toContainText("جدول");
+
+  // Enter درج می‌کند — نتیجهٔ سند اول بررسی می‌شود، بعد بسته‌شدنِ منو.
+  // (منو کامپوننتِ React است و unmountش یک تیک عقب‌تر از تراکنشِ
+  // ProseMirror اتفاق می‌افتد.)
+  const tablesBefore = await page.locator(".tm-editor table").count();
+  await page.keyboard.press("Enter");
+
+  await expect(page.locator(".tm-editor table")).toHaveCount(tablesBefore + 1);
+  await expect(page.locator(".tm-editor")).not.toContainText("/جدول");
+  await expect(menu).toBeHidden();
+});
+
+test("★ منوی / با Escape بسته می‌شود و متن می‌ماند", async ({ page }) => {
+  await placeCursorInParagraph(page, "جریمه");
+  await page.keyboard.type("/عنوان");
+
+  await expect(page.locator('[role="listbox"]')).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.locator('[role="listbox"]')).toBeHidden();
+  // متن دست‌نخورده می‌ماند — کاربر شاید واقعاً می‌خواست `/عنوان` بنویسد
+  await expect(page.locator(".tm-editor")).toContainText("/عنوان");
 });

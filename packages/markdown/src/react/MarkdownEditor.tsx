@@ -6,6 +6,7 @@ import { useEditor } from "./useEditor.js";
 import { OutlineTree } from "./Outline/OutlineTree.js";
 import { Toolbar } from "./Toolbar/Toolbar.js";
 import { SearchPanel } from "./SearchPanel/SearchPanel.js";
+import { SlashMenu } from "./SlashMenu/SlashMenu.js";
 import { computeStats } from "../core/stats.js";
 import { foldKey, toggleFold } from "../core/plugins/fold.js";
 import { BUILTIN_MARKS } from "../core/directives/builtin.js";
@@ -194,12 +195,16 @@ export function MarkdownEditor({
           />
         ) : null}
 
-        <div
+        {/* ظرفِ نسبی تا منو کنارِ مکان‌نما بنشیند */}
+        <div className="tm-editor-wrap">
+          <SlashMenu view={handle.view} />
+          <div
           ref={ref}
           className="tm-editor-mount"
           data-placeholder={placeholder}
           hidden={mode === "source"}
-        />
+          />
+        </div>
 
         {stats ? <StatsBar view={handle.view} /> : null}
       </div>

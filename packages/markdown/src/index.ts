@@ -59,6 +59,20 @@ export type { SearchState, SearchOptions, SearchMatch } from "./core/plugins/sea
 export { SearchPanel } from "./react/SearchPanel/SearchPanel.js";
 export type { SearchPanelProps } from "./react/SearchPanel/SearchPanel.js";
 
+export {
+  slashMenuPlugin,
+  slashKey,
+  getSlashState,
+  filterItems,
+  allSlashItems,
+  runSlashItem,
+  closeSlashMenu,
+} from "./core/plugins/slash-menu.js";
+export type { SlashState, SlashItem, SlashOptions } from "./core/plugins/slash-menu.js";
+
+export { SlashMenu } from "./react/SlashMenu/SlashMenu.js";
+export type { SlashMenuProps } from "./react/SlashMenu/SlashMenu.js";
+
 export { inputRulesPlugin } from "./core/plugins/input-rules.js";
 export { keymapPlugin, insertZWNJ, toggleHeading } from "./core/plugins/keymap.js";
 export type { KeymapOptions } from "./core/plugins/keymap.js";
