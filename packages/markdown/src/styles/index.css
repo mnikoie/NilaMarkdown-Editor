@@ -2094,7 +2094,9 @@
     outline-offset: 2px;
   }
 
-  /* نوعِ سند پیش از متنِ ارجاع، به‌صورتِ ریزبرچسب. */
+  /* نوعِ سند پیش از متنِ ارجاع، به‌صورتِ ریزبرچسب.
+   * `white-space:nowrap` تا خودِ برچسب وسطش نشکند؛ ولی متنِ ارجاع آزاد
+   * است بشکند، وگرنه ارجاع‌های بلند از ستون بیرون می‌زنند. */
   .tm-directive-inline[data-kind]::before {
     content: attr(data-kind);
     margin-inline-end: 0.4em;
@@ -2103,6 +2105,7 @@
     background: color-mix(in oklab, var(--tm-mark-base) 15%, transparent);
     font-size: 0.78em;
     font-weight: 700;
+    white-space: nowrap;
   }
 }
 
