@@ -46,6 +46,9 @@ export interface ToolbarProps {
   /** دکمهٔ حالتِ سورس. */
   onToggleSource?: () => void;
   sourceMode?: boolean;
+  /** اجرای معادلِ خامِ Markdown در textareaِ حالتِ Source. */
+  onSourceAction?: (id: string) => void;
+  sourceActiveIds?: ReadonlySet<string>;
   /** دکمهٔ تمام‌صفحه. */
   onToggleFullscreen?: () => void;
   fullscreen?: boolean;
@@ -248,6 +251,8 @@ export function Toolbar({
   view,
   onToggleSource,
   sourceMode,
+  onSourceAction,
+  sourceActiveIds,
   onToggleFullscreen,
   fullscreen,
   onExportPdf,
@@ -372,7 +377,9 @@ export function Toolbar({
       onKeyDown={onKeyDown}
     >
       {items.map((item, index) => {
-        const active = view && item.isActive ? item.isActive(view) : false;
+        const sourceId = item.id === "bold" ? "strong" : item.id === "italic" ? "emphasis" : item.id;
+        const active = sourceMode ? Boolean(sourceActiveIds?.has(sourceId)) : (view && item.isActive ? item.isActive(view) : false);
+        const runsInSource = Boolean(sourceMode && onSourceAction && !item.document);
         // اولین دکمهٔ سندی، بقیه را به لبهٔ دیگر هل می‌دهد.
         const firstDocument = item.document && !items[index - 1]?.document;
         return (
@@ -402,16 +409,18 @@ export function Toolbar({
             aria-pressed={item.isActive ? active : undefined}
             aria-label={item.shortcut ? `${t(item.label)} (${item.shortcut})` : t(item.label)}
             title={item.shortcut ? `${t(item.label)} — ${item.shortcut}` : t(item.label)}
-            disabled={!view}
+            disabled={!view && !runsInSource}
             onMouseDown={(e) => {
               // بی این، کلیک روی دکمه فوکوس را از ادیتور می‌گیرد و
               // انتخابِ کاربر از بین می‌رود.
               e.preventDefault();
             }}
             onClick={() => {
-              if (!view) return;
-              item.run(view);
-              view.focus();
+              if (runsInSource) onSourceAction?.(item.id);
+              else if (view) {
+                item.run(view);
+                view.focus();
+              } else return;
               setFocusIndex(index);
             }}
           >

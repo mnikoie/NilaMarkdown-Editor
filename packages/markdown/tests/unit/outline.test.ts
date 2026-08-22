@@ -66,6 +66,16 @@ describe("درختِ ساختار", () => {
     expect(tree[0]!.children.map((node) => node.id)).toEqual(["فصل-۱", "فصل-۲"]);
   });
 
+  it("★★ عنوانِ بی‌لنگر والدِ فصل‌های نام‌دارِ بی‌لنگرِ فایل واقعی هم هست", () => {
+    const doc = parse(
+      "# بخشنامه تنقیح و تلخیص اجرائیات\n\nمقدمه\n\n# فصل اول\n\nمتن یک\n\n# فصل دوم\n\nمتن دو\n",
+    );
+    const tree = buildOutline(doc);
+    expect(tree).toHaveLength(1);
+    expect(tree[0]!.level).toBe(0);
+    expect(tree[0]!.children.map((node) => node.title)).toEqual(["فصل اول", "فصل دوم"]);
+  });
+
   it("عنوانِ بی‌فرزندِ ساختاری ولی دارای متن، از Outline قابلِ تاشدن است", () => {
     const [node] = buildOutline(parse("# فصل\n\nیک پاراگراف\n"));
     expect(node!.children).toEqual([]);

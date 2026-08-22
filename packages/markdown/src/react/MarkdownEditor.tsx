@@ -33,7 +33,7 @@ import {
   foldAll,
   foldKey,
   setFoldMode,
-  toggleFold,
+  toggleFoldPreservingScroll,
   unfoldAll,
   type FoldingOptions,
 } from "../core/plugins/fold.js";
@@ -225,6 +225,7 @@ export function MarkdownEditor({
   const [wordCountOpen, setWordCountOpen] = useState(false);
   const [zoom, setZoom] = useState(100);
   const [sourceText, setSourceText] = useState("");
+  const [sourceActiveIds, setSourceActiveIds] = useState<ReadonlySet<string>>(() => new Set());
   const sourceRef = useRef<HTMLTextAreaElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const documentInputRef = useRef<HTMLInputElement>(null);
@@ -352,15 +353,145 @@ export function MarkdownEditor({
     }
   }, []);
 
-  const setDirectiveCardOpen = useCallback((id: string, open: boolean) => {
-    const root = rootRef.current;
-    if (!root) return;
-    for (const card of root.querySelectorAll<HTMLElement>(".tm-mark[data-fold-id]")) {
-      if (card.dataset.foldId !== id) continue;
-      card.dispatchEvent(new CustomEvent("tm-set-fold", { detail: { open } }));
-      break;
-    }
+  const updateSourceActive = useCallback((source: HTMLTextAreaElement) => {
+    const from = source.selectionStart;
+    const to = source.selectionEnd;
+    const value = source.value;
+    const selection = value.slice(from, to);
+    const lineStart = value.lastIndexOf("\n", Math.max(0, from - 1)) + 1;
+    const line = value.slice(lineStart, value.indexOf("\n", from) === -1 ? value.length : value.indexOf("\n", from));
+    const wrapped = (left: string, right = left) =>
+      (value.slice(Math.max(0, from - left.length), from) === left && value.slice(to, to + right.length) === right) ||
+      (selection.startsWith(left) && selection.endsWith(right));
+    const next = new Set<string>();
+    if (wrapped("**")) next.add("strong");
+    if (wrapped("*")) next.add("emphasis");
+    if (wrapped("~~")) next.add("strike");
+    if (wrapped("`")) next.add("code");
+    if (wrapped("<u>", "</u>")) next.add("underline");
+    if (/^#{1,6}\s/.test(line)) next.add(`h${line.match(/^#+/)![0]!.length}`);
+    if (/^- \[ \] /.test(line)) next.add("task");
+    else if (/^- /.test(line)) next.add("ul");
+    else if (/^\d+\. /.test(line)) next.add("ol");
+    if (/^> /.test(line)) next.add("quote");
+    setSourceActiveIds(next);
   }, []);
+
+  useEffect(() => {
+    if (mode !== "source") return;
+    const sync = () => {
+      if (sourceRef.current) updateSourceActive(sourceRef.current);
+    };
+    document.addEventListener("selectionchange", sync);
+    sync();
+    return () => document.removeEventListener("selectionchange", sync);
+  }, [mode, updateSourceActive]);
+
+  /**
+   * منوهای بالای ادیتور در حالتِ Source باید خودِ Markdown را بسازند، نه
+   * اینکه textarea را قفل کنند یا متن را از مسیرِ parser عبور دهند.
+   */
+  const applySourceAction = useCallback((id: string) => {
+    const source = sourceRef.current;
+    if (!source || readOnly) return;
+    const from = source.selectionStart;
+    const to = source.selectionEnd;
+    const selected = source.value.slice(from, to) || "متن";
+    const replace = (next: string) => {
+      source.setRangeText(next, from, to, "select");
+      setSourceText(source.value);
+      updateSourceActive(source);
+    };
+    const wrap = (left: string, right = left) => {
+      const before = source.value.slice(Math.max(0, from - left.length), from);
+      const after = source.value.slice(to, to + right.length);
+      if (before === left && after === right) {
+        source.setRangeText(selected, from - left.length, to + right.length, "select");
+        setSourceText(source.value);
+        updateSourceActive(source);
+      } else if (selected.startsWith(left) && selected.endsWith(right)) {
+        replace(selected.slice(left.length, selected.length - right.length));
+      } else replace(`${left}${selected}${right}`);
+    };
+    const lineRange = () => {
+      const start = source.value.lastIndexOf("\n", Math.max(0, from - 1)) + 1;
+      const endAt = source.value.indexOf("\n", to);
+      return { start, end: endAt === -1 ? source.value.length : endAt };
+    };
+    const prefixLines = (prefix: string) => {
+      const { start, end } = lineRange();
+      const lines = source.value.slice(start, end).split("\n");
+      source.setSelectionRange(start, end);
+      source.setRangeText(
+        lines.map((line, index) => prefix === "1. " ? `${index + 1}. ${line}` : `${prefix}${line}`).join("\n"),
+        start,
+        end,
+        "select",
+      );
+      setSourceText(source.value);
+      updateSourceActive(source);
+    };
+    const heading = (level: number) => {
+      const { start, end } = lineRange();
+      const lines = source.value.slice(start, end).split("\n");
+      source.setSelectionRange(start, end);
+      source.setRangeText(lines.map((line) => `${"#".repeat(level)} ${line.replace(/^#{1,6}\s+/, "")}`).join("\n"), start, end, "select");
+      setSourceText(source.value);
+      updateSourceActive(source);
+    };
+
+    switch (id) {
+      case "bold": case "strong": wrap("**"); break;
+      case "italic": case "emphasis": wrap("*"); break;
+      case "strike": wrap("~~"); break;
+      case "code": wrap("`"); break;
+      case "underline": wrap("<u>", "</u>"); break;
+      case "comment": wrap("%%"); break;
+      case "link": case "hyperlink": replace(`[${selected}](https://)`); break;
+      case "image-url": case "image-local": replace(`![${selected}](https://)`); break;
+      case "h1": case "heading-1": heading(1); break;
+      case "h2": case "heading-2": heading(2); break;
+      case "h3": case "heading-3": heading(3); break;
+      case "heading-4": heading(4); break;
+      case "heading-5": heading(5); break;
+      case "heading-6": heading(6); break;
+      case "paragraph": {
+        const { start, end } = lineRange();
+        const lines = source.value.slice(start, end).split("\n");
+        source.setRangeText(lines.map((line) => line.replace(/^#{1,6}\s+/, "")).join("\n"), start, end, "select");
+        setSourceText(source.value);
+        updateSourceActive(source);
+        break;
+      }
+      case "ul": case "bullet": prefixLines("- "); break;
+      case "ol": case "ordered": prefixLines("1. "); break;
+      case "task": prefixLines("- [ ] "); break;
+      case "quote": prefixLines("> "); break;
+      case "codeblock": case "code-block": replace(`\`\`\`\n${selected}\n\`\`\``); break;
+      case "math": replace(`$$\n${selected}\n$$`); break;
+      case "table": case "table-insert": replace("| ستون ۱ | ستون ۲ |\n| --- | --- |\n| متن | متن |"); break;
+      case "hr": replace("\n---\n"); break;
+      case "zwnj": replace("‌"); break;
+      case "footnote": replace(`[^1]`); break;
+      case "toc": replace("[TOC]"); break;
+      case "yaml": replace("---\ntitle: \n---\n"); break;
+      case "alert-note": replace(`> [!NOTE]\n> ${selected}`); break;
+      case "alert-tip": replace(`> [!TIP]\n> ${selected}`); break;
+      case "alert-important": replace(`> [!IMPORTANT]\n> ${selected}`); break;
+      case "alert-warning": replace(`> [!WARNING]\n> ${selected}`); break;
+      case "alert-caution": replace(`> [!CAUTION]\n> ${selected}`); break;
+      case "indent": prefixLines("  "); break;
+      case "outdent": {
+        const { start, end } = lineRange();
+        const lines = source.value.slice(start, end).split("\n");
+        source.setRangeText(lines.map((line) => line.replace(/^ {1,2}/, "")).join("\n"), start, end, "select");
+        setSourceText(source.value);
+        updateSourceActive(source);
+        break;
+      }
+      default: break;
+    }
+  }, [readOnly, updateSourceActive]);
 
   const setAllSectionsOpen = useCallback(
     (open: boolean) => {
@@ -387,6 +518,22 @@ export function MarkdownEditor({
     setFolded(new Set(foldKey.getState(view.state)?.folded ?? []));
   }, [handle.view, handle.outline]);
 
+  /*
+   * foldPlugin تنها منبعِ حقیقتِ گره‌های ساختاری است. هر تراکنشِ آن
+   * (از متن، Outline، آکاردئون یا فرمانِ همه) باید همهٔ NodeViewها را
+   * دوباره با state نهایی همگام کند؛ همگام‌سازیِ فقط گرهٔ کلیک‌شده باعث
+   * می‌شد خواهرِ بسته‌شده به‌وسیلهٔ آکاردئون، ظاهراً باز بماند.
+   */
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    for (const card of root.querySelectorAll<HTMLElement>(".tm-mark[data-fold-id]")) {
+      const id = card.dataset.foldId;
+      if (!id) continue;
+      card.dispatchEvent(new CustomEvent("tm-set-fold", { detail: { open: !folded.has(id) } }));
+    }
+  }, [folded]);
+
   useEffect(() => {
     const root = rootRef.current;
     if (!root) return;
@@ -398,7 +545,7 @@ export function MarkdownEditor({
       if (!view) return;
       const isFolded = foldKey.getState(view.state)?.folded.has(detail.id) ?? false;
       if (detail.open !== isFolded) return;
-      toggleFold(detail.id, detail.pos)(view.state, view.dispatch);
+      toggleFoldPreservingScroll(view, detail.id, detail.pos);
       setFolded(new Set(foldKey.getState(view.state)?.folded ?? []));
     };
     root.addEventListener("tm-card-fold-change", onCardFoldChange);
@@ -437,10 +584,9 @@ export function MarkdownEditor({
     const view = handleRef.current.view;
     if (!view) return;
     if (foldKey.getState(view.state)?.folded.has(node.id)) {
-      toggleFold(node.id, node.from)(view.state, view.dispatch);
+      toggleFoldPreservingScroll(view, node.id, node.from);
       setFolded(new Set(foldKey.getState(view.state)?.folded ?? []));
     }
-    setDirectiveCardOpen(node.id, true);
     const { state } = view;
     // `Selection.near` نزدیک‌ترین جای معتبر را پیدا می‌کند — گرهِ ساختار
     // ممکن است atom باشد و مکان‌نما مستقیم داخلش ننشیند.
@@ -455,7 +601,7 @@ export function MarkdownEditor({
         element?.scrollIntoView({ block: "center", inline: "nearest", behavior: "auto" });
       });
     });
-  }, [setDirectiveCardOpen]);
+  }, []);
 
   /**
    * حالتِ تاشدگی داخلِ ProseMirror زندگی می‌کند، نه در React. پس React
@@ -540,11 +686,9 @@ export function MarkdownEditor({
   const onToggleFoldNode = useCallback((node: OutlineNode) => {
     const view = handleRef.current.view;
     if (!view) return;
-    const open = foldKey.getState(view.state)?.folded.has(node.id) ?? false;
-    toggleFold(node.id, node.from)(view.state, view.dispatch);
-    setDirectiveCardOpen(node.id, open);
+    toggleFoldPreservingScroll(view, node.id, node.from);
     setFolded(new Set(foldKey.getState(view.state)?.folded ?? []));
-  }, [setDirectiveCardOpen]);
+  }, []);
 
   return (
     <MarkdownI18nProvider locale={activeLocale}>
@@ -552,6 +696,7 @@ export function MarkdownEditor({
       ref={rootRef}
       className={`tm-root ${className ?? ""}`}
       data-theme={theme === "auto" ? undefined : theme}
+      data-mode={mode}
       data-fullscreen={fs.active ? (fs.soft ? "soft" : "real") : undefined}
       dir={effectiveDir}
       lang={activeLocale}
@@ -662,6 +807,8 @@ export function MarkdownEditor({
                 {paragraphMenu ? (
                   <ParagraphMenu
                     view={mode === "live" ? handle.view : null}
+                    onSourceAction={mode === "source" && !readOnly ? applySourceAction : undefined}
+                    sourceActiveIds={mode === "source" ? sourceActiveIds : undefined}
                     onInsertReferenceLink={() => setReferenceLinkOpen(true)}
                     onNotice={(message) => setNotice(t(message))}
                   />
@@ -669,6 +816,8 @@ export function MarkdownEditor({
                 {formatMenu ? (
                   <FormatMenu
                     view={mode === "live" ? handle.view : null}
+                    onSourceAction={mode === "source" && !readOnly ? applySourceAction : undefined}
+                    sourceActiveIds={mode === "source" ? sourceActiveIds : undefined}
                     onEditLink={() => setLinkOpen(true)}
                     onInsertImage={() => setImageOpen(true)}
                     onInsertLocalImage={() => imageInputRef.current?.click()}
@@ -717,6 +866,8 @@ export function MarkdownEditor({
               compact={toolbar === "compact"}
               onToggleSource={toggleSource}
               sourceMode={mode === "source"}
+              onSourceAction={mode === "source" && !readOnly ? applySourceAction : undefined}
+              sourceActiveIds={mode === "source" ? sourceActiveIds : undefined}
               onToggleFullscreen={fullscreen ? fs.toggle : undefined}
               fullscreen={fs.active}
               onExportPdf={pdf !== false ? runExportPdf : undefined}
@@ -783,20 +934,22 @@ export function MarkdownEditor({
             suppressHydrationWarning
             defaultValue={sourceText}
             readOnly={readOnly}
-            dir="ltr"
+            dir={effectiveDir}
             spellCheck={false}
+            onInput={(event) => updateSourceActive(event.currentTarget)}
+            onSelect={(event) => updateSourceActive(event.currentTarget)}
+            onKeyUp={(event) => updateSourceActive(event.currentTarget)}
             aria-label={t("متنِ خامِ مارک‌داون")}
           />
         ) : null}
 
         {/* ظرفِ نسبی تا منو کنارِ مکان‌نما بنشیند */}
-        <div className="tm-editor-wrap">
+        <div className="tm-editor-wrap" hidden={mode === "source"}>
           <SlashMenu view={handle.view} />
           <div
           ref={ref}
           className="tm-editor-mount"
           data-placeholder={placeholder}
-          hidden={mode === "source"}
           />
         </div>
 

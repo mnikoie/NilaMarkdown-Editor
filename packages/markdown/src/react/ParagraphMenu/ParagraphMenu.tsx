@@ -47,6 +47,9 @@ export interface ParagraphMenuProps {
   view: EditorView | null;
   onInsertReferenceLink?: () => void;
   onNotice?: (message: string) => void;
+  /** اجرای معادلِ خامِ Markdown در حالتِ Source. */
+  onSourceAction?: (id: string) => void;
+  sourceActiveIds?: ReadonlySet<string>;
 }
 
 interface Action {
@@ -228,7 +231,7 @@ function entries(onReference?: () => void, onNotice?: (message: string) => void)
   ];
 }
 
-export function ParagraphMenu({ view, onInsertReferenceLink, onNotice }: ParagraphMenuProps) {
+export function ParagraphMenu({ view, onInsertReferenceLink, onNotice, onSourceAction }: ParagraphMenuProps) {
   const { t } = useMarkdownI18n();
   const [open, setOpen] = useState(false);
   const [submenu, setSubmenu] = useState<string | null>(null);
@@ -248,6 +251,12 @@ export function ParagraphMenu({ view, onInsertReferenceLink, onNotice }: Paragra
   }, [open]);
 
   const run = (action: Action) => {
+    if (onSourceAction) {
+      onSourceAction(action.id);
+      setOpen(false);
+      setSubmenu(null);
+      return;
+    }
     if (!view || action.disabledHint) return;
     if (action.command && !action.command(view.state, undefined, view)) return;
     if (action.command) action.command(view.state, view.dispatch, view);
@@ -276,7 +285,7 @@ export function ParagraphMenu({ view, onInsertReferenceLink, onNotice }: Paragra
         className="tm-menu-trigger"
         aria-haspopup="menu"
         aria-expanded={open}
-        disabled={!view}
+        disabled={!view && !onSourceAction}
         onMouseDown={keepSelection}
         onClick={() => setOpen((value) => !value)}
       >
@@ -311,7 +320,7 @@ export function ParagraphMenu({ view, onInsertReferenceLink, onNotice }: Paragra
                           <button
                             type="button"
                             role="menuitem"
-                            disabled={Boolean(item.disabledHint) || !view || Boolean(item.command && !item.command(view.state, undefined, view))}
+                            disabled={Boolean(item.disabledHint) || (!onSourceAction && (!view || Boolean(item.command && !item.command(view.state, undefined, view))))}
                             title={item.disabledHint ? t(item.disabledHint) : undefined}
                             onMouseDown={keepSelection}
                             onClick={() => run(item)}
@@ -332,7 +341,7 @@ export function ParagraphMenu({ view, onInsertReferenceLink, onNotice }: Paragra
                 <button
                   type="button"
                   role="menuitem"
-                  disabled={Boolean(entry.disabledHint) || !view || Boolean(entry.command && !entry.command(view.state, undefined, view))}
+                  disabled={Boolean(entry.disabledHint) || (!onSourceAction && (!view || Boolean(entry.command && !entry.command(view.state, undefined, view))))}
                   title={entry.disabledHint ? t(entry.disabledHint) : undefined}
                   onMouseDown={keepSelection}
                   onClick={() => run(entry)}

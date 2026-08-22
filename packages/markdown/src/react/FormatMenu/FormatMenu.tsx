@@ -18,6 +18,9 @@ export interface FormatMenuProps {
   onInsertImage?: () => void;
   onInsertLocalImage?: () => void;
   onNotice?: (message: string) => void;
+  /** اجرای معادلِ خامِ Markdown در حالتِ Source. */
+  onSourceAction?: (id: string) => void;
+  sourceActiveIds?: ReadonlySet<string>;
 }
 
 interface Action {
@@ -67,6 +70,8 @@ export function FormatMenu({
   onInsertImage,
   onInsertLocalImage,
   onNotice,
+  onSourceAction,
+  sourceActiveIds,
 }: FormatMenuProps) {
   const { t } = useMarkdownI18n();
   const [open, setOpen] = useState(false);
@@ -199,9 +204,15 @@ export function FormatMenu({
   ];
 
   const enabled = (action: Action | Submenu) =>
-    Boolean(view) && (!action.enabled || Boolean(view && action.enabled(view)));
+    Boolean(onSourceAction) || (Boolean(view) && (!action.enabled || Boolean(view && action.enabled(view))));
 
   const run = (action: Action) => {
+    if (onSourceAction) {
+      onSourceAction(action.id);
+      setOpen(false);
+      setSubmenu(null);
+      return;
+    }
     if (!view || !enabled(action)) return;
     if (action.command && !action.command(view.state, undefined, view)) return;
     if (action.command) action.command(view.state, view.dispatch, view);
@@ -220,7 +231,7 @@ export function FormatMenu({
         className="tm-menu-trigger"
         aria-haspopup="menu"
         aria-expanded={open}
-        disabled={!view}
+        disabled={!view && !onSourceAction}
         onMouseDown={keepSelection}
         onClick={() => setOpen((value) => !value)}
       >
@@ -256,7 +267,7 @@ export function FormatMenu({
                           <button
                             type="button"
                             role={item.checked ? "menuitemcheckbox" : "menuitem"}
-                            aria-checked={item.checked?.(view!)}
+                            aria-checked={onSourceAction ? sourceActiveIds?.has(item.id) : (view ? item.checked?.(view) : undefined)}
                             disabled={!enabled(item)}
                             onMouseDown={keepSelection}
                             onClick={() => run(item)}
@@ -277,7 +288,7 @@ export function FormatMenu({
                 <button
                   type="button"
                   role={entry.checked ? "menuitemcheckbox" : "menuitem"}
-                  aria-checked={entry.checked?.(view!)}
+                  aria-checked={onSourceAction ? sourceActiveIds?.has(entry.id) : (view ? entry.checked?.(view) : undefined)}
                   disabled={!enabled(entry)}
                   onMouseDown={keepSelection}
                   onClick={() => run(entry)}

@@ -20,17 +20,21 @@
   .tm-root {
     --tm-font-body: Vazirmatn, system-ui, sans-serif;
     --tm-font-mono: ui-monospace, "Cascadia Code", Consolas, monospace;
-    --tm-font-size: 16px;
-    --tm-line-height: 1.75;
+    --tm-font-size: 15px;
+    --tm-line-height: 1.9;
     --tm-measure: 68ch;
 
     --tm-bg: #ffffff;
-    --tm-fg: #1f2328;
-    --tm-muted: #656d76;
-    --tm-accent: #0969da;
-    --tm-border: #d1d9e0;
-    --tm-code-bg: #f6f8fa;
-    --tm-selection: #b6dcff;
+    --tm-fg: #25324a;
+    --tm-heading: #10203b;
+    --tm-muted: #68758a;
+    --tm-accent: #2f64d6;
+    --tm-border: #dce5f0;
+    --tm-code-bg: #eef3f8;
+    --tm-soft-bg: #f8fbff;
+    --tm-raised-bg: #edf3ff;
+    --tm-selection: rgb(103 232 249 / 0.24);
+    --tm-surface-shadow: 0 14px 34px rgb(36 59 90 / 0.09);
     --tm-syntax-marker: #b8bfc7;
 
     color: var(--tm-fg);
@@ -47,6 +51,10 @@
     --tm-accent: #4493f8;
     --tm-border: #3d444d;
     --tm-code-bg: #161b22;
+    --tm-heading: #f0f6fc;
+    --tm-soft-bg: #111820;
+    --tm-raised-bg: #172231;
+    --tm-surface-shadow: 0 14px 34px rgb(0 0 0 / 0.28);
     --tm-selection: #1f4b7a;
     --tm-syntax-marker: #545d68;
   }
@@ -65,23 +73,11 @@
     }
   }
 
-  /* ── کارتِ مارکِ سفارشی ──
-   *
-   * ★ کاربر فقط یک رنگ می‌دهد (`--tm-mark-base`). بقیه با `color-mix`
-   * ساخته می‌شوند. چرا: اگر شش رنگ از کاربر بگیریم، در تمِ تاریک ترکیبِ
-   * ناخوانا می‌سازد. با یک رنگ، هر دو تم خودکار درست درمی‌آیند.
-   *
-   * `in oklab` و نه `in srgb`: در فضای srgb ترکیبِ رنگ‌های اشباع، خاکستریِ
-   * گل‌آلود می‌دهد.
-   */
+  /* ── کارتِ مارکِ سفارشی: گره‌های خنثی با سلسله‌مراتبِ خوانا ── */
   .tm-mark {
-    --tm-mark-base: var(--tm-accent);
-    --tm-mark-bg: color-mix(in oklab, var(--tm-mark-base) 10%, var(--tm-bg));
-    --tm-mark-border: color-mix(in oklab, var(--tm-mark-base) 40%, var(--tm-bg));
-    --tm-mark-fg: color-mix(in oklab, var(--tm-mark-base) 75%, var(--tm-fg));
-
-    background: var(--tm-mark-bg);
-    border-radius: 0.5rem;
+    background: color-mix(in oklab, var(--tm-bg) 96%, var(--tm-code-bg));
+    border: 1px solid var(--tm-border);
+    border-radius: 1rem;
     margin-block: 1rem;
   }
 
@@ -90,7 +86,7 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.5rem 0.75rem;
-    color: var(--tm-mark-fg);
+    color: var(--tm-fg);
     font-weight: 600;
     font-size: 0.875rem;
   }
@@ -101,24 +97,17 @@
 
   .tm-mark-body {
     padding: 0 0.75rem 0.75rem;
+    border-inline-start: 1px solid var(--tm-border);
+    margin-inline-start: 0.75rem;
   }
 
   .tm-mark-body > :first-child {
     margin-block-start: 0;
   }
 
-  /* شکل‌ها */
-  .tm-mark[data-variant="نوار"] {
-    border-inline-start: 3px solid var(--tm-mark-border);
-  }
-
-  .tm-mark[data-variant="کادر"] {
-    border: 1px solid var(--tm-mark-border);
-  }
-
   .tm-mark[data-variant="ساده"] {
-    background: transparent;
-    padding-inline-start: 0;
+    background: var(--tm-soft-bg);
+    box-shadow: 0 5px 16px rgb(36 59 90 / 0.05);
   }
 
   .tm-mark-inline {
@@ -202,7 +191,6 @@
    */
   .tm-inline-fold {
     position: absolute;
-    transform: translateX(-100%);
     inline-size: 1.25rem;
     block-size: 1.25rem;
     display: inline-grid;
@@ -217,11 +205,131 @@
     cursor: pointer;
     user-select: none;
     opacity: 0.55;
-    transition: opacity 120ms;
+    transition: opacity 120ms, background-color 120ms, color 120ms;
   }
 
-  .tm-root[dir="rtl"] .tm-inline-fold {
-    transform: translateX(100%);
+  .tm-inline-fold > svg,
+  .tm-list-fold-toggle > svg {
+    inline-size: 1em;
+    block-size: 1em;
+  }
+
+  /* هشدارها استثنا هستند: رنگ معنایی‌شان باید برای تشخیص فوری حفظ شود. */
+  .tm-mark:is([data-mark="هشدار"], [data-mark="warning"], [data-mark="caution"]) {
+    --tm-alert: #dc2626;
+  }
+  .tm-mark[data-mark="note"] { --tm-alert: #2563eb; }
+  .tm-mark[data-mark="tip"] { --tm-alert: #0891b2; }
+  .tm-mark[data-mark="important"] { --tm-alert: #7c3aed; }
+  .tm-mark[data-mark="warning"] { --tm-alert: #f59e0b; }
+  .tm-mark[data-mark="caution"] { --tm-alert: #dc2626; }
+  .tm-mark:is([data-mark="هشدار"], [data-mark="note"], [data-mark="tip"], [data-mark="important"], [data-mark="warning"], [data-mark="caution"]) {
+    background: color-mix(in oklab, var(--tm-alert) 10%, var(--tm-bg));
+    border-color: color-mix(in oklab, var(--tm-alert) 42%, var(--tm-bg));
+  }
+  .tm-mark:is([data-mark="هشدار"], [data-mark="note"], [data-mark="tip"], [data-mark="important"], [data-mark="warning"], [data-mark="caution"]) > .tm-mark-header {
+    color: color-mix(in oklab, var(--tm-alert) 78%, var(--tm-fg));
+  }
+
+  .tm-mark[data-collapsible="true"][data-folded="false"] > .tm-mark-header {
+    border-block-end: 1px solid var(--tm-border);
+  }
+
+  /* سرفصل‌های Markdown نیز همان قراردادِ آکاردئونِ کارت‌ها را دارند:
+   * هدرِ کامل قابلِ کلیک است، chevron داخل کارت می‌ماند و محتوا با
+   * fold plugin پنهان/نمایان می‌شود. */
+  .tm-editor .tm-heading-accordion {
+    position: relative;
+    box-sizing: border-box;
+    margin-block: 1rem 0.5rem;
+    padding: 0.5rem 2.25rem 0.5rem 0.75rem;
+    border: 1px solid var(--tm-border);
+    border-radius: 0.5rem;
+    background: color-mix(in oklab, var(--tm-bg) 96%, var(--tm-code-bg));
+    cursor: pointer;
+    transition: background-color 120ms, border-color 120ms;
+  }
+
+  /* سطحِ هر گره از outline خوانده می‌شود؛ در RTL، آغازِ خط همان سمت راست
+   * است و کارتِ فرزند دقیقاً ۱۴px به داخل می‌رود. */
+  .tm-editor .tm-heading-accordion[data-tree-depth],
+  .tm-editor .tm-mark[data-tree-depth] {
+    margin-inline-start: var(--tm-tree-indent, 0px);
+  }
+
+  .tm-editor .tm-section-content:not(.tm-mark) {
+    margin-inline-start: var(--tm-section-indent, 0px);
+    margin-inline-end: 0;
+  }
+
+  .tm-root[dir="rtl"] .tm-editor .tm-heading-accordion {
+    padding-inline: 2.25rem 0.75rem;
+  }
+
+  .tm-editor .tm-heading-accordion:hover {
+    background: var(--tm-raised-bg);
+    border-color: color-mix(in oklab, var(--tm-border) 75%, var(--tm-accent));
+  }
+
+  .tm-section-frame-host {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .tm-section-frames {
+    position: absolute;
+    z-index: 2;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .tm-section-frame {
+    position: absolute;
+    inset-inline-end: 0;
+    box-sizing: border-box;
+    border: 1px solid var(--tm-border);
+    border-radius: 0.5rem;
+    background: transparent;
+  }
+
+  .tm-section-frame-host > .tm-editor {
+    z-index: 1;
+  }
+
+  /* بخش باز سرِ همان قابِ والد است؛ بخش بسته کارتِ مستقل می‌ماند. */
+  .tm-editor .tm-heading-accordion[data-folded="false"] {
+    border-color: transparent;
+    border-block-end-color: var(--tm-border);
+    border-radius: 1rem 1rem 0 0;
+    background: transparent;
+  }
+
+  .tm-editor .tm-heading-accordion .tm-inline-fold {
+    inset-block-start: 50%;
+    inset-inline-start: 0.5rem;
+    inset-inline-end: auto;
+    transform: translateY(-50%);
+    opacity: 1;
+  }
+
+  .tm-editor .tm-heading-accordion[data-folded="false"] .tm-inline-fold > svg {
+    transform: rotate(180deg);
+  }
+
+  /* نخستین محتوای هر بخش با فاصلهٔ مشخص از هدر شروع می‌شود. */
+  .tm-editor .tm-heading-accordion + p,
+  .tm-editor .tm-heading-accordion + .tm-mark,
+  .tm-editor .tm-heading-accordion + h2,
+  .tm-editor .tm-heading-accordion + h3,
+  .tm-editor .tm-heading-accordion + h4,
+  .tm-editor .tm-heading-accordion + h5,
+  .tm-editor .tm-heading-accordion + h6,
+  .tm-editor .tm-heading-accordion + ul,
+  .tm-editor .tm-heading-accordion + ol,
+  .tm-editor .tm-heading-accordion + blockquote,
+  .tm-editor .tm-heading-accordion + pre,
+  .tm-editor .tm-heading-accordion + table {
+    margin-block-start: 1rem;
   }
 
   /* دیده‌شدن: با hoverِ سرفصل، با فوکوسِ کیبورد، یا وقتی بسته است.
@@ -249,15 +357,6 @@
     outline-offset: 1px;
   }
 
-  /* بسته → مثلث می‌چرخد. جهتِ چرخش در RTL برعکس است. */
-  .tm-editor [data-folded="true"] .tm-inline-fold {
-    transform: translateX(-100%) rotate(-90deg);
-  }
-
-  .tm-root[dir="rtl"] .tm-editor [data-folded="true"] .tm-inline-fold {
-    transform: translateX(100%) rotate(90deg);
-  }
-
   @media (prefers-reduced-motion: reduce) {
     .tm-inline-fold {
       transition: none;
@@ -269,39 +368,35 @@
     display: none !important;
   }
 
-  .tm-fold-summary {
-    display: inline-block;
-    font-size: 0.8125rem;
-    color: var(--tm-muted);
-    background: var(--tm-code-bg);
-    border: 1px dashed var(--tm-border);
-    border-radius: 999px;
-    padding: 0.125rem 0.625rem;
-    margin-block: 0.25rem;
-    cursor: pointer;
-  }
-
   .tm-fold-toggle {
-    background: none;
-    border: 0;
-    cursor: pointer;
     color: var(--tm-muted);
     padding: 0 0.25rem;
     line-height: 1;
   }
 
-  .tm-fold-toggle[aria-expanded="false"] .tm-fold-chevron {
-    /* در RTL جهتِ بسته برعکس است. */
-    transform: rotate(var(--tm-chevron-closed, -90deg));
+  .tm-mark .tm-fold-toggle {
+    display: inline-flex;
+    align-items: center;
+    min-block-size: 1.5rem;
+    border-radius: 0.25rem;
   }
 
-  .tm-root[dir="rtl"] {
-    --tm-chevron-closed: 90deg;
+  .tm-mark[data-collapsible="true"] > .tm-mark-header:hover .tm-fold-toggle,
+  .tm-mark[data-collapsible="true"] > .tm-mark-header:focus-visible .tm-fold-toggle {
+    background: var(--tm-code-bg);
+    color: var(--tm-accent);
+  }
+
+  .tm-mark[data-folded="true"] .tm-fold-chevron {
+    transform: rotate(0deg);
   }
 
   .tm-fold-chevron {
     display: inline-block;
+    inline-size: 1rem;
+    block-size: 1rem;
     transition: transform 120ms;
+    transform: rotate(180deg);
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -320,8 +415,10 @@
   .tm-root {
     display: flex;
     gap: 0;
-    align-items: flex-start;
-    justify-content: center;
+    inline-size: 100%;
+    min-block-size: 100%;
+    align-items: stretch;
+    justify-content: flex-start;
   }
 
   /* `row` با direction هماهنگ است: فارسی پنل را راست و انگلیسی چپ می‌گذارد. */
@@ -353,18 +450,21 @@
   .tm-sidebar-resizer::after {
     content: "";
     position: absolute;
-    inset-block: 0;
-    inset-inline-start: calc(50% - 1px);
-    inline-size: 2px;
-    background: transparent;
-    transition: background 120ms, inline-size 120ms;
+    inset-block-start: 50%;
+    inset-inline-start: 50%;
+    inline-size: 4px;
+    block-size: 3rem;
+    border-radius: 999px;
+    background: var(--tm-border);
+    transform: translate(-50%, -50%);
+    transition: background 120ms, block-size 120ms;
   }
 
   .tm-sidebar-resizer:hover::after,
   .tm-sidebar-resizer:focus-visible::after,
   .tm-root[data-outline-resizing="true"] .tm-sidebar-resizer::after {
-    inline-size: 3px;
-    background: var(--tm-accent);
+    block-size: 4rem;
+    background: var(--tm-muted);
   }
 
   .tm-root[data-outline-resizing="true"] {
@@ -375,8 +475,11 @@
   .tm-main {
     flex: 1 1 auto;
     min-width: 0; /* بی این، بلوکِ کدِ طولانی کلِ چیدمان را می‌کشد */
-    /* بیش از عرضِ خواندنی کش نیاید — وگرنه ستون از پنل دور می‌افتد. */
-    max-width: var(--tm-measure);
+    min-block-size: 0;
+    max-width: none;
+    /* جای خواندن را فقط scroll-anchor خودِ کامپوننت نگه می‌دارد؛ لنگر
+     * خودکار مرورگر هم‌زمان با آن رقابت نمی‌کند. */
+    overflow-anchor: none;
   }
 
   .tm-root[data-fullscreen] .tm-main {
@@ -386,7 +489,10 @@
   .tm-editor {
     /* نشانه‌ها `position: absolute`اند و به این لنگر نیاز دارند. */
     position: relative;
-    max-width: var(--tm-measure);
+    inline-size: 100%;
+    min-block-size: 100%;
+    max-width: none;
+    box-sizing: border-box;
     outline: none;
     /* خودِ caret نشان می‌دهد فوکوس کجاست؛ دورِ کلِ سند کادر نمی‌کشیم. */
     caret-color: var(--tm-accent);
@@ -396,8 +502,9 @@
      * `--tm-measure` عرضِ خواندنی را محدود می‌کند (که درست است)، ولی بی
      * این خط، همهٔ فضای اضافه یک‌طرفه جمع می‌شد و صفحه نامتوازن
      * دیده می‌شد — به‌خصوص در تمام‌صفحه که فضای اضافه زیاد است. */
-    margin-inline: auto;
+    margin-inline: 0;
     white-space: pre-wrap;
+    overflow-anchor: none;
   }
 
   .tm-editor [data-auto-dir="true"] {
@@ -414,8 +521,11 @@
   }
 
   .tm-source {
-    width: 100%;
-    min-height: 24rem;
+    flex: 1 1 auto;
+    inline-size: 100%;
+    min-block-size: 100%;
+    block-size: 100%;
+    box-sizing: border-box;
     font-family: var(--tm-font-mono);
     font-size: 0.9375rem;
     line-height: 1.7;
@@ -424,7 +534,9 @@
     border: 1px solid var(--tm-border);
     border-radius: 0.5rem;
     padding: 1rem;
-    resize: vertical;
+    resize: none;
+    text-align: start;
+    unicode-bidi: plaintext;
   }
 
   /* ── بلوکِ کد ──
@@ -647,7 +759,20 @@
   /* ── منوی / ── */
   .tm-editor-wrap {
     position: relative;
+    flex: 1 0 auto;
+    inline-size: 100%;
+    min-block-size: 100%;
     zoom: var(--tm-content-zoom, 1);
+  }
+
+  .tm-editor-wrap[hidden] {
+    display: none;
+  }
+
+  .tm-editor-mount {
+    display: flex;
+    inline-size: 100%;
+    min-block-size: 100%;
   }
 
   .tm-slash-menu {
@@ -949,6 +1074,7 @@
     background: var(--tm-bg);
     color: var(--tm-fg);
     cursor: pointer;
+    transition: background 120ms ease, border-color 120ms ease;
   }
 
   /* عنوانِ بسته مثلِ سرِ یک آکاردئون دیده می‌شود؛ فضای سفیدِ بزرگ میان
@@ -1481,8 +1607,10 @@
   .tm-editor h4,
   .tm-editor h5,
   .tm-editor h6 {
-    font-weight: 700;
-    line-height: 1.3;
+    color: var(--tm-heading);
+    font-weight: 800;
+    line-height: 1.45;
+    letter-spacing: -0.02em;
     /* ★ فاصلهٔ بالا بیشتر از پایین: سرفصل به متنِ **زیرِ** خودش تعلق
      * دارد، نه به متنِ بالایی. */
     margin-block: 1.6em 0.6em;
@@ -1496,10 +1624,10 @@
   }
 
   /* اندازه‌ها نسبی‌اند تا با `--tm-font-size` مقیاس بخورند. */
-  .tm-editor h1 { font-size: 1.75em; }
-  .tm-editor h2 { font-size: 1.4em; }
-  .tm-editor h3 { font-size: 1.2em; }
-  .tm-editor h4 { font-size: 1.05em; }
+  .tm-editor h1 { font-size: clamp(1.55rem, 3.2vw, 2.35rem); }
+  .tm-editor h2 { font-size: clamp(1.2rem, 2.3vw, 1.75rem); }
+  .tm-editor h3 { color: var(--tm-accent); font-size: clamp(1.05rem, 1.75vw, 1.3rem); }
+  .tm-editor h4 { font-size: 1.1rem; }
   .tm-editor h5 { font-size: 1em; }
   .tm-editor h6 { font-size: 0.9em; color: var(--tm-muted); }
 
@@ -1512,7 +1640,7 @@
   }
 
   .tm-editor p {
-    margin-block: 0.75em;
+    margin-block: 0.85rem;
   }
 
   /* ── فهرست ── */
@@ -1531,6 +1659,11 @@
 
   .tm-editor li {
     margin-block: 0.25em;
+  }
+
+  .tm-editor li::marker {
+    color: var(--tm-accent);
+    font-weight: 700;
   }
 
   .tm-word-count-popover {
@@ -1586,7 +1719,8 @@
     font: inherit;
     line-height: 1;
     cursor: pointer;
-    transition: rotate 120ms ease, background 120ms ease;
+    transform: rotate(180deg);
+    transition: transform 120ms ease, background 120ms ease;
   }
 
   .tm-editor .tm-list-fold-toggle:hover,
@@ -1596,11 +1730,7 @@
   }
 
   .tm-editor .tm-list-node[data-list-folded="true"] > .tm-list-fold-toggle {
-    rotate: -90deg;
-  }
-
-  .tm-root[dir="rtl"] .tm-editor .tm-list-node[data-list-folded="true"] > .tm-list-fold-toggle {
-    rotate: 90deg;
+    transform: rotate(0deg);
   }
 
   .tm-editor .tm-list-folded-hidden {
@@ -1666,11 +1796,15 @@
 
   /* ── نقلِ قول ── */
   .tm-editor blockquote {
-    margin-block: 1em;
+    margin-block: 1.35rem;
     margin-inline: 0;
-    padding-inline-start: 1em;
-    border-inline-start: 3px solid color-mix(in oklab, var(--tm-accent) 45%, var(--tm-bg));
+    padding: 0.9rem 1.15rem;
+    border: 1px solid var(--tm-border);
+    border-inline-start: 4px solid var(--tm-accent);
+    border-radius: 0.9rem;
+    background: linear-gradient(135deg, var(--tm-soft-bg), transparent);
     color: var(--tm-muted);
+    box-shadow: 0 8px 24px rgb(0 0 0 / 0.08);
   }
 
   .tm-editor blockquote > :first-child { margin-block-start: 0; }

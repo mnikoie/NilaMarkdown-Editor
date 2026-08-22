@@ -174,7 +174,7 @@ export function ViewMenu({
     },
     {
       id: "fold-accordion",
-      label: "فقط یک بخش هم‌سطح باز بماند",
+      label: "در هر سطح فقط یک بخش باز باشد",
       run: () => onFoldModeChange?.(foldMode === "accordion" ? "multiple" : "accordion"),
       checked: () => foldMode === "accordion",
     },

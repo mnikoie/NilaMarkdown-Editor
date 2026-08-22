@@ -72,10 +72,13 @@ export function buildOutline(
   const first = doc.firstChild;
   let h1Count = 0;
   let anchoredH1Count = 0;
+  let chapterH1AfterTitle = false;
+  const looksLikeChapter = (title: string) => /^(?:فصل(?:\s|:)|chapter(?:\s|:))/iu.test(title.trim());
   doc.descendants((node) => {
     if (node.type.name === "heading" && node.attrs.level === 1) {
       h1Count++;
       if (node.attrs.id) anchoredH1Count++;
+      if (node !== first && looksLikeChapter(textOfNode(node))) chapterH1AfterTitle = true;
     }
     return true;
   });
@@ -84,7 +87,7 @@ export function buildOutline(
     first.attrs.level === 1 &&
     !first.attrs.id &&
     h1Count > 1 &&
-    anchoredH1Count > 0;
+    (anchoredH1Count > 0 || (!looksLikeChapter(textOfNode(first)) && chapterH1AfterTitle));
 
   doc.descendants((node, pos) => {
     let entry: OutlineNode | null = null;

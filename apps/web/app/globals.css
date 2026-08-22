@@ -164,14 +164,26 @@
   padding: 0 2rem;
 }
 
+.markdown-workspace .tm-demo-editor[data-mode="source"] > .tm-main {
+  overflow: hidden;
+}
+
 .markdown-workspace .tm-demo-editor .tm-editor-wrap {
   flex: 1 0 auto;
+  min-height: 100%;
   padding-block-end: 3rem;
 }
 
 .markdown-workspace .tm-demo-editor .tm-editor {
   width: 100%;
-  max-width: 90rem;
+  min-height: 100%;
+  max-width: none;
+}
+
+.markdown-workspace .tm-demo-editor .tm-source {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: calc(100% + 0.75rem);
 }
 
 .markdown-workspace .tm-demo-editor .tm-controls {

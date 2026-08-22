@@ -9,7 +9,6 @@ import { gapCursor } from "prosemirror-gapcursor";
 import { schema } from "../core/schema/index.js";
 import { parse } from "../core/markdown/parse.js";
 import { serialize } from "../core/markdown/serialize.js";
-import { livePreviewPlugin } from "../core/plugins/live-preview.js";
 import { foldPlugin, type FoldingOptions } from "../core/plugins/fold.js";
 import { inputRulesPlugin } from "../core/plugins/input-rules.js";
 import { keymapPlugin } from "../core/plugins/keymap.js";
@@ -185,7 +184,6 @@ export function useEditor(options: UseEditorOptions): {
         }),
         inputRulesPlugin(directives),
         autoPairPlugin(),
-        livePreviewPlugin({ requireFocus: true }),
         foldPlugin({
           registry: directives,
           initial: foldedIds ?? (folding?.initial === "expanded" ? [] : "all"),

@@ -221,8 +221,8 @@ describe("ادیتور — یکپارچه", () => {
 
     expect(before).toBe(0);
     expect(after).toBeGreaterThan(0);
-    // خلاصه‌ای هم نشان داده می‌شود
-    expect(view.dom.querySelector(".tm-fold-summary")?.textContent).toContain("پنهان");
+    // کنترل اضافی یا متنِ خلاصه وجود ندارد؛ همان chevron سرفصل برای بازکردن کافی است.
+    expect(view.dom.querySelector(".tm-fold-summary")).toBeNull();
     // و سند دست‌نخورده است
     expect(serialize(view.state.doc)).toBe("# فصل\n\nمتنِ داخل\n\n# فصل دو\n\nمتنِ دو\n");
     view.destroy();

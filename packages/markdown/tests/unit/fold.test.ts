@@ -3,7 +3,7 @@ import { EditorState, TextSelection } from "prosemirror-state";
 import { parse } from "../../src/core/markdown/parse.js";
 import { serialize } from "../../src/core/markdown/serialize.js";
 import { schema } from "../../src/core/schema/index.js";
-import { foldPlugin, foldKey, toggleFold, foldAll, unfoldAll, isFolded } from "../../src/core/plugins/fold.js";
+import { foldPlugin, foldKey, toggleFold, foldAll, unfoldAll, isFolded, setFoldMode } from "../../src/core/plugins/fold.js";
 import { buildOutline, flattenOutline } from "../../src/core/outline/build.js";
 
 const MD =
@@ -116,10 +116,7 @@ describe("تاشدن", () => {
     }
   });
 
-  it("★ شمارشِ خلاصه، بلوکِ تودرتو را چندبار نمی‌شمارد", () => {
-    // بخشِ «فصل» شاملِ یک پاراگراف و یک کارت است (کارت خودش دو پاراگرافِ
-    // تودرتو دارد). پنهان‌شده‌ها ۲ بلوکِ سطحِ اول‌اند — نه ۴ یا ۵ که با
-    // شمارشِ تودرتو در می‌آمد. خودِ سرفصل پنهان نمی‌شود.
+  it("★ بخشِ بسته فقط کنترلِ chevron را نگه می‌دارد", () => {
     const md =
       "# فصل\n\nیک\n\n:::نکته\nدو\n\nسه\n:::\n\n# فصلِ بعد\n\nبیرون\n";
     let state = makeState(md);
@@ -129,15 +126,32 @@ describe("تاشدن", () => {
     );
     toggleFold("فصل")(state, (tr) => (state = state.apply(tr)));
 
-    const widget = foldKey
+    const controls = foldKey
       .getState(state)!
       .decorations.find()
-      .find((d) => (d.spec as { key?: string }).key?.startsWith("fold-"));
-    expect(widget).toBeDefined();
+      .filter((d) => (d.spec as { key?: string }).key?.startsWith("handle-"));
+    expect(controls).toHaveLength(2);
+    expect(
+      foldKey.getState(state)!.decorations.find()
+        .some((d) => (d.spec as { key?: string }).key?.startsWith("fold-")),
+    ).toBe(false);
+  });
 
-    const toDOM = (widget as unknown as { type: { toDOM: unknown } }).type.toDOM;
-    const el = typeof toDOM === "function" ? (toDOM as () => HTMLElement)() : (toDOM as HTMLElement);
-    expect(el.textContent).toBe("۲ بلوکِ پنهان");
+  it("★★ کارتِ ساختاری خلاصهٔ موازیِ «بلوک پنهان» نمی‌سازد", () => {
+    const md = ":::ماده{شماره=۳۹ وضعیت=منسوخ}\nمتنِ ماده\n:::\n\nبیرون\n";
+    let state = makeState(md);
+    const node = buildOutline(state.doc)[0]!;
+    state = state.apply(
+      state.tr.setSelection(TextSelection.create(state.doc, state.doc.content.size - 2)),
+    );
+    toggleFold(node.id, node.from)(state, (tr) => (state = state.apply(tr)));
+
+    expect(isFolded(state, node.id)).toBe(true);
+    const summaries = foldKey
+      .getState(state)!
+      .decorations.find()
+      .filter((deco) => (deco.spec as { key?: string }).key?.startsWith("fold-"));
+    expect(summaries).toHaveLength(0);
   });
 
   it("لنگرِ ناموجود خطا نمی‌دهد", () => {
@@ -181,7 +195,7 @@ describe("تاشدن", () => {
       .getState(state)!
       .decorations.find()
       .filter((deco) => (deco.spec as { key?: string }).key?.startsWith("fold-"));
-    expect(summaries).toHaveLength(2); // فقط دو فصلِ ریشه، نه خلاصهٔ بخشِ پنهانِ داخل فصل
+    expect(summaries).toHaveLength(0);
   });
 
   it("در حالت آکاردئون فقط یک عنوانِ هم‌سطح باز می‌ماند", () => {
@@ -196,6 +210,26 @@ describe("تاشدن", () => {
     toggleFold(roots[1]!.id, roots[1]!.from)(state, (tr) => (state = state.apply(tr)));
     expect(isFolded(state, roots[0]!.id)).toBe(true);
     expect(isFolded(state, roots[1]!.id)).toBe(false);
+  });
+
+  it("با فعال‌کردن آکاردئون، آخرین گرهٔ بازشده در هر سطح می‌ماند", () => {
+    const md = "# اول\n\n## فرزند اول\n\n## فرزند دوم\n\n# دوم\n";
+    let state = EditorState.create({
+      doc: parse(md),
+      schema,
+      plugins: [foldPlugin({ initial: "all", mode: "multiple" })],
+    });
+    const [first, second] = buildOutline(state.doc);
+    const [childOne, childTwo] = first!.children;
+    for (const node of [first!, second!, childOne!, childTwo!]) {
+      toggleFold(node.id, node.from)(state, (tr) => (state = state.apply(tr)));
+    }
+    setFoldMode("accordion")(state, (tr) => (state = state.apply(tr)));
+
+    expect(isFolded(state, first!.id)).toBe(true);
+    expect(isFolded(state, second!.id)).toBe(false);
+    expect(isFolded(state, childOne!.id)).toBe(true);
+    expect(isFolded(state, childTwo!.id)).toBe(false);
   });
 
   it("بستنِ بخشی که مکان‌نما داخلش است، مکان‌نما را به عنوان منتقل می‌کند", () => {

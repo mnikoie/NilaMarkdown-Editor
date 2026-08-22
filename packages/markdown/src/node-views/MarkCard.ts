@@ -1,8 +1,10 @@
 import type { Node as PMNode } from "prosemirror-model";
 import type { EditorView, NodeView, ViewMutationRecord } from "prosemirror-view";
 import type { MarkDefinition, MarkRegistry } from "../core/directives/types.js";
+import { toggleFoldPreservingScroll } from "../core/plugins/fold.js";
 import type { FoldInitialState, FoldMode } from "../core/plugins/fold.js";
 import { buildOutline, flattenOutline } from "../core/outline/build.js";
+import { preserveScrollAnchor } from "../core/plugins/scroll-anchor.js";
 
 export interface MarkCardOptions {
   initial?: FoldInitialState;
@@ -11,7 +13,25 @@ export interface MarkCardOptions {
 }
 
 const cardViews = new WeakMap<EditorView, Set<MarkCardView>>();
-const foldIdsByView = new WeakMap<EditorView, { doc: PMNode; ids: Map<number, string> }>();
+const foldIdsByView = new WeakMap<EditorView, {
+  doc: PMNode;
+  nodes: Map<number, { id: string; depth: number }>;
+}>();
+
+function lucideChevron(): SVGSVGElement {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("fill", "none");
+  svg.setAttribute("stroke", "currentColor");
+  svg.setAttribute("stroke-width", "2");
+  svg.setAttribute("stroke-linecap", "round");
+  svg.setAttribute("stroke-linejoin", "round");
+  svg.classList.add("tm-fold-chevron");
+  const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  path.setAttribute("d", "m6 9 6 6 6-6");
+  svg.append(path);
+  return svg;
+}
 
 /**
  * رندرِ یک directive به‌صورتِ کارت.
@@ -30,16 +50,27 @@ export class MarkCardView implements NodeView {
   private header: HTMLElement;
   private body: HTMLElement;
   private toggle: HTMLButtonElement | null = null;
+  private animationTimer: number | null = null;
   private open: boolean;
   private readonly onSetFold = (event: Event) => {
     const open = (event as CustomEvent<{ open?: boolean }>).detail?.open;
     if (typeof open !== "boolean" || this.open === open) return;
     this.open = open;
-    this.applyOpen();
+    this.applyOpen(true);
   };
   private readonly onHeaderMouseDown = (event: MouseEvent) => {
     if (event.button !== 0 || !this.toggle) return;
-    if ((event.target as Element).closest(".tm-fold-toggle")) return;
+    const target = event.target as HTMLElement | null;
+    if (!target?.closest) return;
+    const control = target.closest("button, input, select, textarea, a, [role='button'], [data-no-fold-toggle]");
+    if (control && control !== this.header) return;
+    event.preventDefault();
+    this.setOpen(!this.open);
+  };
+  private readonly onHeaderKeyDown = (event: KeyboardEvent) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    const target = event.target as HTMLElement | null;
+    if (target !== this.header) return;
     event.preventDefault();
     this.setOpen(!this.open);
   };
@@ -70,6 +101,7 @@ export class MarkCardView implements NodeView {
     this.dom.append(this.header, this.body);
     this.dom.addEventListener("tm-set-fold", this.onSetFold);
     this.header.addEventListener("mousedown", this.onHeaderMouseDown);
+    this.header.addEventListener("keydown", this.onHeaderKeyDown);
     const views = cardViews.get(view) ?? new Set<MarkCardView>();
     views.add(this);
     cardViews.set(view, views);
@@ -105,13 +137,9 @@ export class MarkCardView implements NodeView {
       this.toggle.className = "tm-fold-toggle";
       this.toggle.setAttribute("aria-expanded", String(this.open));
       this.toggle.setAttribute("aria-label", this.toggleLabel(def?.label ?? name));
-      const chevron = document.createElement("span");
-      chevron.className = "tm-fold-chevron";
+      const chevron = lucideChevron();
       chevron.setAttribute("aria-hidden", "true");
-      chevron.textContent = "⌄";
       this.toggle.append(chevron);
-      // mousedown پیش از تراکنشِ focus اجرا می‌شود؛ اگر منتظر click بمانیم
-      // ProseMirror ممکن است NodeView را میانِ down/up به‌روزرسانی کند.
       this.toggle.addEventListener("mousedown", (e) => {
         e.preventDefault();
         this.setOpen(!this.open);
@@ -150,9 +178,16 @@ export class MarkCardView implements NodeView {
     }
 
     this.dom.setAttribute("aria-label", `${def?.label ?? name}`);
-    const foldId = this.foldId();
-    if (foldId) this.dom.setAttribute("data-fold-id", foldId);
-    else this.dom.removeAttribute("data-fold-id");
+    const fold = this.foldNode();
+    if (fold) {
+      this.dom.setAttribute("data-fold-id", fold.id);
+      this.dom.setAttribute("data-tree-depth", String(fold.depth));
+      this.dom.style.setProperty("--tm-tree-indent", `${fold.depth * 14}px`);
+    } else {
+      this.dom.removeAttribute("data-fold-id");
+      this.dom.removeAttribute("data-tree-depth");
+      this.dom.style.removeProperty("--tm-tree-indent");
+    }
     this.applyOpen();
   }
 
@@ -172,29 +207,35 @@ export class MarkCardView implements NodeView {
     }
   }
 
-  private setOpen(open: boolean) {
+  private setOpen(open: boolean, preserve = true) {
     if (this.open === open) return;
-    if (open && this.foldMode() === "accordion") {
-      const parent = this.parentNode();
-      for (const card of cardViews.get(this.view) ?? []) {
-        if (card !== this && card.parentNode() === parent) card.setOpen(false);
+    const change = () => {
+      if (open && this.foldMode() === "accordion") {
+        const parent = this.parentNode();
+        for (const card of cardViews.get(this.view) ?? []) {
+          if (card !== this && card.parentNode() === parent) card.setOpen(false, false);
+        }
       }
-    }
-    this.open = open;
-    this.applyOpen();
-    const id = this.foldId();
-    const pos = this.getPos();
-    if (id && typeof pos === "number") {
-      this.dom.dispatchEvent(
-        new CustomEvent("tm-card-fold-change", {
-          bubbles: true,
-          detail: { id, pos, open },
-        }),
-      );
-    }
+      this.open = open;
+      this.applyOpen(true);
+      const id = this.foldId();
+      const pos = this.getPos();
+      if (id && typeof pos === "number") {
+        // NodeView مستقیماً منبعِ واحدِ fold را به‌روز می‌کند. تکیه به
+        // رویدادِ React باعث می‌شد کارت در بعضی مرورگرها یک‌بار باز و
+        // بلافاصله با state قدیمی دوباره بسته شود.
+        toggleFoldPreservingScroll(this.view, id, pos);
+      }
+    };
+    if (preserve) preserveScrollAnchor(this.header, change);
+    else change();
   }
 
   private foldId(): string | null {
+    return this.foldNode()?.id ?? null;
+  }
+
+  private foldNode(): { id: string; depth: number } | null {
     const pos = this.getPos();
     if (typeof pos !== "number") return null;
     const doc = this.view.state.doc;
@@ -202,11 +243,18 @@ export class MarkCardView implements NodeView {
     if (!cached || cached.doc !== doc) {
       cached = {
         doc,
-        ids: new Map(flattenOutline(buildOutline(doc, this.registry)).map((node) => [node.from, node.id])),
+        nodes: new Map(),
       };
+      const add = (nodes: ReturnType<typeof buildOutline>, depth: number) => {
+        for (const node of nodes) {
+          cached!.nodes.set(node.from, { id: node.id, depth });
+          add(node.children, depth + 1);
+        }
+      };
+      add(buildOutline(doc, this.registry), 0);
       foldIdsByView.set(this.view, cached);
     }
-    return cached.ids.get(pos) ?? null;
+    return cached.nodes.get(pos) ?? null;
   }
 
   private foldMode(): FoldMode {
@@ -224,13 +272,67 @@ export class MarkCardView implements NodeView {
     return `${this.open ? "بستنِ" : "بازکردنِ"} ${title}`;
   }
 
-  private applyOpen() {
-    this.body.style.display = this.open ? "" : "none";
+  private applyOpen(animate = false) {
+    if (this.animationTimer !== null) {
+      window.clearTimeout(this.animationTimer);
+      this.animationTimer = null;
+    }
+    const reduced = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const finish = () => {
+      this.body.style.removeProperty("block-size");
+      this.body.style.removeProperty("overflow");
+      this.body.style.removeProperty("transition");
+      this.body.style.removeProperty("opacity");
+      if (!this.open) this.body.style.display = "none";
+    };
+
+    if (!animate || reduced || !this.body.isConnected) {
+      this.body.style.display = this.open ? "" : "none";
+      this.body.style.removeProperty("block-size");
+      this.body.style.removeProperty("overflow");
+      this.body.style.removeProperty("transition");
+    } else if (this.open) {
+      this.body.style.display = "";
+      this.body.style.overflow = "hidden";
+      this.body.style.blockSize = "0px";
+      const height = this.body.scrollHeight;
+      requestAnimationFrame(() => {
+        this.body.style.transition = "block-size 180ms ease, opacity 160ms ease";
+        this.body.style.opacity = "1";
+        this.body.style.blockSize = `${height}px`;
+      });
+      this.animationTimer = window.setTimeout(() => {
+        this.animationTimer = null;
+        finish();
+      }, 210);
+    } else {
+      const height = this.body.getBoundingClientRect().height;
+      // jsdom layout ندارد؛ در مرورگرِ واقعی height مثبت است و transition
+      // اجرا می‌شود. در محیطِ بی‌layout باید فوراً به حالت نهایی برسیم.
+      if (height <= 0) {
+        this.body.style.display = "none";
+        this.body.style.removeProperty("block-size");
+        this.body.style.removeProperty("overflow");
+        this.body.style.removeProperty("transition");
+        this.body.style.removeProperty("opacity");
+        this.toggle?.setAttribute("aria-expanded", String(this.open));
+        this.dom.setAttribute("data-folded", String(!this.open));
+        return;
+      }
+      this.body.style.overflow = "hidden";
+      this.body.style.blockSize = `${height}px`;
+      requestAnimationFrame(() => {
+        this.body.style.transition = "block-size 180ms ease, opacity 140ms ease";
+        this.body.style.opacity = "0";
+        this.body.style.blockSize = "0px";
+      });
+      this.animationTimer = window.setTimeout(() => {
+        this.animationTimer = null;
+        finish();
+      }, 210);
+    }
     this.toggle?.setAttribute("aria-expanded", String(this.open));
-    this.toggle?.setAttribute(
-      "aria-label",
-      this.toggleLabel(this.node.attrs.name as string),
-    );
+    this.toggle?.setAttribute("aria-label", this.toggleLabel(this.node.attrs.name as string));
     this.dom.setAttribute("data-folded", String(!this.open));
   }
 
@@ -259,8 +361,10 @@ export class MarkCardView implements NodeView {
   }
 
   destroy(): void {
+    if (this.animationTimer !== null) window.clearTimeout(this.animationTimer);
     this.dom.removeEventListener("tm-set-fold", this.onSetFold);
     this.header.removeEventListener("mousedown", this.onHeaderMouseDown);
+    this.header.removeEventListener("keydown", this.onHeaderKeyDown);
     cardViews.get(this.view)?.delete(this);
   }
 }

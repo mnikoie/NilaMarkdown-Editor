@@ -1,24 +1,5 @@
-"use client";
-
-import { useState } from "react";
-import { MarkdownEditor, type MarkRegistry, BUILTIN_MARKS } from "@tamin/markdown";
-import "@tamin/markdown/styles.css";
-// ★ CSSِ KaTeX **جدا** است و مصرف‌کننده باید خودش import کند.
-//
-// چرا ما داخلِ `styles.css` نمی‌گذاریمش: KaTeX یک وابستگیِ **اختیاری**
-// است. اگر CSSش را جاسازی کنیم، کسی که ریاضی نمی‌خواهد هم ~۲۵ کیلوبایت
-// و فایل‌های فونت را دانلود می‌کند.
-//
-// بی این خط، فرمول رندر می‌شود ولی به‌صورتِ متنِ درهم — نه خطا، فقط
-// نامفهوم. (`E = mc2` به‌جای فرمولِ درست.)
-import "katex/dist/katex.min.css";
-
-/**
- * صفحهٔ نمایشیِ `@tamin/markdown`.
- *
- * هدف: دیدنِ رفتارِ واقعی در مرورگر. تستِ jsdom خیلی چیزها را ثابت می‌کند
- * ولی چیدمان و پرشِ متن و رفتارِ RTL را فقط با چشم می‌شود دید.
- */
+import { readFile } from "node:fs/promises";
+import { MarkdownDemoClient } from "./MarkdownDemoClient";
 
 const SANAD = `---
 شناسه: "62285360"
@@ -124,45 +105,16 @@ graph TD;
 \`\`\`
 `;
 
-/** یک مارکِ سفارشیِ اضافی — مثالِ چیزی که کاربر از UI می‌سازد. */
-const MARKS: MarkRegistry = {
-  ...BUILTIN_MARKS,
-  تعریف: {
-    name: "تعریف",
-    label: "تعریفِ اصطلاح",
-    kind: "بلوکی",
-    color: "#059669",
-    icon: "📘",
-    variant: "کادر",
-    collapsible: true,
-    defaultOpen: true,
-    counter: true,
-    inputRule: true,
-    attrs: [{ name: "واژه", label: "واژه", type: "متن" }],
-  },
-};
 
-export default function MarkdownDemoPage() {
-  const [markdown, setMarkdown] = useState(SANAD);
+const TEST_DOCUMENT =
+  "D:\\- AIProject\\01- Bakhshnameh\\- خلاصه سازی دستورالعمل\\- Kholase\\- Files\\- MD01\\BakhshnamehTalkhis - 62285360.md";
 
-  return (
-    <main className="markdown-workspace" dir="rtl">
-      <MarkdownEditor
-        defaultValue={SANAD}
-        onChange={setMarkdown}
-        directives={MARKS}
-        outline
-        toolbar
-        stats
-        theme="light"
-        dir="auto"
-        locale="fa"
-        className="tm-demo-editor"
-        placeholder="بنویسید…"
-      />
-      <output data-testid="markdown-output" hidden>
-        {markdown}
-      </output>
-    </main>
-  );
+export default async function MarkdownDemoPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ fixture?: string }>;
+}) {
+  const { fixture } = await searchParams;
+  const markdown = fixture === "demo" ? SANAD : await readFile(TEST_DOCUMENT, "utf8");
+  return <MarkdownDemoClient markdown={markdown} />;
 }

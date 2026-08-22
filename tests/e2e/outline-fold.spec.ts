@@ -10,7 +10,7 @@ import { test, expect } from "@playwright/test";
  */
 
 test.beforeEach(async ({ page }) => {
-  await page.goto("/markdown");
+  await page.goto("/markdown?fixture=demo");
   await page.waitForSelector(".tm-editor", { timeout: 25000 });
 });
 
@@ -72,7 +72,7 @@ test("★★ کلیک روی مثلثِ متن، فصل را می‌بندد و 
   await handle.click();
 
   await expect(h1).toHaveAttribute("data-folded", "true");
-  await expect(page.locator(".tm-fold-summary").first()).toBeVisible();
+  await expect(page.locator(".tm-fold-summary")).toHaveCount(0);
 });
 
 test("★ باز و بسته‌شدن پشتِ‌هم پایدار است", async ({ page }) => {
@@ -99,11 +99,11 @@ test("★ بستنِ فصل، سرفصلش را پنهان نمی‌کند", asy
   await expect(h1).toContainText(text.replace(/^⌄\s*/, ""));
 });
 
-test("★ خلاصه هم فصل را باز می‌کند", async ({ page }) => {
+test("★ chevron همان فصل را دوباره باز می‌کند", async ({ page }) => {
   const h1 = page.locator(".tm-editor h1").first();
   await expect(h1).toHaveAttribute("data-folded", "true");
 
-  await page.locator(".tm-fold-summary").first().click();
+  await h1.locator(".tm-inline-fold").click();
   await expect(h1).toHaveAttribute("data-folded", "false");
 });
 
@@ -211,6 +211,50 @@ test("★★ کارتِ ماده و Outline در هر دو جهت یک state د�
   await expect(outlineToggle).toHaveAttribute("aria-expanded", "true");
 });
 
+test("★★ آکاردئون همهٔ کارت‌های خواهر را همگام می‌بندد و خلاصهٔ جعلی نمی‌سازد", async ({ page }) => {
+  await page.getByRole("button", { name: "نمایش", exact: true }).click();
+  await page.getByRole("menuitem", { name: "بازکردن همهٔ بخش‌ها" }).click();
+
+  const article39 = page.locator('.tm-mark[data-mark="ماده"]').filter({ hasText: "ماده ۳۹" });
+  const articleToggle = article39.locator(":scope > .tm-mark-header > .tm-fold-toggle");
+  const articleBody = article39.locator(":scope > .tm-mark-body");
+  await expect(articleToggle).toHaveAttribute("aria-expanded", "true");
+  await expect(articleBody).toBeVisible();
+
+  // «فهرست‌ها» را می‌بندیم و دوباره باز می‌کنیم. بازشدنش در حالتِ
+  // آکاردئون مادهٔ ۳۹ را به‌عنوانِ خواهر می‌بندد؛ همان مسیرِ باگِ واقعی.
+  const listsHeading = page.locator(".tm-editor h2", { hasText: "فهرست‌ها" });
+  await listsHeading.locator(".tm-inline-fold").click();
+  await expect(listsHeading).toHaveAttribute("data-folded", "true");
+  await listsHeading.locator(".tm-inline-fold").click();
+
+  await expect(listsHeading).toHaveAttribute("data-folded", "false");
+  await expect(listsHeading).toHaveAttribute("aria-expanded", "true");
+  await expect(article39).toHaveAttribute("data-folded", "true");
+  await expect(articleToggle).toHaveAttribute("aria-expanded", "false");
+  await expect(articleBody).toBeHidden();
+  await expect(article39.locator(".tm-fold-summary")).toHaveCount(0);
+});
+
+test("★★ کلیک و تایپ در بدنهٔ کارت آن را ناخواسته نمی‌بندد", async ({ page }) => {
+  await page.getByRole("button", { name: "نمایش", exact: true }).click();
+  await page.getByRole("menuitem", { name: "بازکردن همهٔ بخش‌ها" }).click();
+
+  const card = page.locator('.tm-mark[data-mark="تبصره"]').filter({ hasText: "جریمه" });
+  const body = card.locator(":scope > .tm-mark-body");
+  const paragraph = body.locator("p", { hasText: "جریمه" });
+  await paragraph.click();
+  await page.keyboard.type("آزمایش");
+
+  await expect(card.locator(":scope > .tm-mark-header > .tm-fold-toggle")).toHaveAttribute(
+    "aria-expanded",
+    "true",
+  );
+  await expect(body).toBeVisible();
+  await expect(paragraph).toContainText("آزمایش");
+  await expect(page.getByTestId("markdown-output")).toContainText("آزمایش");
+});
+
 test("★★ اجرای اول همهٔ عنوان‌ها، فهرست‌ها و کارت‌ها بسته‌اند", async ({ page }) => {
   const headings = page.locator(".tm-editor :is(h1,h2,h3,h4,h5,h6)[data-folded]");
   expect(await headings.count()).toBeGreaterThan(0);
@@ -225,15 +269,15 @@ test("★★ اجرای اول همهٔ عنوان‌ها، فهرست‌ها و
   await expect(page.locator(".tm-math-block").first()).toBeHidden();
 });
 
-test("★★ فلشِ فهرستِ بسته در RTL و LTR به داخلِ زیرشاخه اشاره می‌کند", async ({ page }) => {
+test("★★ chevron فهرست در RTL و LTR جهت عمودیِ یکسان دارد", async ({ page }) => {
   const toggle = page.locator(".tm-list-fold-toggle").first();
   await expect(toggle).toHaveAttribute("aria-expanded", "false");
-  await expect(toggle).toHaveCSS("rotate", "90deg");
+  const rtlTransform = await toggle.evaluate((element) => getComputedStyle(element).transform);
 
   await page.getByRole("button", { name: "نمایش", exact: true }).click();
   await page.getByRole("menuitemcheckbox", { name: "انگلیسی" }).click();
   await expect(page.locator(".tm-root")).toHaveAttribute("dir", "ltr");
-  await expect(toggle).toHaveCSS("rotate", "-90deg");
+  expect(await toggle.evaluate((element) => getComputedStyle(element).transform)).toBe(rtlTransform);
 });
 
 test("★★ در حالت تمرکز، کلیک Outline خودِ عنوان را به دید می‌آورد", async ({ page }) => {
@@ -365,4 +409,116 @@ test("★★ عرضِ پنل با ماوس و کیبورد تغییر می‌ک�
   await resizer.focus();
   await page.keyboard.press("ArrowRight");
   await expect.poll(async () => (await sidebar.boundingBox())!.width).toBeLessThan(afterMouse);
+});
+
+test("★★ دستگیرهٔ تغییر عرض کوتاه و خنثی است، نه خطِ آبیِ تمام‌قد", async ({ page }) => {
+  const resizer = page.getByRole("separator", { name: "تغییر عرض پنل ساختار" });
+  const idle = await resizer.evaluate((element) => {
+    const style = getComputedStyle(element, "::after");
+    return {
+      width: Number.parseFloat(style.width),
+      height: Number.parseFloat(style.height),
+      background: style.backgroundColor,
+      accent: getComputedStyle(element.closest(".tm-root")!).getPropertyValue("--tm-accent").trim(),
+    };
+  });
+  expect(idle.width).toBeLessThanOrEqual(6);
+  expect(idle.height).toBeGreaterThanOrEqual(40);
+  expect(idle.height).toBeLessThanOrEqual(72);
+  expect(idle.background).not.toBe("rgba(0, 0, 0, 0)");
+  expect(idle.background).not.toBe(idle.accent);
+
+  await resizer.hover();
+  const hoverHeight = await resizer.evaluate((element) =>
+    Number.parseFloat(getComputedStyle(element, "::after").height),
+  );
+  expect(hoverHeight).toBeLessThanOrEqual(80);
+});
+
+test("★★ متن بلند هنگامِ باز و بسته‌شدن، نقطهٔ خواندن را نگه می‌دارد و کامل باز می‌شود", async ({ page, browserName }) => {
+  const markdown = Array.from(
+    { length: 18 },
+    (_, index) => `# بخش ${index + 1}\n\n${Array.from(
+      { length: 18 },
+      (_, paragraph) => `پاراگراف بلند ${paragraph + 1} برای بررسی کامل نمایش محتوا در بخش ${index + 1}.`,
+    ).join("\n\n")}`,
+  ).join("\n\n");
+
+  await page.getByRole("button", { name: "حالتِ سورس (Ctrl+/)" }).click();
+  await page.locator("textarea").fill(markdown);
+  await page.getByRole("button", { name: "حالتِ ویرایش (Ctrl+/)" }).click();
+  await expect(page.locator(".tm-editor h1")).toHaveCount(18);
+
+  const main = page.locator(".tm-main");
+  const heading = page.locator(".tm-editor h1").nth(9);
+  const handle = heading.locator(".tm-inline-fold");
+  const id = await handle.getAttribute("data-fold-id");
+  expect(id).toBeTruthy();
+
+  await handle.click();
+  await page.waitForTimeout(250);
+  await main.evaluate((element, foldId) => {
+    const target = [...document.querySelectorAll<HTMLElement>(".tm-editor h1")]
+      .find((item) => item.querySelector<HTMLElement>(".tm-inline-fold")?.dataset.foldId === foldId);
+    if (target) element.scrollTop += target.getBoundingClientRect().top - element.getBoundingClientRect().top - 280;
+  }, id);
+  const before = await main.evaluate((element, foldId) => {
+    const target = [...document.querySelectorAll<HTMLElement>(".tm-editor h1")]
+      .find((item) => item.querySelector<HTMLElement>(".tm-inline-fold")?.dataset.foldId === foldId);
+    return target?.getBoundingClientRect().top;
+  }, id);
+
+  await handle.click();
+  await page.waitForTimeout(350);
+  const after = await main.evaluate((element, foldId) => {
+    const target = [...document.querySelectorAll<HTMLElement>(".tm-editor h1")]
+      .find((item) => item.querySelector<HTMLElement>(".tm-inline-fold")?.dataset.foldId === foldId);
+    return target?.getBoundingClientRect().top;
+  }, id);
+  // WebKit هنگام تغییر display یک تصحیح داخلی به‌اندازهٔ تقریباً یک خط
+  // انجام می‌دهد؛ در سایر موتورها نقطه باید پیکسلی ثابت بماند.
+  expect(Math.abs((after ?? 0) - (before ?? 0))).toBeLessThanOrEqual(browserName === "webkit" ? 48 : 2);
+  await expect(page.getByText("پاراگراف بلند 18 برای بررسی کامل نمایش محتوا در بخش 10.", { exact: true })).toBeVisible();
+
+  for (let index = 0; index < 8; index++) await handle.click();
+  await expect(heading).toHaveAttribute("aria-expanded", "true");
+});
+
+test("★★ کنترل‌های تاشدن روی موبایل کوچک، واضح و قابل‌کلیک می‌مانند", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole("button", { name: "بستن پنل ساختار" }).click();
+  const heading = page.locator(".tm-editor h1").first();
+  await expect(heading).toHaveAttribute("aria-expanded", "false");
+  await heading.locator(".tm-inline-fold").click();
+  await expect(heading).toHaveAttribute("aria-expanded", "true");
+  await expect(heading.locator(".tm-inline-fold")).toBeVisible();
+});
+
+test("★★ حالت‌های ویرایش و سورس تمام سطح را می‌گیرند و جهتِ سورس زبانی است", async ({ page }) => {
+  const main = page.locator(".tm-main");
+  const editor = page.locator(".tm-editor");
+  const [mainBox, editorBox] = await Promise.all([main.boundingBox(), editor.boundingBox()]);
+  expect(editorBox!.width).toBeGreaterThanOrEqual(mainBox!.width - 70);
+  // کنترل‌های بالا و statusbar بخشی از فضای کاری‌اند؛ خودِ سطحِ سند باید
+  // تمامِ ارتفاعِ باقی‌مانده را پر کند و زیر محتوا جمع نشود.
+  expect(editorBox!.height).toBeGreaterThanOrEqual(mainBox!.height - 80);
+
+  await page.getByRole("button", { name: "حالتِ سورس" }).click();
+  const source = page.locator(".tm-source");
+  await expect(source).toHaveAttribute("aria-label", "متنِ خامِ مارک‌داون");
+  await expect(page.locator(".tm-root")).toHaveAttribute("data-mode", "source");
+  await expect(source).toHaveAttribute("dir", "rtl");
+  const sourceBox = await source.boundingBox();
+  const statsBox = await page.locator(".tm-stats").boundingBox();
+  expect(sourceBox!.width).toBeGreaterThanOrEqual(mainBox!.width - 70);
+  // سورس باید دقیقاً فضای واقعی میان کنترل‌های بالا و نوار وضعیت را پر کند؛
+  // ارتفاع ثابت به فونت و ترجمهٔ دکمه‌ها وابسته بود و با تغییر تایپوگرافی
+  // نتیجهٔ درست را اشتباه قرمز می‌کرد.
+  expect(sourceBox!.height).toBeGreaterThanOrEqual(statsBox!.y - sourceBox!.y - 1);
+  await expect(page.locator(".tm-editor-wrap")).toBeHidden();
+
+  await page.getByRole("button", { name: "نمایش", exact: true }).click();
+  await page.getByRole("menuitemcheckbox", { name: "انگلیسی" }).click();
+  await expect(source).toHaveAttribute("dir", "ltr");
+  await expect(source).toHaveAttribute("aria-label", "Raw Markdown");
 });

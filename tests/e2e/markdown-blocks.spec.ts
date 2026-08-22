@@ -33,7 +33,7 @@ async function placeCursorInParagraph(page: import("@playwright/test").Page, con
 }
 
 test.beforeEach(async ({ page }) => {
-  await page.goto("/markdown");
+  await page.goto("/markdown?fixture=demo");
   await page.waitForSelector(".tm-editor", { timeout: 25000 });
   await page.getByRole("button", { name: "نمایش", exact: true }).click();
   await page.getByRole("menuitem", { name: "بازکردن همهٔ بخش‌ها" }).click();
@@ -49,23 +49,63 @@ test("صفحه بی خطا بار می‌شود و ساختار درست است"
   expect(errors).toEqual([]);
 });
 
-test("★ پیش‌نمایشِ زنده — نشانه فقط در بلوکِ مکان‌نما", async ({ page }) => {
-  // بیرونِ ادیتور: هیچ نشانه‌ای
+test("★ View هیچ نشانهٔ خام Markdown نشان نمی‌دهد", async ({ page }) => {
   await expect(page.locator(".tm-marker")).toHaveCount(0);
 
-  // کلیک داخلِ پاراگرافی که **پررنگ** دارد
   await page.locator(".tm-editor p", { hasText: "پررنگ" }).first().click();
-
-  // نشانه‌ها با تراکنشِ بعدیِ ProseMirror ساخته می‌شوند، نه هم‌زمان با
-  // کلیک. بی این انتظار، تست گاهی سبز و گاهی قرمز می‌شود.
-  await expect(page.locator(".tm-marker").first()).toBeAttached({ timeout: 5000 });
-
-  const markers = await page.locator(".tm-marker").allTextContents();
-  expect(markers).toContain("**");
-
-  // متنِ سند نباید نشانه داشته باشد
+  await expect(page.locator(".tm-marker")).toHaveCount(0);
   const text = await page.locator(".tm-editor").innerText();
-  expect(text).not.toContain("**پررنگ**");
+  expect(text).toContain("پررنگ");
+  expect(text).not.toContain("**");
+});
+
+test("★ Source همهٔ علائم Markdown را نگه می‌دارد و View آن‌ها را رندر می‌کند", async ({ page }) => {
+  const markdown = "## عنوان **پررنگ**\n\n- مورد\n\n> نقل قول\n\n`کد` [پیوند](https://example.com)";
+  await page.getByRole("button", { name: "حالتِ سورس (Ctrl+/)" }).click();
+  const source = page.locator(".tm-source");
+  await source.fill(markdown);
+  await expect(source).toHaveValue(markdown);
+
+  await page.getByRole("button", { name: "حالتِ ویرایش (Ctrl+/)" }).click();
+  await expect(page.locator(".tm-editor h2")).toContainText("عنوان پررنگ");
+  await expect(page.locator(".tm-editor strong")).toHaveText("پررنگ");
+  await expect(page.locator(".tm-editor blockquote")).toContainText("نقل قول");
+  await expect(page.locator(".tm-editor code")).toContainText("کد");
+  await expect(page.locator(".tm-editor a")).toHaveAttribute("href", "https://example.com");
+  await expect(page.locator(".tm-marker")).toHaveCount(0);
+});
+
+test("★ منوهای قالب، پاراگراف و سریع در Source Markdown خام می‌نویسند", async ({ page }) => {
+  const source = page.locator(".tm-source");
+  await page.getByRole("button", { name: "حالتِ سورس (Ctrl+/)" }).click();
+  await source.fill("**متن**");
+  await source.click();
+  await page.keyboard.press("Control+A");
+  const bold = page.getByRole("button", { name: "پررنگ (Ctrl+B)" });
+  await expect(bold).toHaveAttribute("aria-pressed", "true");
+  await bold.click();
+  await expect(source).toHaveValue("متن");
+
+  await source.fill("متن");
+  await source.selectText();
+
+  const format = page.getByRole("button", { name: "قالب", exact: true });
+  const paragraph = page.getByRole("button", { name: "پاراگراف", exact: true });
+  await expect(format).toBeEnabled();
+  await expect(paragraph).toBeEnabled();
+
+  await format.click();
+  await page.getByRole("menuitemcheckbox", { name: /پررنگ/ }).click();
+  await expect(source).toHaveValue("**متن**");
+
+  await source.selectText();
+  await paragraph.click();
+  await page.getByRole("menuitem", { name: /عنوان 2/ }).click();
+  await expect(source).toHaveValue("## **متن**");
+
+  await source.selectText();
+  await page.getByRole("button", { name: "فهرستِ نقطه‌ای (Ctrl+Shift+8)" }).click();
+  await expect(source).toHaveValue("- ## **متن**");
 });
 
 test("★ KaTeX در مرورگرِ واقعی رندر می‌شود", async ({ page }) => {
@@ -95,7 +135,7 @@ test("★ تاشدن از پنلِ ساختار", async ({ page }) => {
   await expect(page.locator(".tm-folded-hidden")).toHaveCount(0);
   await page.locator(".tm-outline .tm-fold-toggle").first().click();
   expect(await page.locator(".tm-folded-hidden").count()).toBeGreaterThan(0);
-  await expect(page.locator(".tm-fold-summary")).toContainText("پنهان");
+  await expect(page.locator(".tm-fold-summary")).toHaveCount(0);
 });
 
 test("★ تایپ کار می‌کند و خروجی به‌روز می‌شود", async ({ page }) => {

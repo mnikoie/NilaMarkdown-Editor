@@ -6,6 +6,7 @@ import type { MarkRegistry } from "../directives/types.js";
 import { BUILTIN_MARKS } from "../directives/builtin.js";
 import { buildOutline, flattenOutline } from "../outline/build.js";
 import type { OutlineNode } from "../outline/types.js";
+import { preserveScrollAnchor } from "./scroll-anchor.js";
 
 /**
  * تاشدنِ بخش‌های سند.
@@ -31,6 +32,9 @@ export interface FoldState {
   folded: Set<string>;
   decorations: DecorationSet;
   mode: FoldMode;
+  /** ترتیبِ آخرین بازشدنِ گره‌ها، فقط برای یکسان‌سازی هنگامِ فعال‌شدن آکاردئون. */
+  openedAt: Map<string, number>;
+  sequence: number;
 }
 
 export type FoldInitialState = "collapsed" | "expanded";
@@ -62,39 +66,6 @@ export interface FoldOptions {
   locale?: "fa" | "en";
   /** هر بار که حالت عوض شد صدا می‌شود — برای ذخیره در localStorage. */
   onChange?: (folded: string[]) => void;
-}
-
-/**
- * متنِ خلاصهٔ چیزی که پنهان شده: «۱۲ بلوکِ پنهان».
- *
- * فقط بلوک‌های **سطحِ اول** شمرده می‌شوند — همان‌هایی که واقعاً پنهان
- * شده‌اند. شمردنِ تودرتو عددِ بی‌معنی می‌دهد: یک کارت با سه پاراگراف
- * داخلش، چهار بار شمرده می‌شود و کاربر «۳۴ بلوک» می‌بیند در حالی که
- * ۱۰ تا پنهان شده.
- */
-function summaryText(
-  doc: PMNode,
-  range: { from: number; to: number },
-  locale: "fa" | "en",
-): string {
-  let blocks = 0;
-  doc.nodesBetween(range.from, range.to, (child, pos) => {
-    if (pos < range.from || pos + child.nodeSize > range.to) return true;
-    if (!child.isBlock) return false;
-    blocks++;
-    return false; // داخلِ این بلوک نرو
-  });
-  if (locale === "en") {
-    return blocks > 0
-      ? `${blocks.toLocaleString("en-US")} hidden ${blocks === 1 ? "block" : "blocks"}`
-      : "Hidden";
-  }
-  return blocks > 0 ? `${toFa(blocks)} بلوکِ پنهان` : "پنهان";
-}
-
-const FA_DIGITS = "۰۱۲۳۴۵۶۷۸۹";
-function toFa(n: number): string {
-  return String(n).replace(/\d/g, (d) => FA_DIGITS[Number(d)]!);
 }
 
 /**
@@ -172,18 +143,52 @@ function foldHandle(node: OutlineNode, locale: "fa" | "en"): Decoration {
       el.className = "tm-inline-fold";
       el.setAttribute("data-fold-id", node.id);
       el.setAttribute("contenteditable", "false");
-      el.setAttribute("aria-label", locale === "en" ? `Toggle ${node.title}` : `باز و بسته‌کردنِ ${node.title}`);
-      el.textContent = "⌄";
+      el.setAttribute("aria-label", locale === "en" ? `Show or hide ${node.title}` : `نمایش یا پنهان‌کردنِ ${node.title}`);
+      const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      icon.setAttribute("viewBox", "0 0 24 24");
+      icon.setAttribute("fill", "none");
+      icon.setAttribute("stroke", "currentColor");
+      icon.setAttribute("stroke-width", "2");
+      icon.setAttribute("stroke-linecap", "round");
+      icon.setAttribute("stroke-linejoin", "round");
+      icon.setAttribute("aria-hidden", "true");
+      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      path.setAttribute("d", "m6 9 6 6 6-6");
+      icon.append(path);
+      el.append(icon);
       return el;
     },
     { side: -1, key: `handle-${node.id}`, ignoreSelection: true },
   );
 }
 
+function headingForId(view: import("prosemirror-view").EditorView, id: string): HTMLElement | null {
+  const handle = [...view.dom.querySelectorAll<HTMLElement>(".tm-inline-fold")]
+    .find((item) => item.dataset.foldId === id);
+  return handle?.parentElement ?? null;
+}
+
 /** حالتِ باز/بسته روی گرهِ سرفصل — این یکی درست diff می‌شود. */
-function foldState(node: OutlineNode, isFolded: boolean, size: number): Decoration {
+function outlineDepths(nodes: OutlineNode[]): Map<string, number> {
+  const result = new Map<string, number>();
+  const visit = (siblings: OutlineNode[], depth: number) => {
+    for (const node of siblings) {
+      result.set(node.id, depth);
+      visit(node.children, depth + 1);
+    }
+  };
+  visit(nodes, 0);
+  return result;
+}
+
+function foldState(node: OutlineNode, isFolded: boolean, size: number, depth: number): Decoration {
   return Decoration.node(node.from, node.from + size, {
+    class: "tm-heading-accordion",
+    "data-fold-id": node.id,
+    "data-foldable": "true",
     "data-folded": String(isFolded),
+    "data-tree-depth": String(depth),
+    style: `--tm-tree-indent: ${depth * 14}px`,
     "aria-expanded": String(!isFolded),
   });
 }
@@ -197,6 +202,7 @@ function buildDecorations(
   const { doc, selection } = state;
   const tree = buildOutline(doc, registry);
   const flat = flattenOutline(tree);
+  const depths = outlineDepths(tree);
   const decos: Decoration[] = [];
   const hiddenByFoldedAncestor = new Set<string>();
   const markHiddenDescendants = (nodes: OutlineNode[], ancestorFolded: boolean) => {
@@ -216,8 +222,35 @@ function buildDecorations(
     // بخشِ خالی مثلث نمی‌گیرد — دکمه‌ای که کاری نمی‌کند بدتر از نبودنش است.
     if (!resolved || end <= node.from + resolved.nodeSize) continue;
     decos.push(foldHandle(node, locale));
-    decos.push(foldState(node, folded.has(node.id), resolved.nodeSize));
+    decos.push(foldState(node, folded.has(node.id), resolved.nodeSize, depths.get(node.id) ?? 0));
   }
+
+  // Markdown بخش‌ها را به‌صورت sibling نگه می‌دارد. برای اینکه محتوای
+  // هر بخش واقعاً از لبهٔ کارتِ والد فاصله داشته باشد، تنها بلوک‌های
+  // مستقیمِ سند را با عمقِ والدِ structuralشان نشانه‌گذاری می‌کنیم؛
+  // ساختار یا متن سند تغییر نمی‌کند.
+  doc.forEach((child, pos) => {
+    if (child.type.name === "heading") return;
+    let owner: OutlineNode | null = null;
+    let ownerDepth = -1;
+    for (const heading of flat) {
+      if (heading.kind !== "heading") continue;
+      const headingNode = doc.nodeAt(heading.from);
+      if (!headingNode) continue;
+      const end = sectionEnd(doc, tree, heading);
+      const depth = depths.get(heading.id) ?? 0;
+      if (pos >= heading.from + headingNode.nodeSize && pos < end && depth >= ownerDepth) {
+        owner = heading;
+        ownerDepth = depth;
+      }
+    }
+    if (!owner) return;
+    decos.push(Decoration.node(pos, pos + child.nodeSize, {
+      class: "tm-section-content",
+      "data-section-depth": String(ownerDepth + 1),
+      style: `--tm-section-indent: ${(ownerDepth + 1) * 14}px`,
+    }));
+  });
 
   for (const node of flat) {
     if (!folded.has(node.id)) continue;
@@ -233,6 +266,10 @@ function buildDecorations(
     // قاعدهٔ ۳ — مکان‌نما داخلش است، پس بسته نمی‌ماند.
     if (selection.from < range.to && selection.to > range.from) continue;
 
+    // directiveها body مستقل دارند؛ پنهان‌کردن فرزندانشان با Decoration
+    // دومین لایهٔ visibility و منشأ محتوای ناقص بود.
+    if (node.kind !== "heading") continue;
+
     doc.nodesBetween(range.from, range.to, (child, pos) => {
       if (pos < range.from || pos + child.nodeSize > range.to) return true;
       if (!child.isBlock) return false;
@@ -240,21 +277,6 @@ function buildDecorations(
       return false; // فرزندان لازم نیست جدا پنهان شوند
     });
 
-    decos.push(
-      Decoration.widget(
-        range.from,
-        () => {
-          const el = document.createElement("button");
-          el.type = "button";
-          el.className = "tm-fold-summary";
-          el.textContent = summaryText(doc, range, locale);
-          el.setAttribute("data-fold-id", node.id);
-          el.setAttribute("aria-label", locale === "en" ? `Expand ${node.title}` : `بازکردنِ ${node.title}`);
-          return el;
-        },
-        { side: -1, key: `fold-${node.id}` },
-      ),
-    );
   }
 
   if (decos.length === 0) return DecorationSet.empty;
@@ -279,6 +301,25 @@ export function foldPlugin(options: FoldOptions = {}): Plugin<FoldState> {
     return walk(buildOutline(doc, registry)) ?? [];
   };
 
+  const reconcileAccordion = (doc: PMNode, folded: Set<string>, openedAt: ReadonlyMap<string, number>) => {
+    const reconcile = (siblings: OutlineNode[]) => {
+      const expanded = siblings.filter((node) => !folded.has(node.id));
+      if (expanded.length > 1) {
+        let keep = expanded[0]!;
+        for (const candidate of expanded.slice(1)) {
+          const candidateOrder = openedAt.get(candidate.id) ?? -1;
+          const keepOrder = openedAt.get(keep.id) ?? -1;
+          if (candidateOrder >= keepOrder) keep = candidate;
+        }
+        for (const sibling of expanded) {
+          if (sibling.id !== keep.id) folded.add(sibling.id);
+        }
+      }
+      for (const node of siblings) reconcile(node.children);
+    };
+    reconcile(buildOutline(doc, registry));
+  };
+
   return new Plugin<FoldState>({
     key: foldKey,
 
@@ -286,21 +327,32 @@ export function foldPlugin(options: FoldOptions = {}): Plugin<FoldState> {
       init(_config, state) {
         const folded = new Set(options.initial === "all" ? allIds(state.doc) : (options.initial ?? []));
         const mode = options.mode ?? "accordion";
-        return { folded, mode, decorations: buildDecorations(state, folded, registry, locale) };
+        return {
+          folded,
+          mode,
+          openedAt: new Map(),
+          sequence: 0,
+          decorations: buildDecorations(state, folded, registry, locale),
+        };
       },
 
-      apply(tr, prev, _old, newState) {
+      apply(tr, prev, _oldState, newState) {
         const meta = tr.getMeta(foldKey) as FoldMeta | undefined;
         let folded = prev.folded;
         let mode = prev.mode;
+        let openedAt = prev.openedAt;
+        let sequence = prev.sequence;
 
         if (meta) {
           folded = new Set(prev.folded);
+          openedAt = new Map(prev.openedAt);
           switch (meta.type) {
             case "toggle":
               if (meta.id) {
                 if (folded.has(meta.id)) {
                   folded.delete(meta.id);
+                  sequence += 1;
+                  openedAt.set(meta.id, sequence);
                   if (mode === "accordion") {
                     for (const sibling of siblingIds(newState.doc, meta.id)) folded.add(sibling);
                   }
@@ -328,7 +380,10 @@ export function foldPlugin(options: FoldOptions = {}): Plugin<FoldState> {
               folded = new Set(meta.ids ?? []);
               break;
             case "setMode":
-              if (meta.mode) mode = meta.mode;
+              if (meta.mode) {
+                mode = meta.mode;
+                if (mode === "accordion") reconcileAccordion(newState.doc, folded, openedAt);
+              }
               break;
           }
           options.onChange?.([...folded]);
@@ -336,7 +391,13 @@ export function foldPlugin(options: FoldOptions = {}): Plugin<FoldState> {
           return prev;
         }
 
-        return { folded, mode, decorations: buildDecorations(newState, folded, registry, locale) };
+        return {
+          folded,
+          mode,
+          openedAt,
+          sequence,
+          decorations: buildDecorations(newState, folded, registry, locale),
+        };
       },
     },
 
@@ -358,22 +419,107 @@ export function foldPlugin(options: FoldOptions = {}): Plugin<FoldState> {
       handleDOMEvents: {
         mousedown(view, event) {
           const target = event.target as HTMLElement;
-          const id = target.closest("[data-fold-id]")?.getAttribute("data-fold-id");
+          if (event.button !== 0) return false;
+          // کنترل‌های واقعیِ درونِ سرفصل نباید با کلیک، بخش را تا کنند.
+          // خودِ متنِ سرفصل عمداً کنترلِ آکاردئون است تا رفتارِ headingها
+          // با کارت‌های directive یکی باشد.
+          if (target.closest("a, input, select, textarea, [role='button'], [data-no-fold-toggle]")) return false;
+          const control = target.closest<HTMLElement>(".tm-inline-fold");
+          const header = target.closest<HTMLElement>(".tm-heading-accordion[data-fold-id]");
+          const id = control?.dataset.foldId ?? header?.dataset.foldId;
           if (!id) return false;
           // جلوی گرفتنِ فوکوس و جابه‌جاییِ مکان‌نما را بگیر.
           event.preventDefault();
           const opening = foldKey.getState(view.state)?.folded.has(id) ?? false;
           const node = flattenOutline(buildOutline(view.state.doc, registry)).find((item) => item.id === id);
-          let tr = view.state.tr;
-          if (!opening && node) {
-            const pos = Math.min(node.from + 1, view.state.doc.content.size);
-            tr = tr.setSelection(Selection.near(view.state.doc.resolve(pos)));
-          }
-          view.dispatch(tr.setMeta(foldKey, { type: "toggle", id }));
+          preserveScrollAnchor(() => headingForId(view, id), () => {
+            let tr = view.state.tr;
+            if (!opening && node) {
+              const range = hiddenRange(view.state.doc, {
+                ...node,
+                to: sectionEnd(view.state.doc, buildOutline(view.state.doc, registry), node),
+              });
+              // فقط اگر caret واقعاً قرار است پنهان شود جابه‌جایش کن.
+              // جابه‌جاییِ بی‌دلیل selection در Chrome اسکرول را تکان می‌دهد.
+              const selectionIsInNode =
+                view.state.selection.from >= node.from && view.state.selection.to <= node.to;
+              if ((range && view.state.selection.from < range.to && view.state.selection.to > range.from) || selectionIsInNode) {
+                const pos = Math.min(node.from + 1, view.state.doc.content.size);
+                tr = tr.setSelection(Selection.near(view.state.doc.resolve(pos)));
+              }
+            }
+            view.dispatch(tr.setMeta(foldKey, { type: "toggle", id }));
+          });
           return true;
         },
       },
     },
+
+    // سرفصل‌های Markdown در مدلِ ProseMirror sibling هستند، نه parent.
+    // این لایه فقط قابِ ارائه را برای همان بازهٔ واقعی می‌کشد؛ هیچ گره،
+    // محتوا یا رخدادِ تعاملی را جابه‌جا نمی‌کند.
+    view(view) {
+      const host = view.dom.parentElement;
+      if (!host) return {};
+
+      const layer = document.createElement("div");
+      layer.className = "tm-section-frames";
+      layer.setAttribute("aria-hidden", "true");
+      host.classList.add("tm-section-frame-host");
+      host.append(layer);
+      let timer: number | null = null;
+
+      const render = () => {
+        timer = null;
+        layer.replaceChildren();
+        const tree = buildOutline(view.state.doc, registry);
+        const flat = flattenOutline(tree);
+        const depths = outlineDepths(tree);
+        const folded = foldKey.getState(view.state)?.folded ?? new Set<string>();
+        const hostRect = host.getBoundingClientRect();
+
+        for (const node of flat) {
+          if (node.kind !== "heading" || folded.has(node.id)) continue;
+          const heading = headingForId(view, node.id);
+          if (!heading || !heading.isConnected) continue;
+          const next = flat.find((candidate) =>
+            candidate.kind === "heading" && candidate.from > node.from && candidate.level <= node.level,
+          );
+          const after = next ? headingForId(view, next.id) : null;
+          const top = heading.getBoundingClientRect().top;
+          const bottom = after?.isConnected
+            ? after.getBoundingClientRect().top - 8
+            : view.dom.getBoundingClientRect().bottom;
+          const height = Math.round(bottom - top);
+          if (height <= heading.getBoundingClientRect().height) continue;
+
+          const frame = document.createElement("div");
+          frame.className = "tm-section-frame";
+          frame.dataset.depth = String(depths.get(node.id) ?? 0);
+          frame.style.insetBlockStart = `${Math.round(top - hostRect.top)}px`;
+          frame.style.blockSize = `${height}px`;
+          frame.style.insetInlineStart = `${(depths.get(node.id) ?? 0) * 14}px`;
+          layer.append(frame);
+        }
+      };
+      const schedule = () => {
+        if (timer !== null) return;
+        timer = window.setTimeout(render, 0);
+      };
+      const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(schedule);
+      observer?.observe(view.dom);
+      schedule();
+      return {
+        update: schedule,
+        destroy() {
+          if (timer !== null) window.clearTimeout(timer);
+          observer?.disconnect();
+          layer.remove();
+          host.classList.remove("tm-section-frame-host");
+        },
+      };
+    },
+
   });
 }
 
@@ -386,18 +532,38 @@ export const toggleFold = (id: string, from?: number) => (state: EditorState, di
     let tr = state.tr;
     const pluginState = foldKey.getState(state);
     if (pluginState && !pluginState.folded.has(id)) {
+      const tree = buildOutline(state.doc, BUILTIN_MARKS);
       const node = from === undefined
-        ? flattenOutline(buildOutline(state.doc, BUILTIN_MARKS)).find((item) => item.id === id)
-        : { from };
+        ? flattenOutline(tree).find((item) => item.id === id)
+        : flattenOutline(tree).find((item) => item.from === from);
       if (node) {
+        const range = hiddenRange(state.doc, {
+          ...node,
+          to: sectionEnd(state.doc, tree, node),
+        });
+        const selectionIsInNode = state.selection.from >= node.from && state.selection.to <= node.to;
+        if ((range && state.selection.from < range.to && state.selection.to > range.from) || selectionIsInNode) {
         const pos = Math.min(node.from + 1, state.doc.content.size);
         tr = tr.setSelection(Selection.near(state.doc.resolve(pos)));
+        }
       }
     }
     dispatch(tr.setMeta(foldKey, { type: "toggle", id }));
   }
   return true;
 };
+
+/** فرمانِ کنترل‌های React/NodeView با نگه‌داشتن جای عنوان در viewport. */
+export function toggleFoldPreservingScroll(
+  view: import("prosemirror-view").EditorView,
+  id: string,
+  from?: number,
+): boolean {
+  preserveScrollAnchor(() => headingForId(view, id), () => {
+    toggleFold(id, from)(view.state, view.dispatch);
+  });
+  return true;
+}
 
 export const foldAll = (depth?: number) => (state: EditorState, dispatch: Dispatch) => {
   if (dispatch) {

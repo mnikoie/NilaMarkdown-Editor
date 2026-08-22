@@ -5,6 +5,7 @@ import type { KeyboardEvent } from "react";
 import type { OutlineNode } from "../../core/outline/types.js";
 import { flattenOutline } from "../../core/outline/build.js";
 import { useMarkdownI18n } from "../i18n.js";
+import { ChevronDown } from "lucide-react";
 
 /**
  * پنلِ درختِ ساختار.
@@ -190,9 +191,7 @@ function Branch({ nodes, depth, activeId, currentId, folded, onNavigate, onToggl
                     onToggleFold?.(node);
                   }}
                 >
-                  <span className="tm-fold-chevron" aria-hidden="true">
-                    ⌄
-                  </span>
+                  <ChevronDown className="tm-fold-chevron" size={14} aria-hidden />
                 </button>
               ) : (
                 <span className="tm-fold-spacer" aria-hidden="true" />
