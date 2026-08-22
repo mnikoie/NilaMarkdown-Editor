@@ -75,6 +75,45 @@ test("★★ کلیک روی مثلثِ متن، فصل را می‌بندد و 
   await expect(page.locator(".tm-fold-summary")).toHaveCount(0);
 });
 
+test("★★ بخشِ باز کارتِ حرفه‌ای و ریلِ ظریف دارد، نه قابِ تو‌در‌تو", async ({ page }) => {
+  const heading = page.locator(".tm-editor h1").first();
+  await heading.locator(".tm-inline-fold").click();
+  await expect(heading).toHaveAttribute("data-folded", "false");
+
+  const frame = page.locator(".tm-section-frame").first();
+  await expect(frame).toBeAttached();
+
+  const visual = await heading.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return {
+      radius: Number.parseFloat(style.borderRadius),
+      shadow: style.boxShadow,
+    };
+  });
+  expect(visual.radius).toBeGreaterThanOrEqual(12);
+  expect(visual.shadow).not.toBe("none");
+
+  const borders = await frame.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return {
+      top: Number.parseFloat(style.borderTopWidth),
+      bottom: Number.parseFloat(style.borderBottomWidth),
+      left: Number.parseFloat(style.borderLeftWidth),
+      right: Number.parseFloat(style.borderRightWidth),
+    };
+  });
+  expect(borders.top).toBe(0);
+  expect(borders.bottom).toBe(0);
+  expect(Math.max(borders.left, borders.right)).toBeGreaterThan(0);
+  expect(Math.min(borders.left, borders.right)).toBe(0);
+
+  const [headingBox, frameBox] = await Promise.all([heading.boundingBox(), frame.boundingBox()]);
+  expect(headingBox).not.toBeNull();
+  expect(frameBox).not.toBeNull();
+  // ریل از زیرِ کارت شروع می‌شود و دیگر دورِ خودِ عنوان کادر نمی‌کشد.
+  expect(frameBox!.y).toBeGreaterThanOrEqual(headingBox!.y + headingBox!.height);
+});
+
 test("★ باز و بسته‌شدن پشتِ‌هم پایدار است", async ({ page }) => {
   // ★ این تست از یک باگِ واقعی آمده: نسخهٔ اول فقط **یک‌بار** بسته
   // می‌شد و دیگر باز نمی‌شد، چون `Decoration.node` بینِ `mousedown` و

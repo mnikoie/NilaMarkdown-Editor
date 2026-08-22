@@ -75,17 +75,20 @@
 
   /* ── کارتِ مارکِ سفارشی: گره‌های خنثی با سلسله‌مراتبِ خوانا ── */
   .tm-mark {
-    background: color-mix(in oklab, var(--tm-bg) 96%, var(--tm-code-bg));
+    background: color-mix(in oklab, var(--tm-bg) 97%, var(--tm-code-bg));
     border: 1px solid var(--tm-border);
     border-radius: 1rem;
-    margin-block: 1rem;
+    margin-block: 1.25rem;
+    box-shadow: 0 1px 2px rgb(36 59 90 / 0.04);
+    overflow: clip;
   }
 
   .tm-mark-header {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.5rem 0.75rem;
+    min-block-size: 2.75rem;
+    padding: 0.625rem 0.875rem;
     color: var(--tm-fg);
     font-weight: 600;
     font-size: 0.875rem;
@@ -96,9 +99,8 @@
   }
 
   .tm-mark-body {
-    padding: 0 0.75rem 0.75rem;
-    border-inline-start: 1px solid var(--tm-border);
-    margin-inline-start: 0.75rem;
+    padding: 0.25rem 1rem 0.875rem;
+    border-block-start: 1px solid color-mix(in oklab, var(--tm-border) 65%, transparent);
   }
 
   .tm-mark-body > :first-child {
@@ -224,8 +226,9 @@
   .tm-mark[data-mark="warning"] { --tm-alert: #f59e0b; }
   .tm-mark[data-mark="caution"] { --tm-alert: #dc2626; }
   .tm-mark:is([data-mark="هشدار"], [data-mark="note"], [data-mark="tip"], [data-mark="important"], [data-mark="warning"], [data-mark="caution"]) {
-    background: color-mix(in oklab, var(--tm-alert) 10%, var(--tm-bg));
-    border-color: color-mix(in oklab, var(--tm-alert) 42%, var(--tm-bg));
+    background: color-mix(in oklab, var(--tm-alert) 6%, var(--tm-bg));
+    border-color: color-mix(in oklab, var(--tm-alert) 28%, var(--tm-bg));
+    box-shadow: 0 8px 24px color-mix(in oklab, var(--tm-alert) 7%, transparent);
   }
   .tm-mark:is([data-mark="هشدار"], [data-mark="note"], [data-mark="tip"], [data-mark="important"], [data-mark="warning"], [data-mark="caution"]) > .tm-mark-header {
     color: color-mix(in oklab, var(--tm-alert) 78%, var(--tm-fg));
@@ -241,13 +244,14 @@
   .tm-editor .tm-heading-accordion {
     position: relative;
     box-sizing: border-box;
-    margin-block: 1rem 0.5rem;
-    padding: 0.5rem 2.25rem 0.5rem 0.75rem;
+    margin-block: 1.25rem 0.75rem;
+    padding: 0.75rem 2.75rem 0.75rem 1rem;
     border: 1px solid var(--tm-border);
-    border-radius: 0.5rem;
-    background: color-mix(in oklab, var(--tm-bg) 96%, var(--tm-code-bg));
+    border-radius: 1rem;
+    background: var(--tm-soft-bg);
+    box-shadow: 0 1px 2px rgb(36 59 90 / 0.04);
     cursor: pointer;
-    transition: background-color 120ms, border-color 120ms;
+    transition: background-color 140ms, border-color 140ms, box-shadow 140ms;
   }
 
   /* سطحِ هر گره از outline خوانده می‌شود؛ در RTL، آغازِ خط همان سمت راست
@@ -263,12 +267,36 @@
   }
 
   .tm-root[dir="rtl"] .tm-editor .tm-heading-accordion {
-    padding-inline: 2.25rem 0.75rem;
+    padding-inline: 2.75rem 1rem;
   }
 
   .tm-editor .tm-heading-accordion:hover {
     background: var(--tm-raised-bg);
     border-color: color-mix(in oklab, var(--tm-border) 75%, var(--tm-accent));
+    box-shadow: 0 8px 22px rgb(36 59 90 / 0.08);
+  }
+
+  /* سلسله‌مراتبِ دیداری: عنوان‌های اصلی کارتِ آرام و پررنگ دارند؛ هرچه
+   * پایین‌تر می‌رویم، سطح سبک‌تر می‌شود تا کادرها بر متن غلبه نکنند. */
+  .tm-editor h1.tm-heading-accordion {
+    padding-block: 1rem;
+    background: linear-gradient(135deg, var(--tm-soft-bg), color-mix(in oklab, var(--tm-raised-bg) 72%, var(--tm-bg)));
+    box-shadow: 0 10px 30px rgb(36 59 90 / 0.07);
+  }
+
+  .tm-editor h2.tm-heading-accordion {
+    background: color-mix(in oklab, var(--tm-soft-bg) 82%, var(--tm-bg));
+  }
+
+  .tm-editor h3.tm-heading-accordion {
+    border-color: color-mix(in oklab, var(--tm-accent) 20%, var(--tm-border));
+    background: color-mix(in oklab, var(--tm-accent) 3%, var(--tm-bg));
+  }
+
+  .tm-editor :is(h4, h5, h6).tm-heading-accordion {
+    border-color: color-mix(in oklab, var(--tm-border) 76%, transparent);
+    background: color-mix(in oklab, var(--tm-bg) 97%, var(--tm-code-bg));
+    box-shadow: none;
   }
 
   .tm-section-frame-host {
@@ -287,9 +315,18 @@
     position: absolute;
     inset-inline-end: 0;
     box-sizing: border-box;
-    border: 1px solid var(--tm-border);
-    border-radius: 0.5rem;
+    border: 0;
+    border-inline-start: 1px solid color-mix(in oklab, var(--tm-accent) 18%, var(--tm-border));
     background: transparent;
+  }
+
+  .tm-section-frame::before {
+    content: "";
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline-start: -1px;
+    inline-size: 0.75rem;
+    border-block-start: 1px solid color-mix(in oklab, var(--tm-accent) 18%, var(--tm-border));
   }
 
   .tm-section-frame-host > .tm-editor {
@@ -298,15 +335,12 @@
 
   /* بخش باز سرِ همان قابِ والد است؛ بخش بسته کارتِ مستقل می‌ماند. */
   .tm-editor .tm-heading-accordion[data-folded="false"] {
-    border-color: transparent;
-    border-block-end-color: var(--tm-border);
-    border-radius: 1rem 1rem 0 0;
-    background: transparent;
+    border-color: color-mix(in oklab, var(--tm-accent) 16%, var(--tm-border));
   }
 
   .tm-editor .tm-heading-accordion .tm-inline-fold {
     inset-block-start: 50%;
-    inset-inline-start: 0.5rem;
+    inset-inline-start: 0.75rem;
     inset-inline-end: auto;
     transform: translateY(-50%);
     opacity: 1;
@@ -329,7 +363,7 @@
   .tm-editor .tm-heading-accordion + blockquote,
   .tm-editor .tm-heading-accordion + pre,
   .tm-editor .tm-heading-accordion + table {
-    margin-block-start: 1rem;
+    margin-block-start: 1.25rem;
   }
 
   /* دیده‌شدن: با hoverِ سرفصل، با فوکوسِ کیبورد، یا وقتی بسته است.

@@ -477,21 +477,46 @@ export function foldPlugin(options: FoldOptions = {}): Plugin<FoldState> {
         const depths = outlineDepths(tree);
         const folded = foldKey.getState(view.state)?.folded ?? new Set<string>();
         const hostRect = host.getBoundingClientRect();
+        // روی سند واقعی بیش از صد عنوان داریم. پیدا‌کردنِ DOM و مرز بعدی
+        // داخلِ حلقه، هر بار O(n²) می‌شد و بازوبسته‌کردنِ پشتِ‌هم را کند
+        // می‌کرد؛ همهٔ نگاشت‌ها را یک‌بار برای همین فریم می‌سازیم.
+        const headingNodes = flat.filter((node) => node.kind === "heading");
+        const headings = new Map<string, HTMLElement>();
+        for (const handle of view.dom.querySelectorAll<HTMLElement>(".tm-inline-fold")) {
+          const id = handle.dataset.foldId;
+          const heading = handle.parentElement;
+          if (id && heading) headings.set(id, heading);
+        }
+        const headingRects = new Map(
+          [...headings].map(([id, heading]) => [id, heading.getBoundingClientRect()] as const),
+        );
+        const nextBoundary = new Map<string, string>();
+        const boundaryStack: OutlineNode[] = [];
+        for (let index = headingNodes.length - 1; index >= 0; index--) {
+          const node = headingNodes[index]!;
+          while (boundaryStack.length && boundaryStack.at(-1)!.level > node.level) {
+            boundaryStack.pop();
+          }
+          const next = boundaryStack.at(-1);
+          if (next) nextBoundary.set(node.id, next.id);
+          boundaryStack.push(node);
+        }
+        const editorBottom = view.dom.getBoundingClientRect().bottom;
 
-        for (const node of flat) {
-          if (node.kind !== "heading" || folded.has(node.id)) continue;
-          const heading = headingForId(view, node.id);
-          if (!heading || !heading.isConnected) continue;
-          const next = flat.find((candidate) =>
-            candidate.kind === "heading" && candidate.from > node.from && candidate.level <= node.level,
-          );
-          const after = next ? headingForId(view, next.id) : null;
-          const top = heading.getBoundingClientRect().top;
-          const bottom = after?.isConnected
-            ? after.getBoundingClientRect().top - 8
-            : view.dom.getBoundingClientRect().bottom;
+        for (const node of headingNodes) {
+          if (folded.has(node.id)) continue;
+          const heading = headings.get(node.id);
+          const headingRect = headingRects.get(node.id);
+          if (!heading?.isConnected || !headingRect) continue;
+          const nextId = nextBoundary.get(node.id);
+          const afterRect = nextId ? headingRects.get(nextId) : null;
+          // خطِ سلسله‌مراتب از زیرِ سربرگ شروع می‌شود، نه دورِ کل بخش.
+          // قابِ مستطیلیِ تمام‌قد روی سندهای واقعی چند لایه کادر در کادر
+          // می‌ساخت و متن را شبیه فرمِ دیباگ نشان می‌داد.
+          const top = headingRect.bottom + 6;
+          const bottom = afterRect ? afterRect.top - 8 : editorBottom;
           const height = Math.round(bottom - top);
-          if (height <= heading.getBoundingClientRect().height) continue;
+          if (height <= 4) continue;
 
           const frame = document.createElement("div");
           frame.className = "tm-section-frame";
