@@ -8,6 +8,7 @@ import { MermaidView } from "./Mermaid.js";
 import { HtmlBlockView } from "./HtmlBlock.js";
 import { TableOfContentsView } from "./TableOfContents.js";
 import { LinkDefinitionView } from "./LinkDefinition.js";
+import { InlineDirectiveView } from "./InlineDirective.js";
 import type { HtmlMode } from "../core/security.js";
 import type { FoldingOptions } from "../core/plugins/fold.js";
 import type { MarkCardOptions } from "./MarkCard.js";
@@ -86,6 +87,8 @@ export function createNodeViews(
       } satisfies MarkCardOptions),
     table_of_contents: (node, view) => new TableOfContentsView(node, view, options.locale),
     link_definition: (node, view, getPos) => new LinkDefinitionView(node, view, getPos, options.locale),
+    directive_inline: (node, view, getPos) =>
+      new InlineDirectiveView(node, view, getPos, registry),
   };
 
   // بلوکِ کد همیشه NodeView دارد — دکمهٔ کپی و برچسبِ زبان مستقل از
@@ -116,3 +119,4 @@ export { MermaidView } from "./Mermaid.js";
 export { HtmlBlockView } from "./HtmlBlock.js";
 export { TableOfContentsView } from "./TableOfContents.js";
 export { LinkDefinitionView } from "./LinkDefinition.js";
+export { InlineDirectiveView } from "./InlineDirective.js";

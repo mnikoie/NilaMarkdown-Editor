@@ -7,7 +7,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
+  --font-sans: var(--font-vazirmatn), Tahoma, Arial, sans-serif;
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -226,4 +226,24 @@
   .markdown-workspace .tm-demo-editor > .tm-main {
     padding-inline: 1rem;
   }
+}
+
+/* ---------------------------------------------------------------------------
+ * تورفتگیِ درختیِ سرفصل‌ها.
+ *
+ * ★ چرا اینجا و چرا `!important`:
+ * preflightِ Tailwind در `@layer base` روی `*` مقدارِ `margin-right:0`
+ * می‌گذارد. در RTL، `margin-inline-start` به همان `margin-right` نگاشته
+ * می‌شود؛ چون لایهٔ `base` بعد از `components` اعلام شده، آن صفرِ فیزیکی
+ * بر `margin-inline-start`ِ منطقیِ پکیج غلبه می‌کرد و همهٔ سطح‌ها صاف
+ * می‌افتادند (اندازه‌گیری‌شده: عمقِ ۰ و ۱ و ۲ هر سه روی right=609).
+ * این قاعده خارج از هر لایه است، پس بر لایه‌دارها مقدم است.
+ * ------------------------------------------------------------------------- */
+.markdown-workspace .tm-editor .tm-heading-accordion[data-tree-depth],
+.markdown-workspace .tm-editor .tm-mark[data-tree-depth] {
+  margin-inline-start: var(--tm-tree-indent, 0px) !important;
+}
+
+.markdown-workspace .tm-editor .tm-section-content:not(.tm-mark) {
+  margin-inline-start: var(--tm-section-indent, 0px) !important;
 }

@@ -2059,4 +2059,130 @@
   .tm-root[dir="rtl"] code {
     text-align: left;
   }
+
+  /* ─────────────────────────────────────────────────────────────────
+   * ارجاعِ درون‌خطی (`:ref[…]{…}`) و حبابِ توضیحش.
+   *
+   * سند ۱۰۴ ارجاع دارد. بدونِ نشانهٔ دیداری، هیچ‌کدام از متنِ اطراف جدا
+   * نمی‌شوند و کاربر نمی‌فهمد کجا می‌تواند عمیق‌تر برود.
+   * ───────────────────────────────────────────────────────────────── */
+  .tm-directive-inline {
+    --tm-mark-base: var(--tm-accent);
+    border-radius: 0.4rem;
+    padding: 0.05em 0.34em;
+    color: var(--tm-mark-base);
+    background: color-mix(in oklab, var(--tm-mark-base) 8%, transparent);
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+    transition: background-color 140ms, box-shadow 140ms;
+  }
+
+  /* فقط ارجاعِ دارای مقصد تعاملی به نظر می‌رسد. */
+  .tm-directive-inline[data-target] {
+    cursor: help;
+    border-block-end: 1px dashed color-mix(in oklab, var(--tm-mark-base) 45%, transparent);
+  }
+
+  .tm-directive-inline[data-target]:hover,
+  .tm-directive-inline[data-target]:focus-visible {
+    background: color-mix(in oklab, var(--tm-mark-base) 16%, transparent);
+    border-block-end-color: var(--tm-mark-base);
+  }
+
+  .tm-directive-inline[data-target]:focus-visible {
+    outline: 2px solid var(--tm-mark-base);
+    outline-offset: 2px;
+  }
+
+  /* نوعِ سند پیش از متنِ ارجاع، به‌صورتِ ریزبرچسب. */
+  .tm-directive-inline[data-kind]::before {
+    content: attr(data-kind);
+    margin-inline-end: 0.4em;
+    padding: 0.05em 0.36em;
+    border-radius: 0.3rem;
+    background: color-mix(in oklab, var(--tm-mark-base) 15%, transparent);
+    font-size: 0.78em;
+    font-weight: 700;
+  }
+}
+
+/* ★ حباب فرزندِ `document.body` است، نه `.tm-root` — تا `overflow`ِ
+ * ستونِ متن آن را نبُرد. پس توکن‌های خودش را مستقل تعریف می‌کند و از
+ * `@layer` بیرون است تا preflightِ میزبان صافش نکند. */
+.tm-ref-tip {
+  --tip-bg: #ffffff;
+  --tip-fg: #25324a;
+  --tip-muted: #68758a;
+  --tip-border: #dce5f0;
+
+  position: fixed;
+  z-index: 2147483000;
+  inline-size: max-content;
+  max-inline-size: min(30rem, calc(100vw - 1rem));
+  margin: 0;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--tip-border);
+  border-radius: 0.85rem;
+  background: var(--tip-bg);
+  color: var(--tip-fg);
+  box-shadow: 0 16px 40px rgb(36 59 90 / 0.18);
+  font-family: Vazirmatn, system-ui, sans-serif;
+  font-size: 0.85rem;
+  line-height: 1.75;
+  text-align: right;
+  opacity: 0;
+  transition: opacity 120ms ease;
+  pointer-events: none;
+}
+
+.tm-ref-tip[data-visible="true"] {
+  opacity: 1;
+}
+
+.tm-ref-tip-body {
+  margin: 0 0 0.5rem;
+  font-weight: 600;
+}
+
+.tm-ref-tip-attrs {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.15rem 0.6rem;
+  margin: 0;
+  padding-block-start: 0.5rem;
+  border-block-start: 1px solid var(--tip-border);
+}
+
+.tm-ref-tip-attrs dt {
+  color: var(--tip-muted);
+  font-size: 0.8em;
+  white-space: nowrap;
+}
+
+.tm-ref-tip-attrs dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+/* ★ حباب روی `body` است، پس تمِ ویرایشگر را به ارث نمی‌برد. اگر فقط به
+ * `prefers-color-scheme` تکیه کنیم، ویرایشگرِ روشن در مرورگرِ تاریک یک
+ * حبابِ سیاه می‌گیرد (دیده‌شده در عکسِ واقعی). پس تم از `data-theme`ِ
+ * ریشه خوانده می‌شود و `prefers` فقط وقتی حرف می‌زند که تمِ صریح نباشد. */
+:root:has(.tm-root[data-theme="dark"]) .tm-ref-tip,
+.tm-ref-tip[data-theme="dark"] {
+  --tip-bg: #161b22;
+  --tip-fg: #e6edf3;
+  --tip-muted: #8d96a0;
+  --tip-border: #3d444d;
+  box-shadow: 0 16px 40px rgb(0 0 0 / 0.5);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not(:has(.tm-root[data-theme="light"])) .tm-ref-tip {
+    --tip-bg: #161b22;
+    --tip-fg: #e6edf3;
+    --tip-muted: #8d96a0;
+    --tip-border: #3d444d;
+    box-shadow: 0 16px 40px rgb(0 0 0 / 0.5);
+  }
 }
