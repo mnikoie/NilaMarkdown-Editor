@@ -1686,11 +1686,17 @@
     margin-block: 0.85rem;
   }
 
-  /* ── فهرست ── */
+  /* ── فهرست ──
+   *
+   * ★ `2.75em` نه `1.75em`: فلشِ تاشدن روی `inset-inline-start:-2.75em`
+   * می‌نشیند، یعنی بیرونِ padding. با ۱.۷۵ فرزند فقط ۲۷px از والد فاصله
+   * می‌گرفت و فلش هم داخلِ همان فاصله می‌افتاد، پس تودرتویی اصلاً دیده
+   * نمی‌شد (اندازه‌گیری: ۹۳۵ ← ۹۰۸ ← ۸۸۲). حالا هر سطح ~۴۲px تو می‌رود
+   * و جای فلش هم محفوظ است. */
   .tm-editor ul,
   .tm-editor ol {
     margin-block: 0.75em;
-    padding-inline-start: 1.75em;
+    padding-inline-start: 2.75em;
   }
 
   .tm-editor ul { list-style-type: disc; }
