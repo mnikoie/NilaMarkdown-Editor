@@ -109,12 +109,19 @@ graph TD;
 const TEST_DOCUMENT =
   "D:\\- AIProject\\01- Bakhshnameh\\- خلاصه سازی دستورالعمل\\- Kholase\\- Files\\- MD01\\BakhshnamehTalkhis - 62285360.md";
 
+/** نمونهٔ کوچکِ فصل دوم — برای بررسیِ عمقِ تودرتوییِ لیست‌ها. */
+const SAMPLE_DOCUMENT =
+  "D:/- AIProject/01- Bakhshnameh/- خلاصه سازی دستورالعمل/- Kholase/- Files/- MD01/BakhshnamehTalkhis - 62285360/BakhshnamehTalkhis - 62285360.md";
+
 export default async function MarkdownDemoPage({
   searchParams,
 }: {
   searchParams: Promise<{ fixture?: string }>;
 }) {
   const { fixture } = await searchParams;
-  const markdown = fixture === "demo" ? SANAD : await readFile(TEST_DOCUMENT, "utf8");
+  const markdown =
+    fixture === "demo"
+      ? SANAD
+      : await readFile(fixture === "sample" ? SAMPLE_DOCUMENT : TEST_DOCUMENT, "utf8");
   return <MarkdownDemoClient markdown={markdown} />;
 }

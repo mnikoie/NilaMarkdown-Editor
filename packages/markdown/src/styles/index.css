@@ -206,8 +206,8 @@
     line-height: 1;
     cursor: pointer;
     user-select: none;
-    opacity: 0.55;
-    transition: opacity 120ms, background-color 120ms, color 120ms;
+    opacity: 1;
+    transition: transform 200ms, background-color 120ms, color 120ms;
   }
 
   .tm-inline-fold > svg,
@@ -241,17 +241,23 @@
   /* سرفصل‌های Markdown نیز همان قراردادِ آکاردئونِ کارت‌ها را دارند:
    * هدرِ کامل قابلِ کلیک است، chevron داخل کارت می‌ماند و محتوا با
    * fold plugin پنهان/نمایان می‌شود. */
+  /* ── آکاردئون به سبکِ Flowbite ──
+   * ردیفِ تمام‌عرض، بدونِ فاصله بینِ خواهرها، جداکنندهٔ یک‌خطی.
+   * `margin-block:0` عمدی است: فاصله بینِ ردیف‌ها آکاردئون را به کارت‌های
+   * پراکنده تبدیل می‌کرد و در سندِ ۱۴۵ عنوانی صفحه را شلوغ می‌کرد. */
   .tm-editor .tm-heading-accordion {
     position: relative;
     box-sizing: border-box;
-    margin-block: 1.25rem 0.75rem;
-    padding: 0.75rem 2.75rem 0.75rem 1rem;
-    border: 1px solid var(--tm-border);
-    border-radius: 1rem;
-    background: var(--tm-soft-bg);
-    box-shadow: 0 1px 2px rgb(36 59 90 / 0.04);
+    margin-block: 0;
+    padding: 1rem 2.75rem 1rem 1.25rem;
+    border: 0;
+    border-block-end: 1px solid var(--tm-border);
+    border-radius: 0;
+    background: var(--tm-bg);
+    box-shadow: none;
+    font-weight: 600;
     cursor: pointer;
-    transition: background-color 140ms, border-color 140ms, box-shadow 140ms;
+    transition: background-color 140ms, color 140ms;
   }
 
   /* سطحِ هر گره از outline خوانده می‌شود؛ در RTL، آغازِ خط همان سمت راست
@@ -272,31 +278,30 @@
 
   .tm-editor .tm-heading-accordion:hover {
     background: var(--tm-raised-bg);
-    border-color: color-mix(in oklab, var(--tm-border) 75%, var(--tm-accent));
-    box-shadow: 0 8px 22px rgb(36 59 90 / 0.08);
+    color: var(--tm-heading);
   }
 
   /* سلسله‌مراتبِ دیداری: عنوان‌های اصلی کارتِ آرام و پررنگ دارند؛ هرچه
    * پایین‌تر می‌رویم، سطح سبک‌تر می‌شود تا کادرها بر متن غلبه نکنند. */
+  /* سطح‌ها با وزن و اندازه از هم جدا می‌شوند، نه با رنگِ پس‌زمینه —
+   * چهار پس‌زمینهٔ متفاوت روی هم، صفحه را رنگین‌کمان می‌کرد. */
   .tm-editor h1.tm-heading-accordion {
-    padding-block: 1rem;
-    background: linear-gradient(135deg, var(--tm-soft-bg), color-mix(in oklab, var(--tm-raised-bg) 72%, var(--tm-bg)));
-    box-shadow: 0 10px 30px rgb(36 59 90 / 0.07);
+    padding-block: 1.15rem;
+    font-weight: 800;
   }
 
   .tm-editor h2.tm-heading-accordion {
-    background: color-mix(in oklab, var(--tm-soft-bg) 82%, var(--tm-bg));
+    font-weight: 700;
   }
 
-  .tm-editor h3.tm-heading-accordion {
-    border-color: color-mix(in oklab, var(--tm-accent) 20%, var(--tm-border));
-    background: color-mix(in oklab, var(--tm-accent) 3%, var(--tm-bg));
+  .tm-editor :is(h3, h4, h5, h6).tm-heading-accordion {
+    font-weight: 600;
   }
 
-  .tm-editor :is(h4, h5, h6).tm-heading-accordion {
-    border-color: color-mix(in oklab, var(--tm-border) 76%, transparent);
-    background: color-mix(in oklab, var(--tm-bg) 97%, var(--tm-code-bg));
-    box-shadow: none;
+  /* بخشِ باز، هدرش را از محتوایش با رنگِ ملایم جدا می‌کند. */
+  .tm-editor .tm-heading-accordion[data-folded="false"] {
+    background: var(--tm-soft-bg);
+    color: var(--tm-heading);
   }
 
   .tm-section-frame-host {
@@ -333,19 +338,23 @@
     z-index: 1;
   }
 
-  /* بخش باز سرِ همان قابِ والد است؛ بخش بسته کارتِ مستقل می‌ماند. */
-  .tm-editor .tm-heading-accordion[data-folded="false"] {
-    border-color: color-mix(in oklab, var(--tm-accent) 16%, var(--tm-border));
-  }
-
   .tm-editor .tm-heading-accordion .tm-inline-fold {
     inset-block-start: 50%;
-    inset-inline-start: 0.75rem;
+    inset-inline-start: 1rem;
     inset-inline-end: auto;
+    inline-size: 1.25rem;
+    block-size: 1.25rem;
     transform: translateY(-50%);
     opacity: 1;
   }
 
+  .tm-editor .tm-heading-accordion .tm-inline-fold > svg {
+    inline-size: 1.25rem;
+    block-size: 1.25rem;
+    transition: transform 200ms;
+  }
+
+  /* Flowbite: پیکان در حالتِ باز ۱۸۰ درجه می‌چرخد. */
   .tm-editor .tm-heading-accordion[data-folded="false"] .tm-inline-fold > svg {
     transform: rotate(180deg);
   }

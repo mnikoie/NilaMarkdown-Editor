@@ -247,3 +247,27 @@
 .markdown-workspace .tm-editor .tm-section-content:not(.tm-mark) {
   margin-inline-start: var(--tm-section-indent, 0px) !important;
 }
+
+/* ---------------------------------------------------------------------------
+ * قابِ بیرونیِ آکاردئون — به سبکِ Flowbite.
+ *
+ * Flowbite همهٔ ردیف‌ها را در یک قابِ گردِ واحد می‌گذارد و بینشان فقط یک
+ * خط می‌کشد. ردیف‌ها خودشان `border-block-end` دارند؛ اینجا فقط قاب و
+ * گردیِ لبه‌ها اضافه می‌شود، و خطِ آخرین ردیف حذف می‌شود تا با لبهٔ قاب
+ * دوتا نشود.
+ * ------------------------------------------------------------------------- */
+.markdown-workspace .tm-editor {
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  overflow: clip;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
+}
+
+.markdown-workspace .tm-editor > :last-child {
+  border-block-end: 0;
+}
+
+/* محتوای هر بخش کمی تورفته و با پس‌زمینهٔ خنثی، تا از هدرها جدا شود. */
+.markdown-workspace .tm-editor .tm-section-content:not(.tm-mark) {
+  padding-inline: 1.25rem;
+}
