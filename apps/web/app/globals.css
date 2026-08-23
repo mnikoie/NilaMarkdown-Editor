@@ -324,3 +324,24 @@
 .markdown-workspace .tm-editor .tm-mark.tm-section-content {
   border-inline-start: 0;
 }
+
+/* ---------------------------------------------------------------------------
+ * قابِ آکاردئون باید **پیوسته** باشد.
+ *
+ * ردیف‌های سرفصل `margin-block: 0` دارند، ولی قاعدهٔ عمومیِ سرفصل‌های
+ * مارک‌داون (`margin-block: 1.6em 0.6em`) و حاشیهٔ کارت‌ها ۲۰px فاصله
+ * بینشان می‌انداختند؛ خطِ جداکنندهٔ Flowbite قطع می‌شد و ردیف‌ها شناور
+ * به نظر می‌رسیدند. اینجا صفر می‌شود تا فقط خطِ جداکننده بماند.
+ * ------------------------------------------------------------------------- */
+.markdown-workspace .tm-editor > .tm-heading-accordion {
+  margin-block: 0 !important;
+}
+
+.markdown-workspace .tm-editor > .tm-section-content {
+  margin-block: 0 !important;
+}
+
+/* کارت فاصلهٔ کمِ خودش را نگه می‌دارد تا به لبهٔ ردیف نچسبد. */
+.markdown-workspace .tm-editor > .tm-mark.tm-section-content {
+  margin-block: 0.5rem !important;
+}

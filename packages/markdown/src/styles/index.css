@@ -78,7 +78,7 @@
     background: color-mix(in oklab, var(--tm-bg) 97%, var(--tm-code-bg));
     border: 1px solid var(--tm-border);
     border-radius: 1rem;
-    margin-block: 1.25rem;
+    margin-block: 0.5rem;
     box-shadow: 0 1px 2px rgb(36 59 90 / 0.04);
     overflow: clip;
   }
@@ -1696,7 +1696,8 @@
   .tm-editor ul,
   .tm-editor ol {
     margin-block: 0.75em;
-    padding-inline-start: 2.75em;
+    padding-inline-start: 4em;
+    --tm-list-toggle-offset: -3.9em;
   }
 
   /* ★ فهرستِ **تودرتو** قدمِ کوچک‌تری می‌گیرد.
@@ -1704,10 +1705,14 @@
    * `-2.75em` می‌نشیند. ولی همان مقدار برای فرزندِ داخلِ یک بند زیادی
    * بود — کاربر روی عکس نشان داد که فرزند بیش از حد از والدش دور
    * افتاده (اندازه‌گیری: ۴۲px). ۱.۷۵em قدمِ محسوس ولی متناسب می‌دهد. */
+  /* ★ padding جا را برای **دو** چیز باز می‌کند: نشانهٔ گلوله و فلشِ
+   * تاشدن. فلش بیرونِ ناحیهٔ نشانه می‌نشیند، وگرنه روی گلوله می‌افتد —
+   * کاربر روی عکس نشان داد (ناحیهٔ نشانه ۶۲۳ تا ۶۶۱ بود و فلش روی ۶۳۷
+   * می‌نشست). ۳.۶em = ~۱.۶em نشانه + ~۲em فلش. */
   .tm-editor li ul,
   .tm-editor li ol {
-    padding-inline-start: 1.75em;
-    --tm-list-toggle-offset: -1.75em;
+    padding-inline-start: 3.6em;
+    --tm-list-toggle-offset: -3.5em;
   }
 
   .tm-editor ul { list-style-type: disc; }
