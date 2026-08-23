@@ -289,9 +289,14 @@
 }
 
 /* کارت هم مثلِ متن، از متنِ سرفصلِ والد تو می‌رود. `margin` است نه
- * `padding`، چون کارت قابِ خودش را دارد و باید قاب هم جابه‌جا شود. */
+ * `padding`، چون کارت قابِ خودش را دارد و باید قاب هم جابه‌جا شود.
+ *
+ * ★ کارت ۳.۵rem کمتر تو می‌رود تا **عنوانش** با متنِ بندهای لیست
+ * هم‌تراز شود، نه قابش. داخلِ هدرِ کارت اول فلش و بعد آیکن می‌آید، پس
+ * عنوان ~۵۶px دیرتر از لبهٔ قاب شروع می‌شود؛ بدونِ این جبران، کارت
+ * نسبت به «۱. ابلاغ اجرائیه» تورفته‌تر به نظر می‌رسید. */
 .markdown-workspace .tm-editor .tm-mark.tm-section-content {
-  margin-inline-start: calc(var(--tm-section-indent, 0px) + 3.25rem) !important;
+  margin-inline-start: calc(var(--tm-section-indent, 0px) + 3.25rem - 3.5rem) !important;
   margin-inline-end: 1.25rem;
 }
 
