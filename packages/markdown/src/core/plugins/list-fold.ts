@@ -95,22 +95,28 @@ function buildDecorations(state: EditorState, folded: Set<number>, locale: "fa" 
     );
 
     if (!isFolded) continue;
-    for (const nested of item.nested) {
-      // ★ فقط وقتی پنهان‌سازی لغو می‌شود که مکان‌نما **واقعاً داخلِ** محتوای
-      // زیرفهرست باشد. مرزها بیرون حساب می‌شوند: با `<` و `>` ساده، یک
-      // مکان‌نمای چسبیده به لبه هم «داخل» شمرده می‌شد و بستنِ بند بی‌اثر
-      // می‌ماند.
-      const innerFrom = nested.pos + 1;
-      const innerTo = nested.pos + nested.node.nodeSize - 1;
-      const selectionInside =
-        state.selection.from >= innerFrom && state.selection.to <= innerTo;
-      if (selectionInside) continue;
+
+    // بندِ بسته فقط **خطِ اولش** را نشان می‌دهد؛ هرچه بعد از آن بیاید —
+    // پاراگرافِ توضیحی، ارجاع، زیرفهرست — پنهان می‌شود. تا پیش از این
+    // فقط زیرفهرست‌ها پنهان می‌شدند و پاراگراف‌ها می‌ماندند، که بستن را
+    // ناقص جلوه می‌داد.
+    let offset = item.pos + 1;
+    let first = true;
+    item.node.forEach((child) => {
+      const from = offset;
+      offset += child.nodeSize;
+      if (first) {
+        first = false;
+        return;
+      }
+      const to = from + child.nodeSize;
+      // مکان‌نمای داخلِ همین بلوک پنهان‌سازی را لغو می‌کند، وگرنه کاربر
+      // در جایی تایپ می‌کند که نمی‌بیند. مرزها بیرون حساب می‌شوند.
+      if (state.selection.from >= from + 1 && state.selection.to <= to - 1) return;
       decorations.push(
-        Decoration.node(nested.pos, nested.pos + nested.node.nodeSize, {
-          class: "tm-list-folded-hidden",
-        }),
+        Decoration.node(from, to, { class: "tm-list-folded-hidden" }),
       );
-    }
+    });
   }
   return decorations.length ? DecorationSet.create(state.doc, decorations) : DecorationSet.empty;
 }
