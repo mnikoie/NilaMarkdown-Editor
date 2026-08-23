@@ -43,7 +43,12 @@ function foldableItems(doc: PMNode): Array<{ node: PMNode; pos: number; parentPo
   doc.descendants((node, pos) => {
     if (node.type !== schema.nodes.list_item) return true;
     const nested = nestedLists(node, pos);
-    if (nested.length) {
+    // ★ معیارِ فلش «داشتنِ زیرفهرست» نیست، «داشتنِ محتوای بیش از خطِ اول»
+    // است. بندی مثل «۳. بازداشت پس از پایان مهلت» فقط دو پاراگراف دارد و
+    // زیرفهرست ندارد، ولی همان‌قدر تاشدنی است — بستنش باید پاراگرافِ دوم
+    // را جمع کند. با شرطِ قبلی چنین بندهایی بی‌فلش می‌ماندند و کاربر
+    // به‌درستی پرسید چرا فقط بعضی‌ها فلش دارند.
+    if (node.childCount > 1) {
       const $pos = doc.resolve(pos);
       items.push({ node, pos, parentPos: $pos.depth > 0 ? $pos.before($pos.depth) : 0, nested });
     }
