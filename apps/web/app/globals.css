@@ -279,16 +279,43 @@
  * از ۴۴ پیکسل داخل‌تر شروع می‌شود. محتوایی که فقط ۲۸px حاشیه می‌گرفت،
  * عملاً **بیرون‌تر** از متنِ والدش می‌افتاد (اندازه‌گیری: متنِ h2 روی ۷۱۳ و
  * بندها روی ۶۹۵ — یعنی ۱۸px بیرون، نه تو).
- * ۲.۷۵rem = ۴۴px همان تورفتگیِ متنِ سرفصل است؛ به‌علاوهٔ حاشیهٔ عمقِ درخت.
+ * ۴rem = ۶۴px: ۴۴px تا هم‌ترازیِ متنِ سرفصل، به‌علاوهٔ ۲۰px تورفتگیِ
+ * واقعی. با ۲.۷۵rem تورفتگی ۴۲px می‌شد و کنارِ سرفصلِ درشت و توپُر اصلاً
+ * به چشم نمی‌آمد — روی عکسِ واقعی بررسی شد.
  * ------------------------------------------------------------------------- */
 .markdown-workspace .tm-editor .tm-section-content:not(.tm-mark) {
-  padding-inline-start: 2.75rem;
+  padding-inline-start: 4rem;
   padding-inline-end: 1.25rem;
 }
 
 /* کارت هم مثلِ متن، از متنِ سرفصلِ والد تو می‌رود. `margin` است نه
  * `padding`، چون کارت قابِ خودش را دارد و باید قاب هم جابه‌جا شود. */
 .markdown-workspace .tm-editor .tm-mark.tm-section-content {
-  margin-inline-start: calc(var(--tm-section-indent, 0px) + 2.75rem) !important;
+  margin-inline-start: calc(var(--tm-section-indent, 0px) + 4rem) !important;
   margin-inline-end: 1.25rem;
+}
+
+/* ---------------------------------------------------------------------------
+ * خطِ راهنمای والد.
+ *
+ * تورفتگیِ تنها کافی نبود: کنارِ سرفصلِ درشت، ۴۲px فاصله به چشم نمی‌آمد و
+ * کاربر دو بار گزارش کرد که «تورفتگی رعایت نشده». یک خطِ عمودیِ نازک در
+ * لبهٔ آغازِ محتوا، رابطهٔ والد/فرزند را بدونِ اتکا به فاصله نشان می‌دهد.
+ * ------------------------------------------------------------------------- */
+.markdown-workspace .tm-editor .tm-section-content {
+  position: relative;
+}
+
+/* ★ به‌جای شبه‌عنصرِ absolute از `border-inline-start` روی خودِ عنصر
+ * استفاده می‌شود. مختصاتِ absolute در RTL نسبت به جعبهٔ padding حل
+ * می‌شد و خط را به سمتِ چپ (انتهای ستون) می‌برد — در عکس دیده شد.
+ * `border-inline-start` خودش جهت را رعایت می‌کند و هیچ محاسبه‌ای لازم
+ * ندارد؛ padding هم از قبل هست، پس متن روی خط نمی‌افتد. */
+.markdown-workspace .tm-editor .tm-section-content[data-section-depth] {
+  border-inline-start: 2px solid color-mix(in srgb, var(--foreground) 14%, transparent);
+}
+
+/* کارت خودش قاب دارد؛ خطِ راهنما کنارش تکرارِ بی‌مورد است. */
+.markdown-workspace .tm-editor .tm-mark.tm-section-content {
+  border-inline-start: 0;
 }
