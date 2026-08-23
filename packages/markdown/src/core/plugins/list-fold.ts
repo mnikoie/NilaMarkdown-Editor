@@ -96,8 +96,14 @@ function buildDecorations(state: EditorState, folded: Set<number>, locale: "fa" 
 
     if (!isFolded) continue;
     for (const nested of item.nested) {
+      // ★ فقط وقتی پنهان‌سازی لغو می‌شود که مکان‌نما **واقعاً داخلِ** محتوای
+      // زیرفهرست باشد. مرزها بیرون حساب می‌شوند: با `<` و `>` ساده، یک
+      // مکان‌نمای چسبیده به لبه هم «داخل» شمرده می‌شد و بستنِ بند بی‌اثر
+      // می‌ماند.
+      const innerFrom = nested.pos + 1;
+      const innerTo = nested.pos + nested.node.nodeSize - 1;
       const selectionInside =
-        state.selection.from < nested.pos + nested.node.nodeSize && state.selection.to > nested.pos;
+        state.selection.from >= innerFrom && state.selection.to <= innerTo;
       if (selectionInside) continue;
       decorations.push(
         Decoration.node(nested.pos, nested.pos + nested.node.nodeSize, {
@@ -236,8 +242,19 @@ export function listFoldPlugin(options: ListFoldOptions = {}): Plugin<ListFoldSt
             () => {
               let tr = view.state.tr;
               if (!opening) {
-                const selectionPos = Math.min(pos + 2, view.state.doc.content.size);
-                tr = tr.setSelection(Selection.near(view.state.doc.resolve(selectionPos)));
+                // ★ مکان‌نما باید به **پاراگرافِ خودِ بند** برود، نه داخلِ
+                // زیرفهرست. `pos + 2` وسطِ همان زیرفهرستی می‌افتاد که قرار
+                // است پنهان شود؛ آن‌گاه نگهبانِ `selectionInside` در
+                // `buildDecorations` پنهان‌سازی را لغو می‌کرد و بستن هیچ اثری
+                // نداشت — همان چیزی که کاربر در عکس نشان داد.
+                const item = view.state.doc.nodeAt(pos);
+                const firstChild = item?.firstChild;
+                const inside =
+                  firstChild && firstChild.type.name !== "bullet_list" && firstChild.type.name !== "ordered_list"
+                    ? pos + 2
+                    : pos;
+                const selectionPos = Math.min(Math.max(inside, 0), view.state.doc.content.size);
+                tr = tr.setSelection(Selection.near(view.state.doc.resolve(selectionPos), -1));
               }
               view.dispatch(tr.setMeta(listFoldKey, { type: "toggle", pos }));
             },
