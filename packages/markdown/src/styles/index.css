@@ -1699,6 +1699,17 @@
     padding-inline-start: 2.75em;
   }
 
+  /* ★ فهرستِ **تودرتو** قدمِ کوچک‌تری می‌گیرد.
+   * ۲.۷۵em برای فهرستِ سطحِ اول لازم است چون فلشِ تاشدن روی
+   * `-2.75em` می‌نشیند. ولی همان مقدار برای فرزندِ داخلِ یک بند زیادی
+   * بود — کاربر روی عکس نشان داد که فرزند بیش از حد از والدش دور
+   * افتاده (اندازه‌گیری: ۴۲px). ۱.۷۵em قدمِ محسوس ولی متناسب می‌دهد. */
+  .tm-editor li ul,
+  .tm-editor li ol {
+    padding-inline-start: 1.75em;
+    --tm-list-toggle-offset: -1.75em;
+  }
+
   .tm-editor ul { list-style-type: disc; }
   .tm-editor ol { list-style-type: decimal; }
 
@@ -1752,9 +1763,13 @@
     border-inline-start: 1px solid var(--tm-border);
   }
 
+  /* ★ فلش در حاشیهٔ آغازِ همان فهرست می‌نشیند؛ مقدارش با
+   * `padding-inline-start`ِ فهرستِ میزبان هماهنگ است تا نه روی متن
+   * بیفتد و نه بیرونِ ستون. متغیر است چون فهرستِ تودرتو قدمِ کوچک‌تری
+   * دارد. */
   .tm-editor .tm-list-fold-toggle {
     position: absolute;
-    inset-inline-start: -2.75em;
+    inset-inline-start: var(--tm-list-toggle-offset, -2.75em);
     inset-block-start: 0.05em;
     inline-size: 1.5em;
     block-size: 1.5em;
