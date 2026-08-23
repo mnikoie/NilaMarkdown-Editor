@@ -244,7 +244,12 @@
   margin-inline-start: var(--tm-tree-indent, 0px) !important;
 }
 
-.markdown-workspace .tm-editor .tm-section-content:not(.tm-mark) {
+/* ★ کارت‌ها هم تورفتگی می‌گیرند.
+ * تا اینجا `:not(.tm-mark)` کارت‌ها را کنار می‌گذاشت، پس کارتِ یادداشت
+ * زیرِ «الف: قواعد کلی» بیرون‌تر از والدش می‌نشست (اندازه‌گیری: کارت روی
+ * ۷۴۳ و والد روی ۷۲۹). کارتی که `data-tree-depth` دارد از قاعدهٔ بالا
+ * تورفتگی می‌گیرد؛ بقیه از عمقِ بخشِ میزبانشان. */
+.markdown-workspace .tm-editor .tm-section-content:not([data-tree-depth]) {
   margin-inline-start: var(--tm-section-indent, 0px) !important;
 }
 
@@ -267,7 +272,13 @@
   border-block-end: 0;
 }
 
-/* محتوای هر بخش کمی تورفته و با پس‌زمینهٔ خنثی، تا از هدرها جدا شود. */
+/* محتوای متنیِ هر بخش با هدرِ همان بخش هم‌تراز می‌شود. کارت‌ها از این
+ * قاعده بیرون‌اند چون خودشان قاب و padding دارند. */
 .markdown-workspace .tm-editor .tm-section-content:not(.tm-mark) {
   padding-inline: 1.25rem;
+}
+
+/* کارت داخلِ بخش، هم‌ترازِ متنِ همان بخش می‌ایستد. */
+.markdown-workspace .tm-editor .tm-mark.tm-section-content {
+  margin-inline-end: 1.25rem;
 }

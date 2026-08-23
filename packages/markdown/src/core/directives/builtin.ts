@@ -107,7 +107,7 @@ export const BUILTIN_MARKS: MarkRegistry = {
 
   note: {
     name: "note",
-    label: "یادداشت",
+    label: "یادداشت نویسنده",
     kind: "بلوکی",
     color: "#2563eb",
     icon: "ℹ",

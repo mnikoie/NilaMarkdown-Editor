@@ -169,8 +169,12 @@ export class MarkCardView implements NodeView {
     this.header.append(title);
 
     // صفاتِ نمایشی، بی «شماره» و «وضعیت» که جای خودشان را دارند.
+    //
+    // ★ «نوع» هم بیرون است: مقدارِ آن (مثلِ `compiler`) شناسهٔ داخلیِ
+    // پایپ‌لاینِ ورود است، نه چیزی که خوانندهٔ سند باید ببیند. نامِ
+    // نمایشی از `def.label` می‌آید («یادداشت نویسنده»).
     for (const [key, value] of Object.entries(attrs)) {
-      if (key === "شماره" || key === "وضعیت" || key === "#") continue;
+      if (key === "شماره" || key === "وضعیت" || key === "#" || key === "نوع") continue;
       const badge = document.createElement("span");
       badge.className = "tm-mark-attr";
       badge.textContent = `${key}: ${value}`;
