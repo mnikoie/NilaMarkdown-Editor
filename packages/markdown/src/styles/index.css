@@ -37,6 +37,14 @@
     --tm-surface-shadow: 0 14px 34px rgb(36 59 90 / 0.09);
     --tm-syntax-marker: #b8bfc7;
 
+    /* رنگِ متنِ هر سطحِ عنوان — تصمیمِ ۰۰۳۵. عمداً لغوکنندهٔ بندِ
+     * پس‌زمینهٔ ۰۰۳۴ نیست: فقط رنگِ متن، نه پس‌زمینه/حاشیه/سایه. */
+    --tm-level-1: #7a1f1f;
+    --tm-level-2: #b08d57;
+    --tm-level-3: #2f5233;
+    --tm-level-4: #35507a;
+    --tm-level-5: #555555;
+
     color: var(--tm-fg);
     background: var(--tm-bg);
     font-family: var(--tm-font-body);
@@ -57,6 +65,14 @@
     --tm-surface-shadow: 0 14px 34px rgb(0 0 0 / 0.28);
     --tm-selection: #1f4b7a;
     --tm-syntax-marker: #545d68;
+
+    /* روشن‌ترشده تا روی پس‌زمینهٔ تیره خوانا بمانند — همان الگویی که
+     * --tm-accent با تیره‌شدنِ بک‌گراند روشن‌تر می‌شود. */
+    --tm-level-1: #e08b8b;
+    --tm-level-2: #d9b876;
+    --tm-level-3: #7fbf8e;
+    --tm-level-4: #82a4d9;
+    --tm-level-5: #a8b0ba;
   }
 
   /* مصرف‌کننده ممکن است `data-theme` نگذارد و فقط به تمِ سیستم تکیه کند. */
@@ -70,6 +86,11 @@
       --tm-code-bg: #161b22;
       --tm-selection: #1f4b7a;
       --tm-syntax-marker: #545d68;
+      --tm-level-1: #e08b8b;
+      --tm-level-2: #d9b876;
+      --tm-level-3: #7fbf8e;
+      --tm-level-4: #82a4d9;
+      --tm-level-5: #a8b0ba;
     }
   }
 
@@ -283,55 +304,52 @@
 
   /* سلسله‌مراتبِ دیداری: عنوان‌های اصلی کارتِ آرام و پررنگ دارند؛ هرچه
    * پایین‌تر می‌رویم، سطح سبک‌تر می‌شود تا کادرها بر متن غلبه نکنند. */
-  /* سطح‌ها با وزن و اندازه از هم جدا می‌شوند، نه با رنگِ پس‌زمینه —
-   * چهار پس‌زمینهٔ متفاوت روی هم، صفحه را رنگین‌کمان می‌کرد. */
+  /* ★ تصمیمِ ۰۰۳۵: هر سطح رنگِ متنِ خودش را هم می‌گیرد (علاوه بر وزن
+   * و اندازه). فقط `color`، نه پس‌زمینه/حاشیه/سایه — بندِ پس‌زمینهٔ
+   * ۰۰۳۴ («چهار پس‌زمینه رنگین‌کمان می‌ساخت») همچنان برقرار است. */
   .tm-editor h1.tm-heading-accordion {
     padding-block: 1.15rem;
     font-weight: 800;
+    color: var(--tm-level-1);
   }
 
   .tm-editor h2.tm-heading-accordion {
     font-weight: 700;
+    color: var(--tm-level-2);
   }
 
-  .tm-editor :is(h3, h4, h5, h6).tm-heading-accordion {
+  .tm-editor h3.tm-heading-accordion {
     font-weight: 600;
+    color: var(--tm-level-3);
   }
 
-  /* بخشِ باز، هدرش را از محتوایش با رنگِ ملایم جدا می‌کند. */
+  .tm-editor h4.tm-heading-accordion {
+    font-weight: 600;
+    color: var(--tm-level-4);
+  }
+
+  .tm-editor :is(h5, h6).tm-heading-accordion {
+    font-weight: 600;
+    color: var(--tm-level-5);
+  }
+
+  /* بخشِ باز، پس‌زمینه‌اش را از محتوا با رنگِ ملایم جدا می‌کند؛
+   * رنگِ متن همان رنگِ سطح می‌ماند تا باز/بسته رنگ را عوض نکند. */
   .tm-editor .tm-heading-accordion[data-folded="false"] {
     background: var(--tm-soft-bg);
-    color: var(--tm-heading);
+  }
+
+  /* ★ تصمیمِ ۰۰۳۵: کاربر صریحاً «هیچ خط نمی‌خواهم، فقط تورفتگیِ
+   * ظاهری» گفته بود. قابِ خطیِ سلسله‌مراتب غیرفعال می‌شود؛ منطقِ
+   * محاسبه‌اش در fold.ts دست‌نخورده می‌ماند (فقط دیگر چیزی رسم
+   * نمی‌شود) تا بازگرداندنش در آینده صرفاً حذفِ همین `display:none` باشد. */
+  .tm-section-frames {
+    display: none;
   }
 
   .tm-section-frame-host {
     position: relative;
     isolation: isolate;
-  }
-
-  .tm-section-frames {
-    position: absolute;
-    z-index: 2;
-    inset: 0;
-    pointer-events: none;
-  }
-
-  .tm-section-frame {
-    position: absolute;
-    inset-inline-end: 0;
-    box-sizing: border-box;
-    border: 0;
-    border-inline-start: 1px solid color-mix(in oklab, var(--tm-accent) 18%, var(--tm-border));
-    background: transparent;
-  }
-
-  .tm-section-frame::before {
-    content: "";
-    position: absolute;
-    inset-block-start: 0;
-    inset-inline-start: -1px;
-    inline-size: 0.75rem;
-    border-block-start: 1px solid color-mix(in oklab, var(--tm-accent) 18%, var(--tm-border));
   }
 
   .tm-section-frame-host > .tm-editor {
