@@ -283,6 +283,9 @@ function buildDecorations(
   return DecorationSet.create(doc, decos);
 }
 
+/** کاربر تاشدن را کلاً نمی‌خواهد — کلیکِ عنوان دیگر تا/باز نمی‌کند. */
+const FOLD_CLICK_DISABLED = true;
+
 export function foldPlugin(options: FoldOptions = {}): Plugin<FoldState> {
   const registry = options.registry ?? BUILTIN_MARKS;
   const locale = options.locale ?? "fa";
@@ -417,7 +420,12 @@ export function foldPlugin(options: FoldOptions = {}): Plugin<FoldState> {
        * `mousedown` قبل از هر بازسازی می‌رسد.
        */
       handleDOMEvents: {
+        // ★ کاربر تاشدن را کلاً نمی‌خواهد — کلیک روی سرفصل هم دیگر
+        //   نباید بخش را تا/باز کند، نه فقط آکاردئونِ خودکار.
+        //   FOLD_CLICK_DISABLED پرچمِ تک‌جا است تا بازگرداندنِ این
+        //   تصمیم فقط لغوِ همان مقدار باشد؛ منطقِ اصلی دست‌نخورده ماند.
         mousedown(view, event) {
+          if (FOLD_CLICK_DISABLED) return false;
           const target = event.target as HTMLElement;
           if (event.button !== 0) return false;
           // کنترل‌های واقعیِ درونِ سرفصل نباید با کلیک، بخش را تا کنند.

@@ -249,8 +249,8 @@
   .tm-mark[data-mark="caution"] { --tm-alert: #dc2626; }
   .tm-mark:is([data-mark="هشدار"], [data-mark="note"], [data-mark="tip"], [data-mark="important"], [data-mark="warning"], [data-mark="caution"]) {
     background: color-mix(in oklab, var(--tm-alert) 6%, var(--tm-bg));
-    border-color: color-mix(in oklab, var(--tm-alert) 28%, var(--tm-bg));
-    box-shadow: 0 8px 24px color-mix(in oklab, var(--tm-alert) 7%, transparent);
+    border: 0;
+    box-shadow: none;
   }
   .tm-mark:is([data-mark="هشدار"], [data-mark="note"], [data-mark="tip"], [data-mark="important"], [data-mark="warning"], [data-mark="caution"]) > .tm-mark-header {
     color: color-mix(in oklab, var(--tm-alert) 78%, var(--tm-fg));

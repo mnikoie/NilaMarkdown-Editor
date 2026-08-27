@@ -119,7 +119,12 @@ describe("NodeViewها", () => {
     view.destroy();
   });
 
-  it("★★ هر directive بلوکی، حتی هشدار و ناشناخته، نودِ تاشونده است", () => {
+  it("★★ هر directive بلوکی، حتی هشدار و ناشناخته، نودِ تاشونده است اما تاشدن با کلیک عمداً خاموش است", () => {
+    // ★ تصمیمِ کاربر: تاشدن کلاً غیرفعال است (FOLD_CLICK_DISABLED در
+    //   MarkCard.ts). ساختارِ نود همچنان «تاشونده» علامت می‌خورد
+    //   (data-collapsible، دکمهٔ .tm-fold-toggle در DOM هست)، ولی
+    //   کلیک/کیبورد دیگر state را عوض نمی‌کند — دکمه هم در CSS پنهان
+    //   است. این تست همان قراردادِ فعلی را تثبیت می‌کند.
     const md = ":::هشدار\nمتن\n:::\n\n:::ناشناخته\nمحتوا\n:::\n";
     const view = makeView(md);
     const cards = [...view.dom.querySelectorAll<HTMLElement>(".tm-mark")];
@@ -131,9 +136,9 @@ describe("NodeViewها", () => {
     const header = cards[0]!.querySelector<HTMLElement>(".tm-mark-header")!;
     const toggle = cards[0]!.querySelector<HTMLButtonElement>(".tm-fold-toggle")!;
     header.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0 }));
-    expect(toggle.getAttribute("aria-expanded")).toBe("false");
-    expect(cards[0]!.getAttribute("data-folded")).toBe("true");
-    expect(cards[0]!.querySelector<HTMLElement>(".tm-mark-body")!.style.display).toBe("none");
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+    expect(cards[0]!.getAttribute("data-folded")).toBe("false");
+    expect(cards[0]!.querySelector<HTMLElement>(".tm-mark-body")!.style.display).not.toBe("none");
     toggle.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "Enter" }));
     expect(toggle.getAttribute("aria-expanded")).toBe("true");
     expect(cards[0]!.getAttribute("data-folded")).toBe("false");
@@ -141,16 +146,34 @@ describe("NodeViewها", () => {
     view.destroy();
   });
 
-  it("کارت‌ها می‌توانند بسته شروع شوند و به‌شکل آکاردئون باز شوند", () => {
+  it("دکمهٔ فلشِ کارت هم با کلیک یا کیبورد چیزی را تا نمی‌کند", () => {
+    const md = ":::هشدار\nمتن\n:::\n";
+    const view = makeView(md);
+    const card = view.dom.querySelector<HTMLElement>(".tm-mark")!;
+    const toggle = card.querySelector<HTMLButtonElement>(".tm-fold-toggle")!;
+    toggle.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0 }));
+    expect(card.getAttribute("data-folded")).toBe("false");
+    toggle.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "Enter" }));
+    expect(card.getAttribute("data-folded")).toBe("false");
+    view.destroy();
+  });
+
+  it("★★ initial:collapsed هنوز حالتِ آغازین را می‌بندد، ولی کلیکِ آکاردئون دیگر اثر ندارد", () => {
+    // ★ این تست قبلاً کلیک‌کردن برای بازکردنِ آکاردئون را تأیید می‌کرد —
+    //   دقیقاً همان چیزی که کاربر بعداً صریحاً رد کرد («دیگه نشه مثل
+    //   accordion باز بسته بشند»). FOLD_CLICK_DISABLED در MarkCard.ts
+    //   فقط کلیک/کیبورد را بی‌اثر می‌کند؛ `initial: "collapsed"` یک
+    //   مسیرِ جداست (حالتِ آغازینِ سازنده) و همچنان کار می‌کند — پس
+    //   کارت‌ها بسته شروع می‌شوند، ولی هیچ کلیکی دیگر بازشان نمی‌کند.
     const md = ":::هشدار\nیک\n:::\n\n:::نکته\nدو\n:::\n";
     const view = makeView(md, {}, { folding: { initial: "collapsed", mode: "accordion" } });
     const toggles = [...view.dom.querySelectorAll<HTMLButtonElement>(".tm-fold-toggle")];
     expect(toggles.map((button) => button.getAttribute("aria-expanded"))).toEqual(["false", "false"]);
     toggles[0]!.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
-    expect(toggles[0]!.getAttribute("aria-expanded")).toBe("true");
+    expect(toggles[0]!.getAttribute("aria-expanded")).toBe("false");
     toggles[1]!.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
     expect(toggles[0]!.getAttribute("aria-expanded")).toBe("false");
-    expect(toggles[1]!.getAttribute("aria-expanded")).toBe("true");
+    expect(toggles[1]!.getAttribute("aria-expanded")).toBe("false");
     view.destroy();
   });
 });

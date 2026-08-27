@@ -12,6 +12,9 @@ export interface MarkCardOptions {
   locale?: "fa" | "en";
 }
 
+/** کاربر تاشدن را کلاً نمی‌خواهد — کلیکِ هدرِ کارت دیگر تا/باز نمی‌کند. */
+const FOLD_CLICK_DISABLED = true;
+
 const cardViews = new WeakMap<EditorView, Set<MarkCardView>>();
 const foldIdsByView = new WeakMap<EditorView, {
   doc: PMNode;
@@ -59,6 +62,7 @@ export class MarkCardView implements NodeView {
     this.applyOpen(true);
   };
   private readonly onHeaderMouseDown = (event: MouseEvent) => {
+    if (FOLD_CLICK_DISABLED) return;
     if (event.button !== 0 || !this.toggle) return;
     const target = event.target as HTMLElement | null;
     if (!target?.closest) return;
@@ -68,6 +72,7 @@ export class MarkCardView implements NodeView {
     this.setOpen(!this.open);
   };
   private readonly onHeaderKeyDown = (event: KeyboardEvent) => {
+    if (FOLD_CLICK_DISABLED) return;
     if (event.key !== "Enter" && event.key !== " ") return;
     const target = event.target as HTMLElement | null;
     if (target !== this.header) return;
@@ -141,10 +146,12 @@ export class MarkCardView implements NodeView {
       chevron.setAttribute("aria-hidden", "true");
       this.toggle.append(chevron);
       this.toggle.addEventListener("mousedown", (e) => {
+        if (FOLD_CLICK_DISABLED) return;
         e.preventDefault();
         this.setOpen(!this.open);
       });
       this.toggle.addEventListener("keydown", (e) => {
+        if (FOLD_CLICK_DISABLED) return;
         if (e.key !== "Enter" && e.key !== " ") return;
         e.preventDefault();
         this.setOpen(!this.open);
