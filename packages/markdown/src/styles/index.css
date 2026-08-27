@@ -122,7 +122,7 @@
 
   .tm-mark-body {
     padding: 0.25rem 1rem 0.875rem;
-    border-block-start: 1px solid color-mix(in oklab, var(--tm-border) 65%, transparent);
+    border-block-start: 0;
   }
 
   .tm-mark-body > :first-child {
@@ -131,7 +131,7 @@
 
   .tm-mark[data-variant="ساده"] {
     background: var(--tm-soft-bg);
-    box-shadow: 0 5px 16px rgb(36 59 90 / 0.05);
+    box-shadow: none;
   }
 
   .tm-mark-inline {
@@ -358,13 +358,13 @@
     display: none;
   }
 
-  /* ★ کاربر تاشدن را کلاً نمی‌خواهد. هر سه دکمهٔ فلش (عنوان، لیستِ
-   * تودرتو، کارتِ دایرکتیو) پنهان می‌شود تا امکانِ بستنِ دستی هم
-   * نباشد. مقدارِ `initial` در useEditor.ts هم اجباراً «باز» شده —
-   * این‌جا فقط تضمینِ دومِ دیداری است. `!important` چون این دکمه‌ها
-   * چند قاعدهٔ hover/focus/[data-folded] دارند که باید همه بی‌اثر شوند. */
+  /* ★ کاربر تاشدنِ عنوان‌ها و کارتِ دایرکتیو را کلاً نمی‌خواهد؛ ولی
+   * تاشدنِ لیستِ تودرتو تصمیمِ جداست و کاربر صریحاً خواسته مثلِ قبل
+   * بماند — پس `.tm-list-fold-toggle` اینجا نیست. مقدارِ `initial` در
+   * useEditor.ts هم اجباراً «باز» شده — این‌جا فقط تضمینِ دومِ دیداری
+   * است. `!important` چون این دکمه‌ها چند قاعدهٔ hover/focus/[data-folded]
+   * دارند که باید همه بی‌اثر شوند. */
   .tm-inline-fold,
-  .tm-list-fold-toggle,
   .tm-mark .tm-fold-toggle {
     display: none !important;
   }

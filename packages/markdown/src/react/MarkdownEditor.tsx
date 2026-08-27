@@ -592,6 +592,23 @@ export function MarkdownEditor({
   }, [currentMarkdown, directives, effectiveDir, documentFileName]);
 
   const onNavigate = useCallback((node: OutlineNode) => {
+    // ★ حالتِ Source از ProseMirror جدا است — سندِ زنده در آن اصلاً
+    //   نصب نیست، پس با موقعیتِ node.from در آن سروکار نداریم؛ خطِ
+    //   عنوان را در متنِ خام پیدا و به‌جایش اسکرول می‌کنیم.
+    if (mode === "source") {
+      const source = sourceRef.current;
+      if (!source) return;
+      const lines = source.value.split("\n");
+      const lineIndex = lines.findIndex((line) => line.includes(node.title));
+      if (lineIndex === -1) return;
+      const lineStart = lines.slice(0, lineIndex).reduce((sum, line) => sum + line.length + 1, 0);
+      source.focus();
+      source.setSelectionRange(lineStart, lineStart + lines[lineIndex]!.length);
+      updateSourceActive(source);
+      const lineHeight = parseFloat(getComputedStyle(source).lineHeight) || 24;
+      source.scrollTop = Math.max(0, lineIndex * lineHeight - source.clientHeight / 2);
+      return;
+    }
     const view = handleRef.current.view;
     if (!view) return;
     if (foldKey.getState(view.state)?.folded.has(node.id)) {
@@ -617,7 +634,7 @@ export function MarkdownEditor({
         window.setTimeout(() => element.classList.remove("tm-nav-highlight"), 1600);
       });
     });
-  }, []);
+  }, [mode, updateSourceActive]);
 
   /**
    * حالتِ تاشدگی داخلِ ProseMirror زندگی می‌کند، نه در React. پس React
