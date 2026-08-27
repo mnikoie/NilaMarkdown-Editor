@@ -603,13 +603,18 @@ export function MarkdownEditor({
     // ممکن است atom باشد و مکان‌نما مستقیم داخلش ننشیند.
     const pos = Math.min(node.from + 1, state.doc.content.size);
     const selection = Selection.near(state.doc.resolve(pos));
-    view.dispatch(state.tr.setSelection(selection).scrollIntoView());
+    view.dispatch(state.tr.setSelection(selection));
     view.focus();
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         const target = view.nodeDOM(node.from);
         const element = target instanceof HTMLElement ? target : target?.parentElement;
-        element?.scrollIntoView({ block: "center", inline: "nearest", behavior: "auto" });
+        if (!element) return;
+        // ★ کلیکِ پنل باید نرم اسکرول کند و لحظه‌ای هایلایت شود —
+        //   برخلافِ حرکتِ مکان‌نمای معمولی که فوری است.
+        element.scrollIntoView({ block: "center", inline: "nearest", behavior: "smooth" });
+        element.classList.add("tm-nav-highlight");
+        window.setTimeout(() => element.classList.remove("tm-nav-highlight"), 1600);
       });
     });
   }, []);
@@ -694,11 +699,18 @@ export function MarkdownEditor({
     return () => clearTimeout(t);
   }, [notice]);
 
+  // ★ پنلِ کناری دیگر با متنِ اصلی هم‌سرنوشت نیست — تاشدنِ خودش را
+  //   جداگانه نگه می‌دارد و دیگر foldKeyِ سند را دست نمی‌زند. قبلاً
+  //   toggleFoldPreservingScroll همان state سند را عوض می‌کرد، پس
+  //   بستنِ یک آیتم در پنل، همان بخش را در متنِ اصلی هم جمع می‌کرد.
+  const [sidebarFolded, setSidebarFolded] = useState<ReadonlySet<string>>(() => new Set());
   const onToggleFoldNode = useCallback((node: OutlineNode) => {
-    const view = handleRef.current.view;
-    if (!view) return;
-    toggleFoldPreservingScroll(view, node.id, node.from);
-    setFolded(new Set(foldKey.getState(view.state)?.folded ?? []));
+    setSidebarFolded((prev) => {
+      const next = new Set(prev);
+      if (next.has(node.id)) next.delete(node.id);
+      else next.add(node.id);
+      return next;
+    });
   }, []);
 
   return (
@@ -732,7 +744,7 @@ export function MarkdownEditor({
           </button>
           <OutlineTree
             nodes={handle.outline}
-            folded={folded}
+            folded={sidebarFolded}
             onNavigate={onNavigate}
             onToggleFold={onToggleFoldNode}
           />
