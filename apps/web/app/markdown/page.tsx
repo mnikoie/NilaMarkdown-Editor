@@ -113,6 +113,10 @@ const TEST_DOCUMENT =
 const SAMPLE_DOCUMENT =
   "D:/- AIProject/01- Bakhshnameh/- خلاصه سازی دستورالعمل/- Kholase/- Files/- MD01/BakhshnamehTalkhis - 62285360/BakhshnamehTalkhis - 62285360.md";
 
+/** سندِ merge‌شدهٔ آزمایشی. */
+const MERGED_DOCUMENT =
+  "D:/- AIProject/lmjs-test/merged.md";
+
 export default async function MarkdownDemoPage({
   searchParams,
 }: {
@@ -122,6 +126,13 @@ export default async function MarkdownDemoPage({
   const markdown =
     fixture === "demo"
       ? SANAD
-      : await readFile(fixture === "sample" ? SAMPLE_DOCUMENT : TEST_DOCUMENT, "utf8");
+      : await readFile(
+          fixture === "sample"
+            ? SAMPLE_DOCUMENT
+            : fixture === "merged"
+              ? MERGED_DOCUMENT
+              : TEST_DOCUMENT,
+          "utf8",
+        );
   return <MarkdownDemoClient markdown={markdown} />;
 }
