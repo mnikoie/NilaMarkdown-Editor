@@ -206,8 +206,17 @@ export function MarkdownEditor({
 }: MarkdownEditorProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const [activeLocale, setActiveLocale] = useState<MarkdownLocale>(locale);
-  const [foldInitial, setFoldInitial] = useState(folding?.initial ?? "collapsed");
-  const [foldMode, setFoldModeState] = useState(folding?.mode ?? "accordion");
+  // ★ کاربر تاشدن را کلاً نمی‌خواهد — صرف‌نظر از `folding.initial`ِ
+  //   ورودیِ مصرف‌کننده، همیشه باز شروع می‌شود. دکمهٔ فلش هم در
+  //   index.css پنهان است تا کاربر نتواند دوباره ببندد.
+  const [foldInitial, setFoldInitial] = useState<NonNullable<FoldingOptions["initial"]>>(
+    "expanded",
+  );
+  // ★ کاربر آکاردئون را کلاً نمی‌خواهد — «multiple» یعنی بازکردنِ یک
+  //   گره هم‌سطح‌هایش را نمی‌بندد. با mode="accordion" حتی وقتی
+  //   folded خالی است، reconcileAccordion (که setFoldMode صدایش
+  //   می‌زند) هم‌سطح‌های باز را به‌جز اولی می‌بست.
+  const [foldMode, setFoldModeState] = useState<NonNullable<FoldingOptions["mode"]>>("multiple");
   const [folded, setFolded] = useState<ReadonlySet<string>>(() => new Set(foldedIds ?? []));
   const [mode, setMode] = useState<"live" | "source">("live");
   /** پیامِ کوتاه به کاربر — خطای آپلود یا شکستِ چاپ. */
@@ -239,8 +248,10 @@ export function MarkdownEditor({
   useEffect(() => setStatusVisible(stats), [stats]);
   useEffect(() => setDocumentFileName(fileName), [fileName]);
   useEffect(() => setActiveLocale(locale), [locale]);
-  useEffect(() => setFoldInitial(folding?.initial ?? "collapsed"), [folding?.initial]);
-  useEffect(() => setFoldModeState(folding?.mode ?? "accordion"), [folding?.mode]);
+  // ★ عمداً به `folding?.initial` گوش نمی‌دهد — همیشه باز.
+  useEffect(() => setFoldInitial("expanded"), []);
+  // ★ عمداً به `folding?.mode` گوش نمی‌دهد — آکاردئون کلاً خاموش است.
+  useEffect(() => setFoldModeState("multiple"), []);
 
   const t = useCallback((text: string) => translate(activeLocale, text), [activeLocale]);
   const effectiveDir = dir === "auto" ? (activeLocale === "fa" ? "rtl" : "ltr") : dir;

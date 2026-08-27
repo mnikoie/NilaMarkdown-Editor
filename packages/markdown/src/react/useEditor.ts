@@ -145,8 +145,9 @@ export function useEditor(options: UseEditorOptions): {
   // بازمی‌ساخت و مکان‌نما را می‌پراند.
   const imagesRef = useRef(images);
   imagesRef.current = images;
-  const foldModeRef = useRef(folding?.mode ?? "accordion");
-  foldModeRef.current = folding?.mode ?? "accordion";
+  // آکاردئون خاموش — کارتِ دایرکتیو هم باید هم‌سطح‌ها را نبندد.
+  const foldModeRef = useRef<"accordion" | "multiple">("multiple");
+  foldModeRef.current = "multiple";
 
   const ref = (node: HTMLElement | null) => {
     mountRef.current = node;
@@ -184,10 +185,17 @@ export function useEditor(options: UseEditorOptions): {
         }),
         inputRulesPlugin(directives),
         autoPairPlugin(),
+        // ★ کاربر تاشدن را کلاً نمی‌خواهد — هیچ گره‌ای نباید بسته
+        //   شروع شود، صرف‌نظر از ورودیِ `folding`/`foldedIds`ِ مصرف‌کننده.
+        //   دکمهٔ فلش هم در index.css با display:none پنهان است تا
+        //   کاربر نتواند دوباره ببندد؛ خودِ پلاگین دست‌نخورده می‌ماند
+        //   تا برگرداندنِ این تصمیم فقط لغوِ همین دو خط باشد.
         foldPlugin({
           registry: directives,
-          initial: foldedIds ?? (folding?.initial === "expanded" ? [] : "all"),
-          mode: folding?.mode ?? "accordion",
+          initial: [],
+          // آکاردئون هم خاموش — فقط initial کافی نبود چون
+          // reconcileAccordion با هر setMode می‌تواند هم‌سطح‌ها را ببندد.
+          mode: "multiple",
           locale,
           onChange: (ids) => onFoldChangeRef.current?.(ids),
         }),
@@ -199,9 +207,10 @@ export function useEditor(options: UseEditorOptions): {
         // برعکس، رهاکردنِ عکس فقط مکان‌نما را جابه‌جا می‌کرد.
         pasteImagePlugin(imagesRef.current ?? {}),
         taskListPlugin({ locale }),
+        // ★ همان تصمیم: لیست‌های تودرتو هم باز شروع می‌شوند.
         listFoldPlugin({
-          initial: folding?.initial ?? "collapsed",
-          mode: folding?.mode ?? "accordion",
+          initial: "expanded",
+          mode: "multiple",
           locale,
         }),
         tableResizingPlugin(),
@@ -215,7 +224,9 @@ export function useEditor(options: UseEditorOptions): {
       state,
       editable: () => !readOnly,
       nodeViews: createNodeViews(directives, features, {
-        folding,
+        // ★ همان تصمیم: کارتِ دایرکتیو هم باز شروع می‌شود، صرف‌نظر
+        //   از `folding.initial`ِ ورودی.
+        folding: { ...folding, initial: "expanded" },
         cardFolding: { mode: () => foldModeRef.current },
         locale,
       }),

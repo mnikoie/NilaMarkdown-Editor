@@ -20,7 +20,8 @@
   .tm-root {
     --tm-font-body: Vazirmatn, system-ui, sans-serif;
     --tm-font-mono: ui-monospace, "Cascadia Code", Consolas, monospace;
-    --tm-font-size: 15px;
+    /* عیناً مثلِ فایلِ مرجعِ کاربر (step2-fold.html): پایهٔ ۱۶px. */
+    --tm-font-size: 16px;
     --tm-line-height: 1.9;
     --tm-measure: 68ch;
 
@@ -306,20 +307,26 @@
    * پایین‌تر می‌رویم، سطح سبک‌تر می‌شود تا کادرها بر متن غلبه نکنند. */
   /* ★ تصمیمِ ۰۰۳۵: هر سطح رنگِ متنِ خودش را هم می‌گیرد (علاوه بر وزن
    * و اندازه). فقط `color`، نه پس‌زمینه/حاشیه/سایه — بندِ پس‌زمینهٔ
-   * ۰۰۳۴ («چهار پس‌زمینه رنگین‌کمان می‌ساخت») همچنان برقرار است. */
+   * ۰۰۳۴ («چهار پس‌زمینه رنگین‌کمان می‌ساخت») همچنان برقرار است.
+   * اندازه‌ها عیناً از step2-fold.html (پایه ۱۶px): h1=1.4rem،
+   * h2=1.16rem، h3=1.03rem؛ h4/h5/h6 در مرجع اندازهٔ صریح نداشتند،
+   * فقط وزنِ سبک‌تر — همان‌طور نگه داشته شد. */
   .tm-editor h1.tm-heading-accordion {
     padding-block: 1.15rem;
     font-weight: 800;
+    font-size: 1.4rem;
     color: var(--tm-level-1);
   }
 
   .tm-editor h2.tm-heading-accordion {
     font-weight: 700;
+    font-size: 1.16rem;
     color: var(--tm-level-2);
   }
 
   .tm-editor h3.tm-heading-accordion {
     font-weight: 600;
+    font-size: 1.03rem;
     color: var(--tm-level-3);
   }
 
@@ -345,6 +352,17 @@
    * نمی‌شود) تا بازگرداندنش در آینده صرفاً حذفِ همین `display:none` باشد. */
   .tm-section-frames {
     display: none;
+  }
+
+  /* ★ کاربر تاشدن را کلاً نمی‌خواهد. هر سه دکمهٔ فلش (عنوان، لیستِ
+   * تودرتو، کارتِ دایرکتیو) پنهان می‌شود تا امکانِ بستنِ دستی هم
+   * نباشد. مقدارِ `initial` در useEditor.ts هم اجباراً «باز» شده —
+   * این‌جا فقط تضمینِ دومِ دیداری است. `!important` چون این دکمه‌ها
+   * چند قاعدهٔ hover/focus/[data-folded] دارند که باید همه بی‌اثر شوند. */
+  .tm-inline-fold,
+  .tm-list-fold-toggle,
+  .tm-mark .tm-fold-toggle {
+    display: none !important;
   }
 
   .tm-section-frame-host {
