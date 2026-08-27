@@ -2169,13 +2169,11 @@
   /* فقط ارجاعِ دارای مقصد تعاملی به نظر می‌رسد. */
   .tm-directive-inline[data-target] {
     cursor: help;
-    border-block-end: 1px dashed color-mix(in oklab, var(--tm-mark-base) 45%, transparent);
   }
 
   .tm-directive-inline[data-target]:hover,
   .tm-directive-inline[data-target]:focus-visible {
     background: color-mix(in oklab, var(--tm-mark-base) 16%, transparent);
-    border-block-end-color: var(--tm-mark-base);
   }
 
   .tm-directive-inline[data-target]:focus-visible {
