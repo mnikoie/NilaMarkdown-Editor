@@ -148,10 +148,22 @@
   flex-basis: var(--tm-sidebar-width, 17rem);
   max-height: none;
   height: 100%;
-  padding: 0.75rem;
+  padding: 0;
   border: 0;
+  border-inline-end: 1px solid var(--tm-doc-border);
   border-radius: 0;
-  background: color-mix(in srgb, var(--background) 96%, var(--foreground));
+  background: var(--tm-doc-sidebar-bg);
+  box-shadow: -0.4rem 0 1.4rem var(--tm-doc-shadow);
+}
+
+.markdown-workspace .tm-demo-editor > .tm-sidebar-resizer {
+  flex-basis: 0.65rem;
+}
+
+.markdown-workspace .tm-demo-editor > .tm-sidebar-resizer::after {
+  width: 2px;
+  height: 2.75rem;
+  background: var(--tm-doc-border-strong);
 }
 
 .markdown-workspace .tm-demo-editor > .tm-main {
@@ -227,120 +239,348 @@
   }
 }
 
-/* ---------------------------------------------------------------------------
- * تورفتگیِ درختیِ سرفصل‌ها.
+/* نمایشِ سند با همان منطقِ merged.html: عمق فقط با تورفتگی، نه کارت و آکاردئون.
  *
- * ★ چرا اینجا و چرا `!important`:
- * preflightِ Tailwind در `@layer base` روی `*` مقدارِ `margin-right:0`
- * می‌گذارد. در RTL، `margin-inline-start` به همان `margin-right` نگاشته
- * می‌شود؛ چون لایهٔ `base` بعد از `components` اعلام شده، آن صفرِ فیزیکی
- * بر `margin-inline-start`ِ منطقیِ پکیج غلبه می‌کرد و همهٔ سطح‌ها صاف
- * می‌افتادند (اندازه‌گیری‌شده: عمقِ ۰ و ۱ و ۲ هر سه روی right=609).
- * این قاعده خارج از هر لایه است، پس بر لایه‌دارها مقدم است.
- * ------------------------------------------------------------------------- */
+ * ★ همهٔ رنگ‌های این بخش (کاغذِ روشنِ merged.html) به‌جای هاردکد از
+ * توکن‌های --tm-doc-* می‌خوانند که مقدارِ روشن را در :root و مقدارِ
+ * تیره را زیرِ prefers-color-scheme/.dark بازتعریف می‌کنند — همان
+ * رابطهٔ رنگیِ کاغذی/گرم را با تُنِ تیره‌تر نگه می‌دارند، رنگ کاملاً
+ * خاموش نمی‌شود. چون MarkdownDemoClient با theme="auto" به سیستم
+ * گوش می‌دهد، این صفحه دیگر نمی‌تواند فرض کند همیشه روشن است. */
+.markdown-workspace {
+  --tm-document-bg: #f7f5f0;
+  --tm-doc-border: #ded8cc;
+  --tm-doc-border-strong: #d1cabd;
+  --tm-doc-sidebar-bg: #f4f2ed;
+  --tm-doc-shadow: rgb(65 52 35 / 0.045);
+  --tm-doc-shadow-strong: rgb(55 43 28 / 0.075);
+  --tm-doc-fg: #222222;
+  --tm-doc-muted: #444444;
+  --tm-doc-marker: #222222;
+  --tm-doc-h1: #7a1f1f;
+  --tm-doc-h2: #b08d57;
+  --tm-doc-h3: #2f5233;
+  --tm-doc-h3-marker: rgb(47 82 51 / 75%);
+  --tm-doc-h4: #555555;
+  --tm-doc-note-bg: #fdf0e6;
+  --tm-doc-note-accent: #c76b2c;
+  --tm-doc-note-quote-border: #b0a999;
+  --tm-doc-ref-bg: #eaeef7;
+  --tm-doc-ref-fg: #35507a;
+  --tm-doc-ref-hover-bg: #dbe3f2;
+}
+
+@media (prefers-color-scheme: dark) {
+  .markdown-workspace:not(:has(.tm-root[data-theme="light"])) {
+    --tm-document-bg: #1c1a16;
+    --tm-doc-border: #3a352c;
+    --tm-doc-border-strong: #4a4438;
+    --tm-doc-sidebar-bg: #221f1a;
+    --tm-doc-shadow: rgb(0 0 0 / 0.2);
+    --tm-doc-shadow-strong: rgb(0 0 0 / 0.32);
+    --tm-doc-fg: #e8e3d8;
+    --tm-doc-muted: #c2bcae;
+    --tm-doc-marker: #c2bcae;
+    --tm-doc-h1: #e08b8b;
+    --tm-doc-h2: #d9b876;
+    --tm-doc-h3: #8fcf9c;
+    --tm-doc-h3-marker: rgb(143 207 156 / 75%);
+    --tm-doc-h4: #a8b0ba;
+    --tm-doc-note-bg: #2c2318;
+    --tm-doc-note-accent: #e0955a;
+    --tm-doc-note-quote-border: #6b6357;
+    --tm-doc-ref-bg: #1e2636;
+    --tm-doc-ref-fg: #8fa8d9;
+    --tm-doc-ref-hover-bg: #283349;
+  }
+}
+
+.markdown-workspace .tm-demo-editor[data-theme="dark"],
+.markdown-workspace:has(.tm-root[data-theme="dark"]) {
+  --tm-document-bg: #1c1a16;
+  --tm-doc-border: #3a352c;
+  --tm-doc-border-strong: #4a4438;
+  --tm-doc-sidebar-bg: #221f1a;
+  --tm-doc-shadow: rgb(0 0 0 / 0.2);
+  --tm-doc-shadow-strong: rgb(0 0 0 / 0.32);
+  --tm-doc-fg: #e8e3d8;
+  --tm-doc-muted: #c2bcae;
+  --tm-doc-marker: #c2bcae;
+  --tm-doc-h1: #e08b8b;
+  --tm-doc-h2: #d9b876;
+  --tm-doc-h3: #8fcf9c;
+  --tm-doc-h3-marker: rgb(143 207 156 / 75%);
+  --tm-doc-h4: #a8b0ba;
+  --tm-doc-note-bg: #2c2318;
+  --tm-doc-note-accent: #e0955a;
+  --tm-doc-note-quote-border: #6b6357;
+  --tm-doc-ref-bg: #1e2636;
+  --tm-doc-ref-fg: #8fa8d9;
+  --tm-doc-ref-hover-bg: #283349;
+}
+
+.markdown-workspace .tm-demo-editor .tm-editor-controls {
+  inline-size: 100%;
+  max-width: none;
+  margin-inline: 0;
+  padding-block: 0.55rem 0.7rem;
+  border-block-end: 1px solid var(--tm-doc-border);
+  border-radius: 0;
+  background: var(--tm-document-bg, #f7f5f0);
+  box-shadow: 0 0.65rem 1rem var(--tm-doc-shadow-strong);
+  backdrop-filter: none;
+}
+
+.markdown-workspace .tm-demo-editor > .tm-main,
+.markdown-workspace .tm-demo-editor .tm-editor-wrap {
+  background: var(--tm-document-bg);
+}
+
+.markdown-workspace .tm-demo-editor .tm-editor {
+  box-sizing: border-box;
+  width: min(100%, 1080px);
+  max-width: 1080px;
+  min-height: 100%;
+  margin: 40px auto;
+  padding: 0 28px 3rem;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--tm-doc-fg);
+  line-height: 1.95;
+  overflow: visible;
+}
+
+/* فایل مرجع هر سطح را دقیقاً ۳۰px داخل می‌برد. Outline یک ریشهٔ مصنوعی
+ * برای عنوانِ کل سند دارد؛ بنابراین در بلوک‌های مستقیم، یک گام از عمقِ
+ * محاسبه‌شده کم می‌شود. عنوانی که داخلِ یک list-item ساختاری است فقط یک
+ * گام نسبت به همان والد حرکت می‌کند، نه دوباره به اندازهٔ عمقِ مطلق. */
 .markdown-workspace .tm-editor .tm-heading-accordion[data-tree-depth],
 .markdown-workspace .tm-editor .tm-mark[data-tree-depth] {
-  margin-inline-start: var(--tm-tree-indent, 0px) !important;
+  margin-inline-start: max(0px, calc(var(--tm-tree-indent, 0px) - 30px)) !important;
+  margin-inline-end: 0 !important;
 }
 
-/* ★ کارت‌ها هم تورفتگی می‌گیرند.
- * تا اینجا `:not(.tm-mark)` کارت‌ها را کنار می‌گذاشت، پس کارتِ یادداشت
- * زیرِ «الف: قواعد کلی» بیرون‌تر از والدش می‌نشست (اندازه‌گیری: کارت روی
- * ۷۴۳ و والد روی ۷۲۹). کارتی که `data-tree-depth` دارد از قاعدهٔ بالا
- * تورفتگی می‌گیرد؛ بقیه از عمقِ بخشِ میزبانشان. */
+.markdown-workspace .tm-editor li > .tm-heading-accordion[data-tree-depth],
+.markdown-workspace .tm-editor li > .tm-mark[data-tree-depth] {
+  margin-inline-start: 30px !important;
+}
+
 .markdown-workspace .tm-editor .tm-section-content:not([data-tree-depth]) {
-  margin-inline-start: var(--tm-section-indent, 0px) !important;
+  margin-inline-start: max(0px, calc(var(--tm-section-indent, 0px) - 30px)) !important;
+  margin-inline-end: 0 !important;
 }
 
-/* ---------------------------------------------------------------------------
- * قابِ بیرونیِ آکاردئون — به سبکِ Flowbite.
- *
- * Flowbite همهٔ ردیف‌ها را در یک قابِ گردِ واحد می‌گذارد و بینشان فقط یک
- * خط می‌کشد. ردیف‌ها خودشان `border-block-end` دارند؛ اینجا فقط قاب و
- * گردیِ لبه‌ها اضافه می‌شود، و خطِ آخرین ردیف حذف می‌شود تا با لبهٔ قاب
- * دوتا نشود.
- * ------------------------------------------------------------------------- */
-.markdown-workspace .tm-editor {
-  border: 1px solid var(--border);
-  border-radius: 0.75rem;
-  overflow: clip;
-  box-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
-}
-
-.markdown-workspace .tm-editor > :last-child {
-  border-block-end: 0;
-}
-
-/* ---------------------------------------------------------------------------
- * محتوای هر بخش نسبت به **متنِ** سرفصلِ والد تو می‌رود، نه نسبت به جعبه‌اش.
- *
- * ★ سرفصل `padding-inline-start: 44px` دارد تا فلشِ تاشدن جا شود، پس متنش
- * از ۴۴ پیکسل داخل‌تر شروع می‌شود. محتوایی که فقط ۲۸px حاشیه می‌گرفت،
- * عملاً **بیرون‌تر** از متنِ والدش می‌افتاد (اندازه‌گیری: متنِ h2 روی ۷۱۳ و
- * بندها روی ۶۹۵ — یعنی ۱۸px بیرون، نه تو).
- * ۳.۲۵rem = ۵۲px: ۴۴px تا هم‌ترازیِ متنِ سرفصل، به‌علاوهٔ ~۸px قدمِ
- * تورفتگی. ۴rem (۶۲px) زیادی بود و محتوا از والدش جدا می‌افتاد؛ ۲.۷۵rem
- * (۴۲px) هم کم بود و اصلاً دیده نمی‌شد. هر دو روی عکسِ واقعی بررسی شدند.
- * ------------------------------------------------------------------------- */
 .markdown-workspace .tm-editor .tm-section-content:not(.tm-mark) {
-  padding-inline-start: 3.25rem;
-  padding-inline-end: 1.25rem;
+  padding: 0;
+  border: 0;
 }
 
-/* کارت هم مثلِ متن، از متنِ سرفصلِ والد تو می‌رود. `margin` است نه
- * `padding`، چون کارت قابِ خودش را دارد و باید قاب هم جابه‌جا شود.
- *
- * ★ کارت ۳.۵rem کمتر تو می‌رود تا **عنوانش** با متنِ بندهای لیست
- * هم‌تراز شود، نه قابش. داخلِ هدرِ کارت اول فلش و بعد آیکن می‌آید، پس
- * عنوان ~۵۶px دیرتر از لبهٔ قاب شروع می‌شود؛ بدونِ این جبران، کارت
- * نسبت به «۱. ابلاغ اجرائیه» تورفته‌تر به نظر می‌رسید. */
 .markdown-workspace .tm-editor .tm-mark.tm-section-content {
-  margin-inline-start: calc(var(--tm-section-indent, 0px) + 3.25rem - 3.5rem) !important;
-  margin-inline-end: 1.25rem;
+  margin-inline-start: max(0px, calc(var(--tm-section-indent, 0px) - 30px)) !important;
+  margin-inline-end: 0;
 }
 
-/* ---------------------------------------------------------------------------
- * خطِ راهنمای والد.
- *
- * تورفتگیِ تنها کافی نبود: کنارِ سرفصلِ درشت، ۴۲px فاصله به چشم نمی‌آمد و
- * کاربر دو بار گزارش کرد که «تورفتگی رعایت نشده». یک خطِ عمودیِ نازک در
- * لبهٔ آغازِ محتوا، رابطهٔ والد/فرزند را بدونِ اتکا به فاصله نشان می‌دهد.
- * ------------------------------------------------------------------------- */
-.markdown-workspace .tm-editor .tm-section-content {
-  position: relative;
+/* عنوان‌ها دیگر ردیفِ تمام‌عرض یا سطحِ رنگی نیستند. */
+.markdown-workspace .tm-editor .tm-heading-accordion {
+  margin-block: 0.2rem 0.4rem !important;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent !important;
+  box-shadow: none;
+  line-height: 1.45;
 }
 
-/* ★ به‌جای شبه‌عنصرِ absolute از `border-inline-start` روی خودِ عنصر
- * استفاده می‌شود. مختصاتِ absolute در RTL نسبت به جعبهٔ padding حل
- * می‌شد و خط را به سمتِ چپ (انتهای ستون) می‌برد — در عکس دیده شد.
- * `border-inline-start` خودش جهت را رعایت می‌کند و هیچ محاسبه‌ای لازم
- * ندارد؛ padding هم از قبل هست، پس متن روی خط نمی‌افتد. */
-.markdown-workspace .tm-editor .tm-section-content[data-section-depth] {
-  border-inline-start: 2px solid color-mix(in srgb, var(--foreground) 14%, transparent);
+.markdown-workspace .tm-editor h1.tm-heading-accordion {
+  margin-block-start: 2.2rem !important;
+  padding-block-end: 0.35rem;
+  border-block-end: 2px solid currentColor;
+  color: var(--tm-doc-h1);
+  font-size: 1.4rem;
+  font-weight: 600;
 }
 
-/* کارت خودش قاب دارد؛ خطِ راهنما کنارش تکرارِ بی‌مورد است. */
-.markdown-workspace .tm-editor .tm-mark.tm-section-content {
+.markdown-workspace .tm-editor h2.tm-heading-accordion {
+  margin-block-start: 1.5rem !important;
+  color: var(--tm-doc-h2);
+  font-size: 1.16rem;
+  font-weight: 600;
+}
+
+.markdown-workspace .tm-editor h3.tm-heading-accordion {
+  margin-block-start: 0.8rem !important;
+  color: var(--tm-doc-ref-fg);
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.markdown-workspace .tm-editor h4.tm-heading-accordion {
+  margin-block-start: 0.8rem !important;
+  color: var(--tm-doc-h4);
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.markdown-workspace .tm-editor :is(h5, h6).tm-heading-accordion {
+  color: var(--tm-doc-h4);
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.markdown-workspace .tm-editor p {
+  margin-block: 0.35rem 0.7rem;
+}
+
+.markdown-workspace .tm-editor ul,
+.markdown-workspace .tm-editor ol,
+.markdown-workspace .tm-editor li ul,
+.markdown-workspace .tm-editor li ol {
+  margin-block: 0.4rem 0.7rem;
+  padding-inline-start: 1.4rem;
+}
+
+.markdown-workspace .tm-editor li {
+  margin-block: 0.2rem;
+}
+
+.markdown-workspace .tm-editor li::marker {
+  color: var(--tm-doc-marker);
+}
+
+/* در merged.html بندهای شماره‌دارِ اصلی به lv-3 تبدیل شده‌اند. در Markdown
+ * همان‌ها list-itemهایی هستند که پاراگراف اولشان فقط یک strong است. marker
+ * پیش‌فرض بیرونِ ستون می‌افتاد؛ شماره را داخلِ خود عنوان می‌سازیم تا دقیقاً
+ * مثل `.ttl > .n` مرجع روی خط عنوان بنشیند. */
+.markdown-workspace .tm-editor ol.tm-section-content:has(> li > p:first-child > strong:only-child) {
+  list-style: none;
+  counter-reset: tm-lv3;
+}
+
+.markdown-workspace .tm-editor ol.tm-section-content:has(> li > p:first-child > strong:only-child) > li {
+  counter-increment: tm-lv3;
+}
+
+.markdown-workspace .tm-editor ol.tm-section-content > li:has(> p:first-child > strong:only-child) > p:first-child {
+  margin-block: 0.2rem 0.4rem;
+  color: var(--tm-doc-h3);
+  font-size: 1.03rem;
+  font-weight: 600;
+}
+
+.markdown-workspace .tm-editor ol.tm-section-content > li:has(> p:first-child > strong:only-child) > p:first-child::before {
+  content: counter(tm-lv3, persian) ". ";
+  color: var(--tm-doc-h3-marker);
+  font-weight: 600;
+}
+
+/* محتوای lv-3 یک گام از عنوانش داخل‌تر است. اگر درون همان بند عنوان lv-4
+ * وجود داشته باشد، خودِ عنوان یک گام و محتوای بعد از آن دو گام داخل می‌رود. */
+.markdown-workspace .tm-editor ol.tm-section-content > li:has(> p:first-child > strong:only-child) > p:not(:first-child) {
+  margin-inline-start: 30px !important;
+}
+
+.markdown-workspace .tm-editor ol.tm-section-content > li:has(> p:first-child > strong:only-child) > .tm-heading-accordion ~ :is(p, ul, ol, blockquote, pre, table) {
+  margin-inline-start: 60px !important;
+}
+
+/* در متنِ اصلی هیچ کنترل، فلش یا حالتِ پنهانی برای سلسله‌مراتب وجود ندارد. */
+.markdown-workspace .tm-editor :is(.tm-inline-fold, .tm-list-fold-toggle, .tm-fold-toggle) {
+  display: none !important;
+}
+
+.markdown-workspace .tm-editor .tm-list-node > :is(ul, ol) {
   border-inline-start: 0;
 }
 
-/* ---------------------------------------------------------------------------
- * قابِ آکاردئون باید **پیوسته** باشد.
- *
- * ردیف‌های سرفصل `margin-block: 0` دارند، ولی قاعدهٔ عمومیِ سرفصل‌های
- * مارک‌داون (`margin-block: 1.6em 0.6em`) و حاشیهٔ کارت‌ها ۲۰px فاصله
- * بینشان می‌انداختند؛ خطِ جداکنندهٔ Flowbite قطع می‌شد و ردیف‌ها شناور
- * به نظر می‌رسیدند. اینجا صفر می‌شود تا فقط خطِ جداکننده بماند.
- * ------------------------------------------------------------------------- */
-.markdown-workspace .tm-editor > .tm-heading-accordion {
-  margin-block: 0 !important;
+.markdown-workspace .tm-editor :is(.tm-folded-hidden, .tm-list-folded-hidden) {
+  display: revert !important;
 }
 
-.markdown-workspace .tm-editor > .tm-section-content {
-  margin-block: 0 !important;
+/* کارتِ یادداشت، عینِ قراردادِ merged.html: یک سطحِ تخت، گرم و کم‌حاشیه. */
+.markdown-workspace .tm-editor .tm-mark[data-mark="note"] {
+  background: var(--tm-doc-note-bg);
+  border: 0;
+  border-inline-start: 4px solid var(--tm-doc-note-accent);
+  border-radius: 6px;
+  padding: 0.4rem 1.1rem;
+  margin-block: 0.8rem;
+  box-shadow: none;
+  overflow: visible;
 }
 
-/* کارت فاصلهٔ کمِ خودش را نگه می‌دارد تا به لبهٔ ردیف نچسبد. */
-.markdown-workspace .tm-editor > .tm-mark.tm-section-content {
-  margin-block: 0.5rem !important;
+.markdown-workspace .tm-editor .tm-mark[data-mark="note"] > .tm-mark-header {
+  min-height: 0;
+  gap: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--tm-doc-note-accent);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  margin-block-end: 0.25rem;
+}
+
+.markdown-workspace .tm-editor .tm-mark[data-mark="note"] .tm-mark-icon {
+  display: none;
+}
+
+.markdown-workspace .tm-editor .tm-mark[data-mark="note"] > .tm-mark-body {
+  padding: 0;
+  color: var(--tm-doc-muted);
+}
+
+.markdown-workspace .tm-editor .tm-mark[data-mark="note"] blockquote {
+  margin: 0.7rem 0;
+  padding: 0.25rem 1rem;
+  border: 0;
+  border-inline-start: 3px solid var(--tm-doc-note-quote-border);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--tm-doc-muted);
+}
+
+.markdown-workspace .tm-editor .tm-mark[data-mark="note"] blockquote > :first-child {
+  margin-block-start: 0;
+}
+
+.markdown-workspace .tm-editor .tm-mark[data-mark="note"] blockquote > :last-child {
+  margin-block-end: 0;
+}
+
+.markdown-workspace .tm-editor .tm-mark[data-mark="note"] li::marker {
+  color: var(--tm-doc-muted);
+}
+
+/* ارجاعِ merged.html یک برچسبِ یکپارچه است؛ نوعِ سند در Tooltip می‌ماند. */
+.markdown-workspace .tm-editor .tm-directive-inline[data-directive-inline="ref"] {
+  display: inline-block;
+  margin: 0.15rem 0;
+  padding: 0.12rem 0.5rem;
+  border: 0;
+  border-inline-start: 3px solid var(--tm-doc-ref-fg);
+  border-radius: 4px;
+  background: var(--tm-doc-ref-bg);
+  color: var(--tm-doc-ref-fg);
+  font-size: 0.92em;
+  text-decoration: none;
+  cursor: help;
+}
+
+.markdown-workspace .tm-editor p[dir="rtl"]:has(> .tm-directive-inline[data-directive-inline="ref"]) {
+  direction: rtl;
+  text-align: right;
+}
+
+.markdown-workspace .tm-editor .tm-directive-inline[data-directive-inline="ref"]::before {
+  content: none;
+}
+
+.markdown-workspace .tm-editor .tm-directive-inline[data-directive-inline="ref"]:is(:hover, :focus-visible) {
+  background: var(--tm-doc-ref-hover-bg);
+  color: var(--tm-doc-ref-fg);
+  outline: none;
 }
