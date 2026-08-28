@@ -485,11 +485,36 @@ export function MarkdownEditor({
 
   const toggleSource = useCallback(() => {
     setMode((current) => {
+      // ★ موقعیتِ نسبیِ اسکرول (۰ تا ۱) بینِ دو حالت حفظ می‌شود — نه
+      //   مکان‌نما، چون بلوکِ ۵ در حالتِ زنده لزوماً با خطِ متناظر در
+      //   سورس یکی نیست؛ نسبت اما تقریبِ خوبی از «کجای سند» می‌دهد.
       if (current === "live") {
+        const main = rootRef.current?.querySelector<HTMLElement>(".tm-main");
+        const ratio = main && main.scrollHeight > main.clientHeight
+          ? main.scrollTop / (main.scrollHeight - main.clientHeight)
+          : 0;
         setSourceText(handleRef.current?.getMarkdown() ?? "");
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            const source = sourceRef.current;
+            if (!source) return;
+            source.scrollTop = ratio * (source.scrollHeight - source.clientHeight);
+          });
+        });
         return "source";
       }
-      handleRef.current?.setMarkdown(sourceRef.current?.value ?? "");
+      const source = sourceRef.current;
+      const ratio = source && source.scrollHeight > source.clientHeight
+        ? source.scrollTop / (source.scrollHeight - source.clientHeight)
+        : 0;
+      handleRef.current?.setMarkdown(source?.value ?? "");
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          const main = rootRef.current?.querySelector<HTMLElement>(".tm-main");
+          if (!main) return;
+          main.scrollTop = ratio * (main.scrollHeight - main.clientHeight);
+        });
+      });
       return "live";
     });
   }, []);
