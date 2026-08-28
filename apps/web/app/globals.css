@@ -237,6 +237,66 @@
   .markdown-workspace .tm-demo-editor > .tm-main {
     padding-inline: 1rem;
   }
+
+  /* ★ خلاقانه‌ترین بخشِ فیکسِ موبایل:
+   * تورفتگیِ ۳۰px-به-ازای-هر-سطح برای بومِ ۱۰۸۰pxِ دسکتاپ طراحی شده
+   * بود. روی گوشی، بعد از پدینگِ tm-main + tm-editor، یک آیتمِ در
+   * عمقِ سوم (فصل > بند > لیست) فقط ۱۸۱px از ۳۷۵px را برای متن
+   * داشت — عملاً هر خط یکی‌دو کلمه بود.
+   * راه‌حل: خودِ فرمولِ margin را در موبایل با یک ضریب کوچک می‌کنیم
+   * (نه مقدارِ --tm-tree-indent را، چون آن inline-style است و از
+   * استایل‌شیت غیرِ قابلِ override با specificity معمولی) — تورفتگیِ
+   * نسبی (کم‌عمق کمتر از عمیق) حفظ می‌ماند، فقط مقیاسش کوچک‌تر است. */
+  .markdown-workspace .tm-editor .tm-heading-accordion[data-tree-depth],
+  .markdown-workspace .tm-editor .tm-mark[data-tree-depth] {
+    margin-inline-start: max(0px, calc((var(--tm-tree-indent, 0px) - 30px) * 0.4)) !important;
+  }
+
+  .markdown-workspace .tm-editor li > .tm-heading-accordion[data-tree-depth],
+  .markdown-workspace .tm-editor li > .tm-mark[data-tree-depth] {
+    margin-inline-start: 12px !important;
+  }
+
+  .markdown-workspace .tm-editor .tm-section-content:not([data-tree-depth]),
+  .markdown-workspace .tm-editor .tm-mark.tm-section-content {
+    margin-inline-start: max(0px, calc((var(--tm-section-indent, 0px) - 30px) * 0.4)) !important;
+  }
+
+  .markdown-workspace .tm-editor ol.tm-section-content > li:has(> p:first-child > strong:only-child) > p:not(:first-child) {
+    margin-inline-start: 12px !important;
+  }
+
+  .markdown-workspace .tm-editor ol.tm-section-content > li:has(> p:first-child > strong:only-child) > .tm-heading-accordion ~ :is(p, ul, ol, blockquote, pre, table) {
+    margin-inline-start: 24px !important;
+  }
+
+  /* پدینگِ افقیِ سند خودش هم روی گوشی سخاوتمندانه بود (۲۸px هر طرف). */
+  .markdown-workspace .tm-editor {
+    padding-inline: 12px !important;
+  }
+
+  /* لینکِ بلندِ بی‌فاصله (مثلِ URL) باید هرجا لازم شد بشکند، نه اینکه
+   * ستون را از عرض ببرد یا سطرها را عجیب کوتاه کند. */
+  .markdown-workspace .tm-editor a,
+  .markdown-workspace .tm-editor code {
+    overflow-wrap: anywhere;
+  }
+
+  /* ★ لیستِ تودرتو داخلِ کارتِ یادداشت/نقل‌قول، عمقِ ۳-۴ می‌رسد:
+   * فصل > بند > blockquote (padding خودش) > ul تودرتو (padding خودش).
+   * هرکدام رقمِ کوچکی‌ست، ولی جمعشان روی گوشی به‌جایی می‌رسید که
+   * آیتمِ لیست فقط ۸۹px عرض داشت. اینجا آن پدینگ‌های تودرتو هم
+   * جمع‌وجورتر می‌شوند. */
+  .markdown-workspace .tm-editor ul,
+  .markdown-workspace .tm-editor ol,
+  .markdown-workspace .tm-editor li ul,
+  .markdown-workspace .tm-editor li ol {
+    padding-inline-start: 0.85rem;
+  }
+
+  .markdown-workspace .tm-editor blockquote {
+    padding-inline: 0.6rem !important;
+  }
 }
 
 /* نمایشِ سند با همان منطقِ merged.html: عمق فقط با تورفتگی، نه کارت و آکاردئون.
