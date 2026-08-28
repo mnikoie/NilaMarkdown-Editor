@@ -249,6 +249,7 @@ const EN: Record<string, string> = {
   "جست‌وجو…": "Find…",
   "عبارتِ جست‌وجو": "Search Query",
   "پیدا نشد": "No Results",
+  "الگوی نامعتبر": "Invalid Pattern",
   "از": "of",
   "جایگزین با…": "Replace With…",
   "متنِ جایگزین": "Replacement Text",

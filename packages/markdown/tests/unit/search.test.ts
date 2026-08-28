@@ -14,6 +14,8 @@ import {
   replaceAll,
   getSearchState,
   findMatches,
+  findTextMatches,
+  isSearchPatternValid,
   normalizeForSearch,
 } from "../../src/core/plugins/search.js";
 import { foldPlugin, foldKey } from "../../src/core/plugins/fold.js";
@@ -51,6 +53,16 @@ describe("نرمال‌سازیِ فارسی", () => {
 
   it("ارقامِ فارسی و انگلیسی یکی می‌شوند", () => {
     expect(normalizeForSearch("۱۲۳")).toBe("123");
+  });
+
+  it("★ اعراب و کشیده مانعِ پیدا شدنِ واژه نیستند", () => {
+    const doc = parse("این مُـؤَسَّسه معتبر است\n");
+    expect(findMatches(doc, "موسسه")).toHaveLength(1);
+  });
+
+  it("★ فاصله و نیم‌فاصله یکسان جست‌وجو می‌شوند", () => {
+    expect(findTextMatches("حق‌بیمه", "حق بیمه")).toHaveLength(1);
+    expect(findTextMatches("حق بیمه", "حق‌بیمه")).toHaveLength(1);
   });
 });
 
@@ -104,6 +116,13 @@ describe("پیدا کردن", () => {
     const doc = parse("متن\n");
     expect(() => findMatches(doc, "[a-", { regex: true })).not.toThrow();
     expect(findMatches(doc, "[a-", { regex: true })).toHaveLength(0);
+    expect(isSearchPatternValid("[a-", { regex: true })).toBe(false);
+  });
+
+  it("★ offset متنِ اصلی پس از حذفِ اعراب دقیق می‌ماند", () => {
+    const text = "الف مُؤَسَّسه ب";
+    const match = findTextMatches(text, "موسسه")[0]!;
+    expect(text.slice(match.from, match.to)).toBe("مُؤَسَّسه");
   });
 
   it("★ regexِ با طولِ صفر حلقهٔ بی‌پایان نمی‌سازد", () => {

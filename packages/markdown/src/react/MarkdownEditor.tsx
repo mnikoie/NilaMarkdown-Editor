@@ -55,6 +55,7 @@ import {
   useMarkdownI18n,
   type MarkdownLocale,
 } from "./i18n.js";
+import { sourceOffsetTop } from "./source-position.js";
 
 type MarkdownWritable = {
   write(data: string | Blob): Promise<void>;
@@ -96,60 +97,6 @@ const CONTENT_WIDTHS: Record<ContentWidth, string> = {
 
 const OUTLINE_SCROLL_GAP = 12;
 const OUTLINE_SCROLL_SPY_TOLERANCE = 8;
-
-/**
- * فاصلهٔ عمودیِ واقعیِ یک offset در textarea، با احتسابِ شکستنِ نرمِ
- * سطرهای بلند. `lineIndex * lineHeight` فقط خط‌های دارای `\n` را می‌شمارد
- * و در سندِ فارسیِ بلند، مقصد را چند صفحه زودتر نشان می‌دهد.
- */
-function sourceOffsetTop(source: HTMLTextAreaElement, offset: number): number {
-  const computed = getComputedStyle(source);
-  const mirror = document.createElement("div");
-  mirror.setAttribute("aria-hidden", "true");
-  mirror.style.position = "fixed";
-  mirror.style.inset = "0 auto auto -100000px";
-  mirror.style.visibility = "hidden";
-  mirror.style.pointerEvents = "none";
-  mirror.style.boxSizing = "border-box";
-  mirror.style.width = `${source.clientWidth}px`;
-  mirror.style.border = "0";
-
-  // این ویژگی‌ها دقیقاً روی تعدادِ سطرهای دیداری و offset عمودی اثر دارند.
-  for (const property of [
-    "font-family",
-    "font-size",
-    "font-style",
-    "font-weight",
-    "font-stretch",
-    "letter-spacing",
-    "line-height",
-    "padding-block-start",
-    "padding-block-end",
-    "padding-inline-start",
-    "padding-inline-end",
-    "text-align",
-    "text-indent",
-    "text-transform",
-    "word-break",
-    "overflow-wrap",
-    "tab-size",
-    "direction",
-  ]) {
-    mirror.style.setProperty(property, computed.getPropertyValue(property));
-  }
-  mirror.style.whiteSpace = "pre-wrap";
-
-  mirror.append(document.createTextNode(source.value.slice(0, offset)));
-  const marker = document.createElement("span");
-  marker.textContent = "\u200b";
-  mirror.append(marker);
-  document.body.append(mirror);
-
-  const paddingTop = Number.parseFloat(computed.paddingTop) || 0;
-  const top = marker.offsetTop - paddingTop;
-  mirror.remove();
-  return Math.max(0, top);
-}
 
 export interface MarkdownEditorProps {
   /** حالتِ کنترل‌شده. */
@@ -685,6 +632,13 @@ export function MarkdownEditor({
     return () => document.removeEventListener("selectionchange", sync);
   }, [mode, updateSourceActive]);
 
+  const handleSourceSearchChange = useCallback((markdown: string) => {
+    setSourceText(markdown);
+    updateDirty(markdown !== savedMarkdownRef.current);
+    onChange?.(markdown);
+    if (sourceRef.current) updateSourceActive(sourceRef.current);
+  }, [onChange, updateDirty, updateSourceActive]);
+
   /**
    * منوهای بالای ادیتور در حالتِ Source باید خودِ Markdown را بسازند، نه
    * اینکه textarea را قفل کنند یا متن را از مسیرِ parser عبور دهند.
@@ -1194,6 +1148,21 @@ export function MarkdownEditor({
         }
         return;
       }
+      if (editMenu && (e.ctrlKey || e.metaKey) && !e.altKey) {
+        const key = e.key.toLowerCase();
+        if (key === "f") {
+          e.preventDefault();
+          setSearchReplace(false);
+          setSearchOpen(true);
+          return;
+        }
+        if (key === "h" && !readOnly) {
+          e.preventDefault();
+          setSearchReplace(true);
+          setSearchOpen(true);
+          return;
+        }
+      }
       if (fileMenu && (e.ctrlKey || e.metaKey)) {
         const key = e.key.toLowerCase();
         if (key === "n") {
@@ -1211,7 +1180,7 @@ export function MarkdownEditor({
     };
     root.addEventListener("keydown", onKey);
     return () => root.removeEventListener("keydown", onKey);
-  }, [fullscreen, pdf, fs, runExportPdf, fileMenu, editMenu, mode, newDocument, openDocument, saveMarkdown, saveMarkdownAs, activeLocale]);
+  }, [fullscreen, pdf, fs, runExportPdf, fileMenu, editMenu, mode, newDocument, openDocument, saveMarkdown, saveMarkdownAs, activeLocale, readOnly]);
 
   useEffect(() => {
     const onBeforeUnload = (event: BeforeUnloadEvent) => {
@@ -1481,20 +1450,26 @@ export function MarkdownEditor({
       <div className="tm-main">
         {!toolbar ? (
           <SearchPanel
-            view={handle.view}
+            view={mode === "live" ? handle.view : null}
             open={searchOpen}
             withReplace={searchReplace}
             onClose={() => setSearchOpen(false)}
+            sourceRef={mode === "source" ? sourceRef : undefined}
+            sourceText={sourceText}
+            onSourceTextChange={handleSourceSearchChange}
           />
         ) : null}
 
         {toolbar ? (
           <div className="tm-editor-controls">
             <SearchPanel
-              view={handle.view}
+              view={mode === "live" ? handle.view : null}
               open={searchOpen}
               withReplace={searchReplace}
               onClose={() => setSearchOpen(false)}
+              sourceRef={mode === "source" ? sourceRef : undefined}
+              sourceText={sourceText}
+              onSourceTextChange={handleSourceSearchChange}
             />
             {fileMenu || editMenu || insertMenu || paragraphMenu || formatMenu || viewMenu ? (
               <div className="tm-top-menu-row">

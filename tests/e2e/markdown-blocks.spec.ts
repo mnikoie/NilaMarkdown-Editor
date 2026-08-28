@@ -35,8 +35,11 @@ async function placeCursorInParagraph(page: import("@playwright/test").Page, con
 test.beforeEach(async ({ page }) => {
   await page.goto("/markdown?fixture=demo");
   await page.waitForSelector(".tm-editor", { timeout: 25000 });
-  await page.getByRole("button", { name: "نمایش", exact: true }).click();
-  await page.getByRole("menuitem", { name: "بازکردن همهٔ بخش‌ها" }).click();
+  const viewMenu = page.getByRole("button", { name: "نمایش", exact: true });
+  await viewMenu.click();
+  const unfoldAll = page.getByRole("menuitem", { name: "بازکردن همهٔ بخش‌ها" });
+  if (await unfoldAll.count()) await unfoldAll.click();
+  else await viewMenu.click();
 });
 
 test("صفحه بی خطا بار می‌شود و ساختار درست است", async ({ page }) => {
@@ -256,6 +259,52 @@ test("★ جست‌وجو با Ctrl+F", async ({ page }) => {
   await page.keyboard.press("Escape");
   await expect(panel).toBeHidden();
   await expect(page.locator(".tm-search-match")).toHaveCount(0);
+});
+
+test("★★ جست‌وجو به نتیجهٔ اول و سپس نتیجهٔ بعدی می‌پرد", async ({ page }) => {
+  const filler = Array.from({ length: 45 }, (_, index) => `پاراگراف پرکننده ${index + 1}`).join("\n\n");
+  const markdown = `# آغاز\n\n${filler}\n\nنشانه نخست\n\n${filler}\n\nنشانه دوم\n`;
+
+  await page.getByRole("button", { name: "حالتِ سورس (Ctrl+/)" }).click();
+  await page.locator(".tm-source").fill(markdown);
+  await page.getByRole("button", { name: "حالتِ ویرایش (Ctrl+/)" }).click();
+  await page.locator(".tm-editor p").first().click();
+  await page.keyboard.press("Control+f");
+
+  const panel = page.getByRole("search");
+  await panel.getByRole("textbox", { name: "عبارتِ جست‌وجو" }).fill("نشانه");
+
+  const first = page.locator(".tm-editor p", { hasText: "نشانه نخست" }).locator(".tm-search-active");
+  await expect(first).toBeAttached();
+  await expect(first).toBeInViewport();
+
+  await panel.getByRole("button", { name: "بعدی" }).click();
+  const second = page.locator(".tm-editor p", { hasText: "نشانه دوم" }).locator(".tm-search-active");
+  await expect(second).toBeAttached();
+  await expect(second).toBeInViewport();
+  await expect(panel.locator(".tm-search-count")).toContainText("۲ از ۲");
+});
+
+test("★★ جست‌وجو در حالت سورس هم انتخاب و اسکرول می‌کند", async ({ page }) => {
+  const filler = Array.from({ length: 70 }, (_, index) => `سطر پرکنندهٔ بلند ${index + 1} برای آزمون اسکرول`).join("\n\n");
+  const markdown = `# آغاز\n\n${filler}\n\nنشانه نخست\n\n${filler}\n\nنشانه دوم\n`;
+
+  await page.getByRole("button", { name: "حالتِ سورس (Ctrl+/)" }).click();
+  const source = page.locator(".tm-source");
+  await source.fill(markdown);
+  await source.press("Control+f");
+
+  const panel = page.getByRole("search");
+  await panel.getByRole("textbox", { name: "عبارتِ جست‌وجو" }).fill("نشانه");
+  await expect.poll(() => source.evaluate((element: HTMLTextAreaElement) => element.selectionStart))
+    .toBe(markdown.indexOf("نشانه"));
+  await expect.poll(() => source.evaluate((element: HTMLTextAreaElement) => element.scrollTop))
+    .toBeGreaterThan(0);
+
+  await panel.getByRole("button", { name: "بعدی" }).click();
+  await expect.poll(() => source.evaluate((element: HTMLTextAreaElement) => element.selectionStart))
+    .toBe(markdown.lastIndexOf("نشانه"));
+  await expect(panel.locator(".tm-search-count")).toContainText("۲ از ۲");
 });
 
 test("★ جست‌وجو، املای عربی/فارسی را یکی می‌بیند", async ({ page }) => {
