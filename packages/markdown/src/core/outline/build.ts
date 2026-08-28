@@ -40,6 +40,13 @@ function textOfNode(node: PMNode): string {
   return node.textBetween(0, node.content.size, " ", " ").trim();
 }
 
+/** عنوانِ گرهِ فهرست: متنِ اولین آیتم، کوتاه‌شده — فهرست خودش عنوان ندارد. */
+function listTitle(node: PMNode): string {
+  const first = node.firstChild ? textOfNode(node.firstChild) : "";
+  const trimmed = first.length > 40 ? `${first.slice(0, 40)}…` : first;
+  return trimmed || "فهرست";
+}
+
 /** عنوانِ گرهِ directive: از `[…]`، وگرنه از برچسبِ تعریف، وگرنه نامش. */
 function directiveTitle(node: PMNode, registry: MarkRegistry): string {
   const label = node.attrs.label as string | null;
@@ -124,6 +131,25 @@ export function buildOutline(
           children: [],
         };
       }
+    } else if (node.type.name === "bullet_list" || node.type.name === "ordered_list") {
+      // ★ فقط فهرستِ سطحِ بالا — یعنی زیرِ یک heading/directive، نه
+      //   زیرِ یک list_item دیگر. هر <li> گرهِ خودش نمی‌شود؛ کاربر
+      //   صریحاً ردِ این را داد چون روی سندِ صدها آیتمی پنل شلوغ
+      //   می‌شد. با return false زیرِ همین بلوک، هیچ فهرستِ تودرتویی
+      //   بازدید نمی‌شود — یک گره برای کلِ فهرست، نه یکی به‌ازای هر عمق.
+      const parentNode = doc.resolve(pos).parent;
+      if (parentNode.type.name !== "list_item") {
+        entry = {
+          id: makeUnique(slug(listTitle(node), index), seen),
+          kind: node.type.name,
+          level: RANK.بند,
+          title: listTitle(node),
+          from: pos,
+          to: pos + node.nodeSize,
+          foldable: false,
+          children: [],
+        };
+      }
     }
 
     if (!entry) return true;
@@ -139,6 +165,9 @@ export function buildOutline(
     else roots.push(entry);
 
     stack.push(entry);
+    // فهرست تودرتو ندارد — بازدید از فرزندانش (list_item ها و
+    // فهرست‌های عمیق‌تر) عمداً متوقف می‌شود.
+    if (entry.kind === "bullet_list" || entry.kind === "ordered_list") return false;
     return true;
   });
 
