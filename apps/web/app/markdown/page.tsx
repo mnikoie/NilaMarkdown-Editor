@@ -103,6 +103,11 @@ graph TD;
   B --> C[پایان];
 \`\`\`
 `;
-export default function MarkdownDemoPage() {
-  return <MarkdownDemoClient markdown={SANAD} />;
+export default async function MarkdownDemoPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ fixture?: string }>;
+}) {
+  const { fixture } = await searchParams;
+  return <MarkdownDemoClient markdown={fixture === "demo" ? SANAD : ""} />;
 }
