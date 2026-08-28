@@ -40,11 +40,28 @@ function textOfNode(node: PMNode): string {
   return node.textBetween(0, node.content.size, " ", " ").trim();
 }
 
-/** عنوانِ گرهِ فهرست: متنِ اولین آیتم، کوتاه‌شده — فهرست خودش عنوان ندارد. */
-function listTitle(node: PMNode): string {
-  const first = node.firstChild ? textOfNode(node.firstChild) : "";
-  const trimmed = first.length > 40 ? `${first.slice(0, 40)}…` : first;
-  return trimmed || "فهرست";
+const PERSIAN_DIGITS = "۰۱۲۳۴۵۶۷۸۹";
+/** رقمِ انگلیسی → فارسی، برای نمایشِ شمارهٔ آیتمِ فهرست در پنل. */
+function toPersianDigits(n: number): string {
+  return String(n).replace(/[0-9]/g, (d) => PERSIAN_DIGITS[Number(d)]!);
+}
+
+/** فقط متنِ مستقیمِ خودِ آیتم — بدونِ فهرستِ تودرتویی که ممکن است داشته باشد. */
+function directTextOfListItem(item: PMNode): string {
+  let text = "";
+  item.forEach((child) => {
+    if (child.type.name === "bullet_list" || child.type.name === "ordered_list") return;
+    if (text) text += " ";
+    text += textOfNode(child);
+  });
+  return text.trim();
+}
+
+/** عنوانِ گرهِ آیتمِ فهرست: شمارهٔ واقعی (برای فهرستِ شماره‌دار) + متنِ آیتم. */
+function listItemTitle(item: PMNode, ordinal: number | null): string {
+  const text = directTextOfListItem(item);
+  const trimmed = text.length > 60 ? `${text.slice(0, 60)}…` : text;
+  return ordinal !== null ? `${toPersianDigits(ordinal)}. ${trimmed}` : trimmed || "بند";
 }
 
 /** عنوانِ گرهِ directive: از `[…]`، وگرنه از برچسبِ تعریف، وگرنه نامش. */
@@ -96,6 +113,52 @@ export function buildOutline(
     h1Count > 1 &&
     (anchoredH1Count > 0 || (!looksLikeChapter(textOfNode(first)) && chapterH1AfterTitle));
 
+  /**
+   * هر آیتمِ مستقیمِ یک فهرستِ سطحِ بالا را یک گرهٔ outline می‌کند —
+   * با شمارهٔ واقعی‌اش (برای ordered_list) — ولی به داخلِ فهرستِ
+   * تودرتوی خودِ آن آیتم نمی‌رود؛ آن بخش هنوز از پنل کنار است.
+   * سطحش زیرِ سطحِ فهرست (parentLevel) قرار می‌گیرد تا اگر بعد از
+   * فهرست یک heading/directive بیرونی‌تر بیاید، پشته درست خالی شود.
+   */
+  const addListItems = (listNode: PMNode, listPos: number, parentLevel: number) => {
+    const isOrdered = listNode.type.name === "ordered_list";
+    const start = isOrdered ? ((listNode.attrs.start as number) ?? 1) : null;
+
+    // پشته را تا جایی خالی کن که والدِ واقعیِ خودِ فهرست بالا بیاید —
+    // یک‌بار، قبل از حلقه؛ همهٔ آیتم‌ها زیرِ همین والد و هم‌سطحِ هم
+    // می‌نشینند (نه زیرِ همدیگر).
+    while (stack.length > 0 && stack[stack.length - 1]!.level >= parentLevel + 1) {
+      stack.pop();
+    }
+    const parent = stack[stack.length - 1];
+
+    // ★ itemOffset از خودِ ProseMirror می‌آید — «فاصلهٔ این فرزند از
+    //   شروعِ محتوای والد»، تضمین‌شده درست. محاسبهٔ دستیِ قبلی (جمعِ
+    //   نمایی‌های nodeSize با شروعِ ۱) موقعیت را اشتباه می‌داد؛ نتیجه‌اش
+    //   این بود که کلیک روی آیتمِ پنل به فصلِ اشتباه می‌پرید. +1 برای
+    //   ورود به داخلِ خودِ فهرست (listPos جلوی نشانهٔ بازکنندهٔ فهرست
+    //   است، نه داخلش).
+    listNode.forEach((item, itemOffset, itemIndex) => {
+      const itemPos = listPos + 1 + itemOffset;
+      const ordinal = isOrdered ? (start ?? 1) + itemIndex : null;
+      const title = listItemTitle(item, ordinal);
+      const entry: OutlineNode = {
+        id: makeUnique(slug(title, index), seen),
+        kind: listNode.type.name,
+        level: parentLevel + 1,
+        title,
+        from: itemPos,
+        to: itemPos + item.nodeSize,
+        foldable: false,
+        children: [],
+      };
+      index++;
+
+      if (parent) parent.children.push(entry);
+      else roots.push(entry);
+    });
+  };
+
   doc.descendants((node, pos) => {
     let entry: OutlineNode | null = null;
 
@@ -133,23 +196,16 @@ export function buildOutline(
       }
     } else if (node.type.name === "bullet_list" || node.type.name === "ordered_list") {
       // ★ فقط فهرستِ سطحِ بالا — یعنی زیرِ یک heading/directive، نه
-      //   زیرِ یک list_item دیگر. هر <li> گرهِ خودش نمی‌شود؛ کاربر
-      //   صریحاً ردِ این را داد چون روی سندِ صدها آیتمی پنل شلوغ
-      //   می‌شد. با return false زیرِ همین بلوک، هیچ فهرستِ تودرتویی
-      //   بازدید نمی‌شود — یک گره برای کلِ فهرست، نه یکی به‌ازای هر عمق.
+      //   زیرِ یک list_item دیگر (فهرستِ تودرتو گره نمی‌گیرد). کاربر
+      //   صریحاً خواست هر آیتمِ همین فهرستِ سطحِ بالا (نه هر عمقِ
+      //   دلخواه) با شمارهٔ خودش یک ردیفِ جداگانه در پنل بگیرد —
+      //   مثلِ «۱. ابلاغ اجرائیه»، «۲. مهلت...». این‌جا خودِ node
+      //   entry نمی‌شود؛ به‌جایش addListItems زیرش را می‌گرداند.
       const parentNode = doc.resolve(pos).parent;
       if (parentNode.type.name !== "list_item") {
-        entry = {
-          id: makeUnique(slug(listTitle(node), index), seen),
-          kind: node.type.name,
-          level: RANK.بند,
-          title: listTitle(node),
-          from: pos,
-          to: pos + node.nodeSize,
-          foldable: false,
-          children: [],
-        };
+        addListItems(node, pos, RANK.بند);
       }
+      return false;
     }
 
     if (!entry) return true;
@@ -165,9 +221,6 @@ export function buildOutline(
     else roots.push(entry);
 
     stack.push(entry);
-    // فهرست تودرتو ندارد — بازدید از فرزندانش (list_item ها و
-    // فهرست‌های عمیق‌تر) عمداً متوقف می‌شود.
-    if (entry.kind === "bullet_list" || entry.kind === "ordered_list") return false;
     return true;
   });
 
@@ -178,6 +231,12 @@ export function buildOutline(
   const flat = flattenOutline(roots);
   for (let i = 0; i < flat.length; i++) {
     const node = flat[i]!;
+    // آیتمِ فهرست هرگز فرزندِ outline ندارد (تودرتویش عمداً کنار
+    // گذاشته شده) — فرقی نمی‌کند خودِ list_item چند بلوک داشته باشد.
+    if (node.kind === "bullet_list" || node.kind === "ordered_list") {
+      node.foldable = false;
+      continue;
+    }
     const resolved = doc.nodeAt(node.from);
     if (!resolved) continue;
     if (node.kind !== "heading") {

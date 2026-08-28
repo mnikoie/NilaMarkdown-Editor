@@ -431,6 +431,44 @@ export function serialize(doc: PMNode): string {
   return doc.attrs.lineEnding === "\r\n" ? markdown.replace(/\n/g, "\r\n") : markdown;
 }
 
+/**
+ * موقعیتِ ProseMirror → شمارهٔ خط در سورسِ مارک‌داون.
+ *
+ * ★ چرا doc.cut + مقایسه با سریالایزِ کامل، نه یک نگاشت‌دهندهٔ جدا:
+ * نگاشتِ pos→line واقعی یعنی دنبال‌کردنِ همان مسیرِ
+ * toMdastFromDoc→remark-stringify که طولِ خروجی را تعیین می‌کند —
+ * بازسازیِ آن جدا یعنی دو پیاده‌سازیِ سریالایز که یک روز از هم
+ * واگرا می‌شوند. به‌جایش، دقیقاً همان serialize() را هم روی کلِ سند و
+ * هم روی برشِ [0, pos) اجرا می‌کنیم.
+ *
+ * ★ چرا شمارشِ سادهٔ `\n` در پیشوند کافی نبود: سریالایزر بینِ دو
+ * بلوکِ سطحِ‌بالا (مثلِ دو heading) یک خطِ خالیِ جداکننده می‌گذارد، ولی
+ * بینِ دو آیتمِ هم‌سطحِ یک فهرست نه («۱. الف\n۲. ب» بدونِ خطِ خالی).
+ * یعنی «چند خط باید اضافه کرد» به نوعِ مرز بستگی دارد، نه یک ثابت.
+ * به‌جای حدس‌زدنِ این قاعده، طولانی‌ترین پیشوندِ خطیِ مشترک بینِ
+ * سریالایزِ کامل و سریالایزِ برش پیدا می‌شود — نتیجه‌اش خودبه‌خود با
+ * هر دو نوع مرز درست است، چون از رویِ خروجیِ واقعی می‌خواند، نه از
+ * رویِ فرضی دربارهٔ شکلِ آن.
+ */
+export function positionToLine(doc: PMNode, pos: number): number {
+  const clamped = Math.max(0, Math.min(pos, doc.content.size));
+  if (clamped === 0) return 0;
+  const fullLines = serialize(doc).split("\n");
+  // خطِ آخرِ پیشوند را کنار می‌گذاریم: چون پیشوند با \n تمام می‌شود،
+  // split یک رشتهٔ خالیِ اضافه در انتها می‌سازد که فقط اثرِ برشِ
+  // خودمان است، نه محتوای واقعیِ سند.
+  const prefixLines = serialize(doc.cut(0, clamped)).split("\n").slice(0, -1);
+  let i = 0;
+  while (i < prefixLines.length && i < fullLines.length && prefixLines[i] === fullLines[i]) i++;
+  // بعد از پایانِ محتوای پیشوند، اگر سریالایزِ کامل بینِ همین‌جا و
+  // بلوکِ بعدی خطِ خالیِ جداکننده گذاشته باشد (مرزِ بلوکِ سطحِ‌بالا)،
+  // آن پیشوند در برشِ ما نبود چون بعدِ نقطهٔ برش می‌آید — رد می‌شویم
+  // تا به اولین خطِ غیرخالیِ واقعی برسیم. بینِ آیتم‌های هم‌سطحِ یک
+  // فهرست چنین خطی نیست، پس اینجا کاری نمی‌کند (i تغییر نمی‌کند).
+  while (i < fullLines.length && fullLines[i] === "" && prefixLines[prefixLines.length - 1] !== "") i++;
+  return i;
+}
+
 function restoreHeadingStyles(markdown: string, doc: PMNode): string {
   const headings: PMNode[] = [];
   doc.descendants((node) => {

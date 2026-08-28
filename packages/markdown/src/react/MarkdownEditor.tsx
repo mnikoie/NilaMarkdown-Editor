@@ -27,7 +27,7 @@ import { computeStats } from "../core/stats.js";
 import { exportPdf, type ExportPdfOptions } from "../core/export-pdf.js";
 import { exportHtml } from "../core/export-html.js";
 import { parse } from "../core/markdown/parse.js";
-import { serialize } from "../core/markdown/serialize.js";
+import { serialize, positionToLine } from "../core/markdown/serialize.js";
 import { useFullscreen } from "./useFullscreen.js";
 import { insertImageFiles, type PasteImageOptions } from "../core/plugins/paste-image.js";
 import { selectedMarkdown } from "../core/commands/edit.js";
@@ -256,6 +256,10 @@ export function MarkdownEditor({
   className,
 }: MarkdownEditorProps) {
   const rootRef = useRef<HTMLDivElement>(null);
+  // ★ اینجا (زودتر از onNavigate) اعلام می‌شود چون onNavigate در
+  //   ادامهٔ همین کامپوننت از آن استفاده می‌کند — قبل از تعریفِ
+  //   افکتِ بازیابیِ اسکرول که پایین‌تر است.
+  const navigatedRef = useRef(false);
   const foldingInteractive = folding !== false;
   const [activeLocale, setActiveLocale] = useState<MarkdownLocale>(locale);
   const [activeTheme, setActiveTheme] = useState(theme);
@@ -995,15 +999,27 @@ export function MarkdownEditor({
 
   const onNavigate = useCallback((node: OutlineNode) => {
     setActiveOutlineId(node.id);
-    // ★ حالتِ Source از ProseMirror جدا است — سندِ زنده در آن اصلاً
-    //   نصب نیست، پس با موقعیتِ node.from در آن سروکار نداریم؛ خطِ
-    //   عنوان را در متنِ خام پیدا و به‌جایش اسکرول می‌کنیم.
+    navigatedRef.current = true;
+    // ★ حالتِ Source از ProseMirror جدا است — textarea کنترل‌نشده است
+    //   و ProseMirror در آن نصب نیست. قبلاً اینجا دنبالِ خطی می‌گشت که
+    //   شاملِ node.title باشد — برای heading/directive معمولاً کار
+    //   می‌کرد، ولی برای آیتمِ فهرست (title = «۶. متن…» با رقمِ فارسی و
+    //   خلاصه‌شده) هیچ‌وقت با سطرِ واقعیِ مارک‌داون (`6. **متن کامل**`)
+    //   یکی نمی‌شد و اصلاً چیزی پیدا نمی‌کرد.
+    //   حالا از positionToLine استفاده می‌شود: همان serialize() واقعی
+    //   را روی برشِ [0, node.from) اجرا می‌کند، پس دقیقاً همان خطی را
+    //   می‌دهد که سریالایزرِ واقعی برای آن بلوک تولید می‌کند — نه یک
+    //   جستجوی متنیِ شکننده. سندِ مبنا همان PM دوکیومنتِ آخرین حالتِ
+    //   زنده است؛ اگر کاربر در همین حالتِ سورس چیزی تایپ کرده و هنوز
+    //   ذخیره نشده، آن ویرایش‌ها در نگاشت لحاظ نمی‌شوند (محدودیتِ
+    //   شناخته‌شده، نه یک باگِ تازه).
     if (mode === "source") {
       const source = sourceRef.current;
-      if (!source) return;
+      const liveDoc = handleRef.current.view?.state.doc;
+      if (!source || !liveDoc) return;
+      const lineIndex = positionToLine(liveDoc, node.from);
       const lines = source.value.split("\n");
-      const lineIndex = lines.findIndex((line) => line.includes(node.title));
-      if (lineIndex === -1) return;
+      if (lineIndex < 0 || lineIndex >= lines.length) return;
       const lineStart = lines.slice(0, lineIndex).reduce((sum, line) => sum + line.length + 1, 0);
       source.focus();
       source.setSelectionRange(lineStart, lineStart + lines[lineIndex]!.length);
@@ -1024,7 +1040,13 @@ export function MarkdownEditor({
     const pos = Math.min(node.from + 1, state.doc.content.size);
     const selection = Selection.near(state.doc.resolve(pos));
     view.dispatch(state.tr.setSelection(selection));
-    view.focus();
+    // ★ عمداً view.focus() صدا زده نمی‌شود: روی موبایل، فوکوس‌کردنِ
+    //   ناحیهٔ contentEditable یعنی بازشدنِ کی‌بوردِ مجازی — که
+    //   viewport را می‌زند بالا و layout را جابه‌جا می‌کند. نتیجه‌اش
+    //   دقیقاً همان چیزی بود که کاربر گزارش داد: «موقعِ بستنِ navbar
+    //   می‌پرد به جای دیگر» — چون scrollTop عوض نمی‌شد ولی خودِ سند
+    //   زیرِ کی‌بورد جابه‌جا شده بود. ناوبری یعنی «برو ببین»، نه
+    //   «شروع کن به ویرایش» — کاربر اگر خواست تایپ کند، خودش لمس می‌کند.
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         const target = view.nodeDOM(node.from);
@@ -1152,13 +1174,27 @@ export function MarkdownEditor({
   const [activeOutlineId, setActiveOutlineId] = useState<string | null>(null);
   const sidebarTouchedRef = useRef(false);
 
+  // ★ کاربر یک‌بار روی موبایل ناوبریِ درستِ پنل را دید که یک ثانیه
+  //   بعد، به‌جای دیگری «می‌پرید». علت: این افکتِ بازیابیِ اسکرول
+  //   (که برای «برگشتن به همان‌جایی که ماه پیش رها کرده بودی» است)
+  //   با requestAnimationFrame اجرا می‌شود و اگر دقیقاً همان لحظه‌ای
+  //   که کاربر روی پنل کلیک کرده بار شود، مقدارِ localStorageِ کهنه
+  //   را روی مقصدِ تازهٔ ناوبری می‌نشاند. navigatedRef (بالای همین
+  //   کامپوننت اعلام شده، چون onNavigate زودتر از این افکت است) را
+  //   onNavigate ست می‌کند تا این افکت بفهمد «کاربر همین الان جایی
+  //   رفته، آن مقدارِ ذخیره‌شده دیگر معتبر نیست».
   useEffect(() => {
     const main = rootRef.current?.querySelector<HTMLElement>(".tm-main");
     if (!main) return;
     const key = `tm-markdown-scroll:${documentFileName}`;
     if (filePreferences.restoreScrollPosition) {
       const stored = Number.parseFloat(window.localStorage.getItem(key) ?? "");
-      if (Number.isFinite(stored)) requestAnimationFrame(() => { main.scrollTop = stored; });
+      if (Number.isFinite(stored)) {
+        requestAnimationFrame(() => {
+          if (navigatedRef.current) return;
+          main.scrollTop = stored;
+        });
+      }
     }
     const remember = () => window.localStorage.setItem(key, String(main.scrollTop));
     if (!filePreferences.restoreScrollPosition) return;
