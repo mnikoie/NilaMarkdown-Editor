@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { readFile } from "node:fs/promises";
 
 /**
  * تمام‌صفحه، خروجیِ PDF، و خمیرکردنِ تصویر — در مرورگرِ واقعی.
@@ -11,7 +12,9 @@ test.beforeEach(async ({ page }) => {
   await page.goto("/markdown?fixture=demo");
   await page.waitForSelector(".tm-editor", { timeout: 25000 });
   await page.getByRole("button", { name: "نمایش", exact: true }).click();
-  await page.getByRole("menuitem", { name: "بازکردن همهٔ بخش‌ها" }).click();
+  const unfoldAll = page.getByRole("menuitem", { name: "بازکردن همهٔ بخش‌ها" });
+  if (await unfoldAll.count()) await unfoldAll.click();
+  else await page.keyboard.press("Escape");
 });
 
 test("★ تمام‌صفحه با دکمهٔ نوارِ ابزار", async ({ page }) => {
@@ -277,6 +280,13 @@ test("★ منوی View حالت‌های نمایشیِ قابل‌انتقال
 });
 
 test("★ منوی File سند را ذخیره، خالی و از فایل باز می‌کند", async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(window, "showOpenFilePicker", { value: undefined, configurable: true });
+    Object.defineProperty(window, "showSaveFilePicker", { value: undefined, configurable: true });
+  });
+  await page.reload();
+  await page.waitForSelector(".tm-editor", { timeout: 25000 });
+
   await page.getByRole("button", { name: "فایل" }).click();
   const fileMenu = page.getByRole("menu", { name: "فایل" });
   await expect(fileMenu.getByRole("menuitem", { name: "سند جدید" })).toBeVisible();
@@ -303,6 +313,62 @@ test("★ منوی File سند را ذخیره، خالی و از فایل با�
   });
   await expect(page.locator(".tm-editor h1")).toContainText("سند بازشده");
   await expect(page.locator(".tm-editor")).toContainText("متن فایل");
+
+  await page.getByRole("button", { name: "حالتِ سورس" }).click();
+  await page.getByRole("textbox", { name: "متنِ خامِ مارک‌داون" }).fill("# سند بازشده\n\nمتن ویرایش‌شده\n");
+  const updatedDownloadPromise = page.waitForEvent("download");
+  await page.getByRole("button", { name: "فایل" }).click();
+  await page.getByRole("menuitem", { name: /^ذخیره Ctrl/ }).click();
+  const updatedDownload = await updatedDownloadPromise;
+  const updatedPath = await updatedDownload.path();
+  expect(updatedPath).not.toBeNull();
+  await expect(page.getByRole("status")).toContainText("پوشهٔ دانلودها");
+  expect(await readFile(updatedPath!, "utf8")).toContain("متن ویرایش‌شده");
+});
+
+test("★ ذخیرهٔ فایل بازشده مجوز نوشتن می‌گیرد و همان فایل را به‌روزرسانی می‌کند", async ({ page }) => {
+  await page.addInitScript(() => {
+    const state = { permissionRequests: 0, writes: [] as string[] };
+    let content = "# سند بازشده\n\nمتن اولیه\n";
+    Object.defineProperty(window, "__nilaSaveState", { value: state, configurable: true });
+    Object.defineProperty(window, "showOpenFilePicker", {
+      configurable: true,
+      value: async () => [{
+        kind: "file",
+        name: "opened.md",
+        getFile: async () => new File([content], "opened.md", { type: "text/markdown", lastModified: Date.now() }),
+        requestPermission: async () => {
+          state.permissionRequests += 1;
+          return "granted";
+        },
+        createWritable: async () => ({
+          write: async (value: string | Blob) => {
+            content = typeof value === "string" ? value : await value.text();
+            state.writes.push(content);
+          },
+          close: async () => undefined,
+        }),
+      }],
+    });
+  });
+  await page.reload();
+  await page.waitForSelector(".tm-editor", { timeout: 25000 });
+
+  await page.getByRole("button", { name: "فایل" }).click();
+  await page.getByRole("menuitem", { name: "بازکردن…" }).click();
+  await expect(page.locator(".tm-editor")).toContainText("متن اولیه");
+
+  await page.getByRole("button", { name: "حالتِ سورس" }).click();
+  await page.getByRole("textbox", { name: "متنِ خامِ مارک‌داون" }).fill("# سند بازشده\n\nمتن ذخیره‌شده\n");
+  await page.getByRole("button", { name: "فایل" }).click();
+  await page.getByRole("menuitem", { name: /^ذخیره Ctrl/ }).click();
+  await expect(page.getByRole("status")).toContainText("ذخیره انجام شد");
+
+  const state = await page.evaluate(() => (window as unknown as {
+    __nilaSaveState: { permissionRequests: number; writes: string[] };
+  }).__nilaSaveState);
+  expect(state.permissionRequests).toBe(1);
+  expect(state.writes.at(-1)).toContain("متن ذخیره‌شده");
 });
 
 test("★ منوی Edit تکثیر، undo و پنلِ جایگزینی را اجرا می‌کند", async ({ page }) => {

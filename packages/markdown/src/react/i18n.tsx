@@ -27,6 +27,7 @@ const EN: Record<string, string> = {
   "ابتدا تغییرات فعلی را ذخیره کنید یا برای بارگذاری دوباره تأیید دهید.": "Save the current changes first, or confirm reloading.",
   "تغییرات ذخیره‌نشده از بین می‌رود. ادامه می‌دهید؟": "Unsaved changes will be lost. Continue?",
   "ذخیره انجام شد.": "Saved.",
+  "نسخهٔ ویرایش‌شده در پوشهٔ دانلودها ذخیره شد.": "The edited copy was saved to your Downloads folder.",
   "تنظیمات نمایش…": "Appearance Settings…",
   "تنظیمات نمایش": "Appearance Settings",
   "تنظیمات…": "Settings…",

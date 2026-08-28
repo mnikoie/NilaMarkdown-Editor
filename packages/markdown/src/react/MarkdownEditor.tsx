@@ -63,6 +63,7 @@ type MarkdownWritable = {
 };
 
 type MarkdownFileHandle = FileSystemFileHandle & {
+  requestPermission?(descriptor?: { mode: "readwrite" }): Promise<PermissionState>;
   createWritable(): Promise<MarkdownWritable>;
 };
 
@@ -878,6 +879,12 @@ export function MarkdownEditor({
   }, [filePreferences.confirmBeforeDiscard, t]);
 
   const writeMarkdown = useCallback(async (handle: MarkdownFileHandle, markdown: string) => {
+    if (handle.requestPermission) {
+      const permission = await handle.requestPermission({ mode: "readwrite" });
+      if (permission !== "granted") {
+        throw new DOMException("Write permission was not granted.", "NotAllowedError");
+      }
+    }
     const writable = await handle.createWritable();
     await writable.write(markdown);
     await writable.close();
@@ -908,7 +915,8 @@ export function MarkdownEditor({
     }
     downloadText(markdown, documentFileName, "text/markdown;charset=utf-8");
     markSaved(markdown);
-  }, [activeLocale, currentMarkdown, documentFileName, markSaved, writeMarkdown]);
+    setNotice(t("نسخهٔ ویرایش‌شده در پوشهٔ دانلودها ذخیره شد."));
+  }, [activeLocale, currentMarkdown, documentFileName, markSaved, t, writeMarkdown]);
 
   const saveMarkdown = useCallback(async () => {
     const handle = fileHandleRef.current;
@@ -1891,9 +1899,11 @@ function downloadText(text: string, fileName: string, type: string) {
   const anchor = document.createElement("a");
   anchor.href = url;
   anchor.download = fileName;
+  anchor.hidden = true;
+  document.body.append(anchor);
   anchor.click();
   anchor.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 0);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 function StatsPopover({

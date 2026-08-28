@@ -357,7 +357,7 @@
     --tm-document-bg: #000000;
     --tm-doc-border: #2a2a2a;
     --tm-doc-border-strong: #3a3a3a;
-    --tm-doc-sidebar-bg: #0a0a0a;
+    --tm-doc-sidebar-bg: #000000;
     --tm-doc-shadow: rgb(0 0 0 / 0.4);
     --tm-doc-shadow-strong: rgb(0 0 0 / 0.55);
     --tm-doc-fg: #e6e6e6;
@@ -382,7 +382,7 @@
   --tm-document-bg: #000000;
   --tm-doc-border: #2a2a2a;
   --tm-doc-border-strong: #3a3a3a;
-  --tm-doc-sidebar-bg: #0a0a0a;
+  --tm-doc-sidebar-bg: #000000;
   --tm-doc-shadow: rgb(0 0 0 / 0.4);
   --tm-doc-shadow-strong: rgb(0 0 0 / 0.55);
   --tm-doc-fg: #e6e6e6;
