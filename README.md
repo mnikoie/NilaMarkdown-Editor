@@ -44,6 +44,8 @@ pnpm dev
 
 Open [http://localhost:3000/markdown](http://localhost:3000/markdown).
 
+On Windows, double-click `NilaMarkdown.bat` to build and run the production version. It opens the editor automatically in your browser. For later launches without rebuilding, run `NilaMarkdown.bat --no-build`.
+
 ### Useful commands
 
 ```bash
@@ -98,6 +100,8 @@ pnpm dev
 ```
 
 سپس نشانی [http://localhost:3000/markdown](http://localhost:3000/markdown) را باز کنید.
+
+در ویندوز کافی است روی فایل `NilaMarkdown.bat` دوبار کلیک کنید تا نسخهٔ نهایی ساخته و اجرا شود؛ صفحهٔ ویرایشگر نیز خودکار در مرورگر باز می‌شود. برای اجراهای بعدی بدون ساخت مجدد، دستور `NilaMarkdown.bat --no-build` را اجرا کنید.
 
 ### دستورهای کاربردی
 
