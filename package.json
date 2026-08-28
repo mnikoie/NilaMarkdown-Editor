@@ -1,15 +1,25 @@
 {
-  "name": "27--taminlibrary",
+  "name": "nila-markdown-editor",
   "version": "1.0.0",
-  "description": "> یک‌خط بنویس این پروژه چه کاری انجام می‌دهد. (هنوز پر نشده.)",
-  "main": "index.js",
+  "description": "A bilingual RTL/LTR Markdown editor with live preview, source mode, and outline navigation.",
   "directories": {
     "doc": "docs"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "pnpm --filter web dev",
+    "build": "pnpm --filter @tamin/markdown build && pnpm --filter web build",
+    "test": "pnpm --filter @tamin/markdown test",
+    "typecheck": "pnpm --filter @tamin/markdown typecheck",
+    "test:e2e": "playwright test"
   },
-  "keywords": [],
+  "keywords": [
+    "markdown",
+    "editor",
+    "react",
+    "nextjs",
+    "rtl",
+    "persian"
+  ],
   "type": "commonjs",
   "packageManager": "pnpm@11.22.0",
   "devDependencies": {

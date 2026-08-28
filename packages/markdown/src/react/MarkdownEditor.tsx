@@ -94,6 +94,63 @@ const CONTENT_WIDTHS: Record<ContentWidth, string> = {
   tiny: "576px",
 };
 
+const OUTLINE_SCROLL_GAP = 12;
+const OUTLINE_SCROLL_SPY_TOLERANCE = 8;
+
+/**
+ * فاصلهٔ عمودیِ واقعیِ یک offset در textarea، با احتسابِ شکستنِ نرمِ
+ * سطرهای بلند. `lineIndex * lineHeight` فقط خط‌های دارای `\n` را می‌شمارد
+ * و در سندِ فارسیِ بلند، مقصد را چند صفحه زودتر نشان می‌دهد.
+ */
+function sourceOffsetTop(source: HTMLTextAreaElement, offset: number): number {
+  const computed = getComputedStyle(source);
+  const mirror = document.createElement("div");
+  mirror.setAttribute("aria-hidden", "true");
+  mirror.style.position = "fixed";
+  mirror.style.inset = "0 auto auto -100000px";
+  mirror.style.visibility = "hidden";
+  mirror.style.pointerEvents = "none";
+  mirror.style.boxSizing = "border-box";
+  mirror.style.width = `${source.clientWidth}px`;
+  mirror.style.border = "0";
+
+  // این ویژگی‌ها دقیقاً روی تعدادِ سطرهای دیداری و offset عمودی اثر دارند.
+  for (const property of [
+    "font-family",
+    "font-size",
+    "font-style",
+    "font-weight",
+    "font-stretch",
+    "letter-spacing",
+    "line-height",
+    "padding-block-start",
+    "padding-block-end",
+    "padding-inline-start",
+    "padding-inline-end",
+    "text-align",
+    "text-indent",
+    "text-transform",
+    "word-break",
+    "overflow-wrap",
+    "tab-size",
+    "direction",
+  ]) {
+    mirror.style.setProperty(property, computed.getPropertyValue(property));
+  }
+  mirror.style.whiteSpace = "pre-wrap";
+
+  mirror.append(document.createTextNode(source.value.slice(0, offset)));
+  const marker = document.createElement("span");
+  marker.textContent = "\u200b";
+  mirror.append(marker);
+  document.body.append(mirror);
+
+  const paddingTop = Number.parseFloat(computed.paddingTop) || 0;
+  const top = marker.offsetTop - paddingTop;
+  mirror.remove();
+  return Math.max(0, top);
+}
+
 export interface MarkdownEditorProps {
   /** حالتِ کنترل‌شده. */
   value?: string;
@@ -1024,8 +1081,9 @@ export function MarkdownEditor({
       source.focus();
       source.setSelectionRange(lineStart, lineStart + lines[lineIndex]!.length);
       updateSourceActive(source);
-      const lineHeight = parseFloat(getComputedStyle(source).lineHeight) || 24;
-      source.scrollTop = Math.max(0, lineIndex * lineHeight - source.clientHeight / 2);
+      // مثل حالتِ زنده، خطِ مقصد از ابتدای سطحِ قابل‌مشاهده شروع شود؛
+      // اندازه‌گیریِ آینه‌ای، سطرهای بلندِ شکسته‌شده را هم حساب می‌کند.
+      source.scrollTop = sourceOffsetTop(source, lineStart);
       return;
     }
     const view = handleRef.current.view;
@@ -1052,10 +1110,29 @@ export function MarkdownEditor({
         const target = view.nodeDOM(node.from);
         const element = target instanceof HTMLElement ? target : target?.parentElement;
         if (!element) return;
-        // ناوبریِ پنل باید مقصد را همان لحظه زیرِ نوار ابزار قرار دهد.
         // پیمایشِ smooth در سندهای بلند از ده‌ها بخش عبور می‌کرد؛ scroll-spy
         // همان بخش‌های میانی را فعال می‌کرد و انتخابِ پنل را می‌دزدید.
         element.scrollIntoView({ block: "start", inline: "nearest", behavior: "auto" });
+
+        // `scrollIntoView({ block: "start" })` مقصد را به لبهٔ بالایِ
+        // `.tm-main` می‌چسباند؛ ولی کنترل‌های چسبان روی همان لبه‌اند و
+        // حدود دو ردیف از مقصد را می‌پوشانند. به‌همین دلیل کاربر بعد از
+        // کلیک روی «۳. ارسال و تحویل…» عملاً بندِ چهارم را می‌دید و
+        // scroll-spy نیز همان بندِ چهارم را فعال می‌کرد. مقصد را زیرِ
+        // انتهای واقعیِ کنترل‌ها، با کمی فضای تنفس، می‌نشانیم؛ ارتفاعِ
+        // کنترل‌ها در موبایل و دسکتاپ متفاوت است و نباید عدد ثابت باشد.
+        const main = element.closest<HTMLElement>(".tm-main");
+        if (main) {
+          const mainTop = main.getBoundingClientRect().top;
+          const controlsBottom = main
+            .querySelector<HTMLElement>(":scope > .tm-editor-controls")
+            ?.getBoundingClientRect().bottom;
+          // مقصد دقیقاً از ابتدای سطحِ خواندن شروع می‌شود؛ نه پشتِ
+          // کنترل‌های چسبان و نه با فاصلهٔ زیاد در میانهٔ صفحه.
+          const destinationTop = Math.max(mainTop, controlsBottom ?? mainTop)
+            + OUTLINE_SCROLL_GAP;
+          main.scrollTop += element.getBoundingClientRect().top - destinationTop;
+        }
         element.classList.add("tm-nav-highlight");
         window.setTimeout(() => element.classList.remove("tm-nav-highlight"), 1600);
       });
@@ -1252,13 +1329,11 @@ export function MarkdownEditor({
           .querySelector<HTMLElement>(".tm-editor-controls")
           ?.getBoundingClientRect().bottom;
         const threshold = controlsBottom != null
-          ? controlsBottom + 24
-          : main.getBoundingClientRect().top + 24;
-        // scrollIntoView و ارتفاعِ فونت/toolbar ممکن است عنوانِ مقصد را
-        // چند پیکسل پایین‌تر از threshold بنشانند. بدون این ناحیهٔ تحمل،
-        // scroll-spy بلافاصله «آخرین زیرعنوان فصل قبل» را فعال می‌کرد؛
-        // همان پرش بدی که بعد از کلیک روی فصل ششم دیده می‌شد.
-        const activationLine = threshold + 64;
+          ? controlsBottom + OUTLINE_SCROLL_GAP
+          : main.getBoundingClientRect().top + OUTLINE_SCROLL_GAP;
+        // تلورانسِ کوچک فقط خطای sub-pixel را می‌پوشاند؛ بزرگ‌ترشدنش
+        // آیتمِ بعدی را زودتر از رسیدن به بالای صفحه فعال می‌کند.
+        const activationLine = threshold + OUTLINE_SCROLL_SPY_TOLERANCE;
         let active = items[0]!;
         for (const item of items) {
           const dom = view.nodeDOM(item.from);

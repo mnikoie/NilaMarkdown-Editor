@@ -334,6 +334,66 @@ test("★★ در حالت تمرکز، کلیک Outline خودِ عنوان ر�
   expect(box!.y).toBeLessThan(page.viewportSize()!.height * 0.8);
 });
 
+test("★★ کلیک روی آیتمِ فهرست، آغازِ همان آیتم را زیرِ نوار ابزار نشان می‌دهد", async ({ page }) => {
+  const search = page.getByRole("searchbox", { name: "جست‌وجو در ساختار" });
+  await search.fill("۲. دوم");
+
+  const outlineItem = page.getByRole("treeitem", { name: "۲. دوم", exact: true });
+  await outlineItem.click();
+
+  const target = page.locator(".tm-editor ol > li").filter({ hasText: "دوم" }).first();
+  const controls = page.locator(".tm-main > .tm-editor-controls");
+  await expect(target).toBeInViewport();
+  await expect(outlineItem).toHaveAttribute("aria-selected", "true");
+
+  const [targetBox, controlsBox] = await Promise.all([target.boundingBox(), controls.boundingBox()]);
+  expect(targetBox).not.toBeNull();
+  expect(controlsBox).not.toBeNull();
+  expect(targetBox!.y).toBeGreaterThanOrEqual(controlsBox!.y + controlsBox!.height + 8);
+  expect(targetBox!.y).toBeLessThanOrEqual(controlsBox!.y + controlsBox!.height + 24);
+});
+
+test("★★ کلیک Outline در نمایش سورس، خطِ مقصد را از بالای صفحه نشان می‌دهد", async ({ page }) => {
+  await page.getByRole("button", { name: "حالتِ سورس" }).click();
+
+  const search = page.getByRole("searchbox", { name: "جست‌وجو در ساختار" });
+  await search.fill("۲. دوم");
+  await page.getByRole("treeitem", { name: "۲. دوم", exact: true }).click();
+
+  const metrics = await page.locator(".tm-source").evaluate((source: HTMLTextAreaElement) => {
+    const selectedLine = source.value.slice(source.selectionStart, source.selectionEnd);
+    const computed = getComputedStyle(source);
+    const mirror = document.createElement("div");
+    Object.assign(mirror.style, {
+      position: "fixed",
+      inset: "0 auto auto -100000px",
+      visibility: "hidden",
+      pointerEvents: "none",
+      boxSizing: "border-box",
+      width: `${source.clientWidth}px`,
+      border: "0",
+      whiteSpace: "pre-wrap",
+    });
+    for (const property of [
+      "font-family", "font-size", "font-style", "font-weight", "font-stretch",
+      "letter-spacing", "line-height", "padding-block-start", "padding-block-end",
+      "padding-inline-start", "padding-inline-end", "text-align", "text-indent",
+      "text-transform", "word-break", "overflow-wrap", "tab-size", "direction",
+    ]) mirror.style.setProperty(property, computed.getPropertyValue(property));
+    mirror.append(document.createTextNode(source.value.slice(0, source.selectionStart)));
+    const marker = document.createElement("span");
+    marker.textContent = "\u200b";
+    mirror.append(marker);
+    document.body.append(mirror);
+    const expectedScrollTop = marker.offsetTop - (Number.parseFloat(computed.paddingTop) || 0);
+    mirror.remove();
+    return { selectedLine, scrollTop: source.scrollTop, expectedScrollTop };
+  });
+
+  expect(metrics.selectedLine).toContain("2. دوم");
+  expect(Math.abs(metrics.scrollTop - metrics.expectedScrollTop)).toBeLessThanOrEqual(2);
+});
+
 test("★★ جست‌وجو هنگام اسکرول روی صفحه می‌ماند", async ({ page }) => {
   await page.getByRole("button", { name: "ویرایش" }).click();
   await page.getByRole("menuitem", { name: "جست‌وجو و جایگزینی" }).click();

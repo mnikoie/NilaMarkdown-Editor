@@ -1,4 +1,3 @@
-import { readFile } from "node:fs/promises";
 import { MarkdownDemoClient } from "./MarkdownDemoClient";
 
 const SANAD = `---
@@ -104,35 +103,6 @@ graph TD;
   B --> C[پایان];
 \`\`\`
 `;
-
-
-const TEST_DOCUMENT =
-  "D:\\- AIProject\\01- Bakhshnameh\\- خلاصه سازی دستورالعمل\\- Kholase\\- Files\\- MD01\\BakhshnamehTalkhis - 62285360.md";
-
-/** نمونهٔ کوچکِ فصل دوم — برای بررسیِ عمقِ تودرتوییِ لیست‌ها. */
-const SAMPLE_DOCUMENT =
-  "D:/- AIProject/01- Bakhshnameh/- خلاصه سازی دستورالعمل/- Kholase/- Files/- MD01/BakhshnamehTalkhis - 62285360/BakhshnamehTalkhis - 62285360.md";
-
-/** سندِ merge‌شدهٔ آزمایشی. */
-const MERGED_DOCUMENT =
-  "D:/- AIProject/lmjs-test/merged.md";
-
-export default async function MarkdownDemoPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ fixture?: string }>;
-}) {
-  const { fixture } = await searchParams;
-  const markdown =
-    fixture === "demo"
-      ? SANAD
-      : await readFile(
-          fixture === "sample"
-            ? SAMPLE_DOCUMENT
-            : fixture === "merged"
-              ? MERGED_DOCUMENT
-              : TEST_DOCUMENT,
-          "utf8",
-        );
-  return <MarkdownDemoClient markdown={markdown} />;
+export default function MarkdownDemoPage() {
+  return <MarkdownDemoClient markdown={SANAD} />;
 }

@@ -20,8 +20,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "کتابخانهٔ اسنادِ تأمین اجتماعی",
-  description: "بخشنامه‌ها و قوانینِ تأمین اجتماعی — جست‌وجو، ارجاع و ویرایش",
+  title: "NilaMarkdown Editor | ویرایشگر نیلا مارک‌داون",
+  description:
+    "A bilingual RTL/LTR Markdown editor with live preview, source mode, and outline navigation.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
