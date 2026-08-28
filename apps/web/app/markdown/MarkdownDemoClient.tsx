@@ -31,11 +31,12 @@ export function MarkdownDemoClient({ markdown: initialMarkdown }: { markdown: st
         defaultValue={initialMarkdown}
         onChange={setMarkdown}
         directives={MARKS}
-        folding={{ initial: "collapsed", mode: "accordion" }}
+        folding={false}
         outline
-        toolbar
+        outlineWidth={300}
+        toolbar="compact"
         stats
-        theme="light"
+        theme="auto"
         dir="auto"
         locale="fa"
         className="tm-demo-editor"
