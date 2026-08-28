@@ -243,31 +243,39 @@
    * بود. روی گوشی، بعد از پدینگِ tm-main + tm-editor، یک آیتمِ در
    * عمقِ سوم (فصل > بند > لیست) فقط ۱۸۱px از ۳۷۵px را برای متن
    * داشت — عملاً هر خط یکی‌دو کلمه بود.
-   * راه‌حل: خودِ فرمولِ margin را در موبایل با یک ضریب کوچک می‌کنیم
-   * (نه مقدارِ --tm-tree-indent را، چون آن inline-style است و از
-   * استایل‌شیت غیرِ قابلِ override با specificity معمولی) — تورفتگیِ
-   * نسبی (کم‌عمق کمتر از عمیق) حفظ می‌ماند، فقط مقیاسش کوچک‌تر است. */
-  .markdown-workspace .tm-editor .tm-heading-accordion[data-tree-depth],
-  .markdown-workspace .tm-editor .tm-mark[data-tree-depth] {
-    margin-inline-start: max(0px, calc((var(--tm-tree-indent, 0px) - 30px) * 0.4)) !important;
+   *
+   * راهِ اول (ضریب ۰٫۴ روی فرمول) کافی نبود: با ضریبِ ثابت، عمقِ
+   * زیاد هنوز به‌صورتِ خطی جمع می‌شد. راهِ دوم و نهایی: علاوه‌بر
+   * ضریب، یک سقفِ مطلق (min) هم گذاشته می‌شود — از یک عمقِ مشخص به
+   * بعد، تورفتگیِ بیشتر اضافه نمی‌شود؛ عمق‌های خیلی زیاد همه‌شان روی
+   * همان سقف «تخت» می‌مانند، نه اینکه ستون را صفر کنند. سلسله‌مراتبِ
+   * دیداری از رنگ/فونتِ خودِ heading و از خطِ کناریِ blockquote/کارت
+   * هنوز خوانده می‌شود، نه فقط از تورفتگی. */
+  /* ★ .markdown-workspace تکرار شده تا specificity از نسخهٔ
+   * غیرشرطیِ همین قاعده (پایینِ فایل، هر دو !important) پیشی بگیرد —
+   * وگرنه با specificity برابر، ترتیبِ منبع برنده می‌شود و آن قاعده
+   * که پایین‌تر است (بدونِ مدیاکوئری) روی هر ویوپورتی می‌برد. */
+  .markdown-workspace.markdown-workspace .tm-editor .tm-heading-accordion[data-tree-depth],
+  .markdown-workspace.markdown-workspace .tm-editor .tm-mark[data-tree-depth] {
+    margin-inline-start: min(32px, max(0px, calc((var(--tm-tree-indent, 0px) - 30px) * 0.4))) !important;
   }
 
   .markdown-workspace .tm-editor li > .tm-heading-accordion[data-tree-depth],
   .markdown-workspace .tm-editor li > .tm-mark[data-tree-depth] {
-    margin-inline-start: 12px !important;
+    margin-inline-start: 10px !important;
   }
 
-  .markdown-workspace .tm-editor .tm-section-content:not([data-tree-depth]),
-  .markdown-workspace .tm-editor .tm-mark.tm-section-content {
-    margin-inline-start: max(0px, calc((var(--tm-section-indent, 0px) - 30px) * 0.4)) !important;
+  .markdown-workspace.markdown-workspace .tm-editor .tm-section-content:not([data-tree-depth]),
+  .markdown-workspace.markdown-workspace .tm-editor .tm-mark.tm-section-content {
+    margin-inline-start: min(32px, max(0px, calc((var(--tm-section-indent, 0px) - 30px) * 0.4))) !important;
   }
 
-  .markdown-workspace .tm-editor ol.tm-section-content > li:has(> p:first-child > strong:only-child) > p:not(:first-child) {
-    margin-inline-start: 12px !important;
+  .markdown-workspace.markdown-workspace .tm-editor ol.tm-section-content > li:has(> p:first-child > strong:only-child) > p:not(:first-child) {
+    margin-inline-start: 10px !important;
   }
 
-  .markdown-workspace .tm-editor ol.tm-section-content > li:has(> p:first-child > strong:only-child) > .tm-heading-accordion ~ :is(p, ul, ol, blockquote, pre, table) {
-    margin-inline-start: 24px !important;
+  .markdown-workspace.markdown-workspace .tm-editor ol.tm-section-content > li:has(> p:first-child > strong:only-child) > .tm-heading-accordion ~ :is(p, ul, ol, blockquote, pre, table) {
+    margin-inline-start: 18px !important;
   }
 
   /* پدینگِ افقیِ سند خودش هم روی گوشی سخاوتمندانه بود (۲۸px هر طرف). */
@@ -291,7 +299,12 @@
   .markdown-workspace .tm-editor ol,
   .markdown-workspace .tm-editor li ul,
   .markdown-workspace .tm-editor li ol {
-    padding-inline-start: 0.85rem;
+    padding-inline-start: 0.85rem !important;
+  }
+
+  .markdown-workspace .tm-editor li li li ul,
+  .markdown-workspace .tm-editor li li li ol {
+    padding-inline-start: 0.5rem !important;
   }
 
   .markdown-workspace .tm-editor blockquote {
@@ -491,6 +504,16 @@
 
 .markdown-workspace .tm-editor p {
   margin-block: 0.35rem 0.7rem;
+}
+
+/* ★ سندِ حقوقی — متنِ پاراگراف/بند به سبکِ کاغذیِ رسمی justify
+ * می‌شود؛ عنوان‌ها و بلوکِ کد عمداً بیرون‌اند چون justify روی متنِ
+ * کوتاه یا monospace فاصله‌های عجیب می‌سازد. */
+.markdown-workspace .tm-editor p,
+.markdown-workspace .tm-editor li > p,
+.markdown-workspace .tm-editor blockquote p {
+  text-align: justify;
+  text-align-last: right;
 }
 
 .markdown-workspace .tm-editor ul,
