@@ -259,6 +259,25 @@ export function MarkdownEditor({
   const foldingInteractive = folding !== false;
   const [activeLocale, setActiveLocale] = useState<MarkdownLocale>(locale);
   const [activeTheme, setActiveTheme] = useState(theme);
+  // ★ «خودکار» یعنی ساعتِ واقعیِ کاربر (۷ صبح تا ۱۹) نه تمِ سیستم‌عامل —
+  //   این ادیتور برای کاربرِ غیرِبرنامه‌نویس است؛ prefers-color-scheme
+  //   با «الان روز است» کاربر مطابقت نداشت (تمِ ویندوز/مرورگر می‌تواند
+  //   هر چیزی باشد، ربطی به روز/شبِ واقعی ندارد).
+  const [autoIsDay, setAutoIsDay] = useState(() => {
+    const hour = new Date().getHours();
+    return hour >= 7 && hour < 19;
+  });
+  useEffect(() => {
+    if (activeTheme !== "auto") return;
+    const tick = () => {
+      const hour = new Date().getHours();
+      setAutoIsDay(hour >= 7 && hour < 19);
+    };
+    tick();
+    const id = window.setInterval(tick, 60_000);
+    return () => window.clearInterval(id);
+  }, [activeTheme]);
+  const resolvedTheme = activeTheme === "auto" ? (autoIsDay ? "light" : "dark") : activeTheme;
   const [activeContentWidth, setActiveContentWidth] = useState<ContentWidth>(contentWidth);
   const [activeFeatures, setActiveFeatures] = useState<Features>(() => ({ breaks: false, linkify: true, taskList: true, footnotes: true, toc: true, math: true, mermaid: false, highlight: true, emoji: false, html: "escape", ...features }));
   const [customThemeColors, setCustomThemeColors] = useState<CustomThemeColors>({ accent: "", background: "", foreground: "" });
@@ -1282,7 +1301,7 @@ export function MarkdownEditor({
     <div
       ref={rootRef}
       className={`tm-root ${className ?? ""}`}
-      data-theme={activeTheme === "auto" ? undefined : activeTheme}
+      data-theme={resolvedTheme}
       data-mode={mode}
       data-fullscreen={fs.active ? (fs.soft ? "soft" : "real") : undefined}
       dir={effectiveDir}
