@@ -346,7 +346,6 @@ export function MarkdownEditor({
   }, [updateDirty]);
 
   const handleMarkdownChange = useCallback((markdown: string) => {
-    console.log("[tm-dirty-debug]", markdown.length, savedMarkdownRef.current.length, pendingSavedMarkdownRef.current?.length ?? null, markdown === savedMarkdownRef.current, markdown === pendingSavedMarkdownRef.current);
     if (pendingSavedMarkdownRef.current !== null) {
       const isProgrammaticLoad = markdown === pendingSavedMarkdownRef.current;
       pendingSavedMarkdownRef.current = null;

@@ -1,12 +1,7 @@
-import { unified } from "unified";
-import remarkParse from "remark-parse";
-import remarkGfm from "remark-gfm";
-import remarkMath from "remark-math";
-import remarkFrontmatter from "remark-frontmatter";
-import remarkDirective from "remark-directive";
 import type { Node as PMNode, Mark } from "prosemirror-model";
 import { decodeNamedCharacterReference } from "decode-named-character-reference";
 import { schema } from "../schema/index.js";
+import { parseMarkdownAst, type MarkdownAstNode } from "./ast.js";
 
 /**
  * Markdown → mdast → سندِ ProseMirror.
@@ -18,22 +13,10 @@ import { schema } from "../schema/index.js";
 
 // mdast تایپِ رسمیِ directive را در `@types/mdast` ندارد (افزونه است)،
 // پس حداقلی که لازم داریم را خودمان اعلام می‌کنیم.
-interface MdastNode {
-  type: string;
-  value?: string;
-  children?: MdastNode[];
-  [k: string]: unknown;
-}
-
-const processor = unified()
-  .use(remarkParse)
-  .use(remarkGfm)
-  .use(remarkMath)
-  .use(remarkFrontmatter, ["yaml"])
-  .use(remarkDirective);
+type MdastNode = MarkdownAstNode;
 
 export function toMdast(md: string): MdastNode {
-  return processor.parse(md) as unknown as MdastNode;
+  return parseMarkdownAst(md);
 }
 
 /**

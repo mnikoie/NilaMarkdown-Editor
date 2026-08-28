@@ -694,3 +694,252 @@
   color: var(--tm-doc-ref-fg);
   outline: none;
 }
+
+/* ── NilaMarkdown Viewer ───────────────────────────────────── */
+.viewer-workspace {
+  --viewer-bg: #000000;
+  --viewer-surface: #000000;
+  --viewer-raised: #0c0c0c;
+  --viewer-border: #2a2a2a;
+  --viewer-fg: #e6e6e6;
+  --viewer-muted: #9da3ae;
+  --viewer-accent: #68a7ff;
+  display: flex;
+  height: 100dvh;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--viewer-bg);
+  color: var(--viewer-fg);
+}
+
+.viewer-workspace[data-theme="light"] {
+  --viewer-bg: #f7f7f7;
+  --viewer-surface: #ffffff;
+  --viewer-raised: #f1f3f5;
+  --viewer-border: #d9dde3;
+  --viewer-fg: #202632;
+  --viewer-muted: #687283;
+  --viewer-accent: #285fc7;
+}
+
+.viewer-navbar {
+  position: relative;
+  z-index: 5;
+  display: flex;
+  min-height: 3.75rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-block-end: 1px solid var(--viewer-border);
+  background: var(--viewer-surface);
+  padding: 0.55rem 1rem;
+}
+
+.viewer-brand,
+.viewer-navbar nav,
+.viewer-navbar :is(button, a) {
+  display: flex;
+  align-items: center;
+}
+
+.viewer-brand {
+  min-width: 0;
+  gap: 0.55rem;
+}
+
+.viewer-brand > span {
+  max-width: 20rem;
+  overflow: hidden;
+  color: var(--viewer-muted);
+  font-size: 0.78rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.viewer-navbar nav {
+  gap: 0.4rem;
+}
+
+.viewer-navbar :is(button, a),
+.viewer-empty button {
+  min-height: 2.35rem;
+  justify-content: center;
+  gap: 0.4rem;
+  border: 1px solid var(--viewer-border);
+  border-radius: 0.5rem;
+  background: var(--viewer-raised);
+  color: var(--viewer-fg);
+  padding-inline: 0.7rem;
+  font: inherit;
+  font-size: 0.82rem;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.viewer-navbar :is(button, a):hover,
+.viewer-navbar button[aria-pressed="true"],
+.viewer-empty button:hover {
+  border-color: var(--viewer-accent);
+  color: var(--viewer-accent);
+}
+
+.viewer-layout {
+  display: grid;
+  min-height: 0;
+  flex: 1;
+  grid-template-columns: 18rem minmax(0, 1fr);
+}
+
+.viewer-layout[data-outline="closed"] {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.viewer-outline {
+  min-height: 0;
+  overflow-y: auto;
+  border-inline-end: 1px solid var(--viewer-border);
+  background: var(--viewer-surface);
+}
+
+.viewer-outline > header {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-block-end: 1px solid var(--viewer-border);
+  background: var(--viewer-surface);
+  padding: 0.8rem 1rem;
+}
+
+.viewer-outline > header span {
+  margin-inline-start: auto;
+  border-radius: 999px;
+  background: var(--viewer-raised);
+  color: var(--viewer-muted);
+  padding: 0.1rem 0.45rem;
+  font-size: 0.75rem;
+}
+
+.viewer-outline ol {
+  margin: 0;
+  padding: 0.45rem;
+  list-style: none;
+}
+
+.viewer-outline li {
+  padding-inline-start: min(calc((var(--viewer-depth) - 1) * 0.75rem), 3rem);
+}
+
+.viewer-outline li button {
+  width: 100%;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0.4rem;
+  background: transparent;
+  color: var(--viewer-fg);
+  padding: 0.48rem 0.55rem;
+  font: inherit;
+  font-size: 0.83rem;
+  text-align: start;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.viewer-outline li button:hover,
+.viewer-outline li button:focus-visible {
+  background: var(--viewer-raised);
+  color: var(--viewer-accent);
+}
+
+.viewer-outline > p {
+  color: var(--viewer-muted);
+  padding: 1rem;
+  font-size: 0.85rem;
+}
+
+.viewer-document-scroll {
+  min-width: 0;
+  overflow-y: auto;
+  background: var(--viewer-bg);
+  scroll-padding-block-start: 1rem;
+}
+
+.viewer-document {
+  box-sizing: border-box;
+  width: min(100% - 2rem, 900px);
+  min-height: 100%;
+  margin-inline: auto;
+  padding: 3rem clamp(0.5rem, 3vw, 2rem) 5rem;
+}
+
+.viewer-empty {
+  display: grid;
+  min-height: 100%;
+  place-content: center;
+  justify-items: center;
+  color: var(--viewer-muted);
+  padding: 2rem;
+  text-align: center;
+}
+
+.viewer-empty h1 {
+  margin: 1rem 0 0.25rem;
+  color: var(--viewer-fg);
+  font-size: 1.25rem;
+}
+
+.viewer-empty p {
+  margin: 0 0 1rem;
+}
+
+.viewer-notice {
+  position: fixed;
+  inset-block-start: 4.5rem;
+  inset-inline-start: 50%;
+  z-index: 10;
+  width: max-content;
+  max-width: calc(100vw - 2rem);
+  transform: translateX(50%);
+  border: 1px solid var(--viewer-accent);
+  border-radius: 0.55rem;
+  background: var(--viewer-raised);
+  color: var(--viewer-fg);
+  padding: 0.55rem 0.8rem;
+  font-size: 0.82rem;
+}
+
+@media (max-width: 48rem) {
+  .viewer-brand > span,
+  .viewer-navbar nav span {
+    display: none;
+  }
+
+  .viewer-navbar {
+    gap: 0.5rem;
+  }
+
+  .viewer-layout {
+    position: relative;
+    display: block;
+  }
+
+  .viewer-outline {
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    z-index: 4;
+    width: min(18rem, calc(100vw - 3.5rem));
+    box-shadow: 0 0 1.5rem rgb(0 0 0 / 0.45);
+  }
+
+  .viewer-document-scroll {
+    height: 100%;
+  }
+
+  .viewer-document {
+    width: 100%;
+    padding-block-start: 2rem;
+  }
+}

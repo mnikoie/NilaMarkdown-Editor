@@ -60,6 +60,21 @@ describe("معماری", () => {
     }
   });
 
+  it("Editor و Viewer دقیقاً از یک پردازندهٔ Markdown استفاده می‌کنند", () => {
+    const editorParser = readFileSync("src/core/markdown/parse.ts", "utf8");
+    const viewerParser = readFileSync("src/core/viewer/ast.ts", "utf8");
+    expect(editorParser).toContain('from "./ast.js"');
+    expect(viewerParser).toContain('from "../markdown/ast.js"');
+  });
+
+  it("Editor و Viewer ورودی‌های import مستقل دارند", () => {
+    const manifest = JSON.parse(readFileSync("package.json", "utf8")) as {
+      exports?: Record<string, unknown>;
+    };
+    expect(manifest.exports?.["./editor"]).toBeTruthy();
+    expect(manifest.exports?.["./viewer"]).toBeTruthy();
+  });
+
   it("هیچ رنگی در TS هارد-کد نشده", () => {
     // بندِ ۹: همهٔ رنگ‌ها از متغیرِ CSS.
     //

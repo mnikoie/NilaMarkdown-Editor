@@ -44,7 +44,27 @@ pnpm dev
 
 Open [http://localhost:3000/markdown](http://localhost:3000/markdown).
 
+The lightweight viewer demo is available at [http://localhost:3000/viewer](http://localhost:3000/viewer).
+
 On Windows, double-click `NilaMarkdown.bat` to build and run the production version. It opens the editor automatically in your browser. For later launches without rebuilding, run `NilaMarkdown.bat --no-build`.
+
+### Use Editor, Viewer, or both
+
+Both components are released from the same package and share one Markdown parser, security layer, outline logic, and design tokens. Importing the viewer entry does not load ProseMirror or the editing tools.
+
+```tsx
+import { MarkdownEditor } from "@tamin/markdown/editor";
+import { MarkdownViewer } from "@tamin/markdown/viewer";
+import "@tamin/markdown/styles.css";
+
+// Editor only
+<MarkdownEditor defaultValue={markdown} toolbar="compact" />
+
+// Viewer only
+<MarkdownViewer value={markdown} theme="auto" dir="auto" />
+```
+
+Install the package once and import either entry point independently, or use both in the same application.
 
 ### Useful commands
 
@@ -101,7 +121,24 @@ pnpm dev
 
 سپس نشانی [http://localhost:3000/markdown](http://localhost:3000/markdown) را باز کنید.
 
+نمونهٔ نمایشگر سبک نیز در نشانی [http://localhost:3000/viewer](http://localhost:3000/viewer) در دسترس است.
+
 در ویندوز کافی است روی فایل `NilaMarkdown.bat` دوبار کلیک کنید تا نسخهٔ نهایی ساخته و اجرا شود؛ صفحهٔ ویرایشگر نیز خودکار در مرورگر باز می‌شود. برای اجراهای بعدی بدون ساخت مجدد، دستور `NilaMarkdown.bat --no-build` را اجرا کنید.
+
+### استفاده از Editor، Viewer یا هر دو
+
+هر دو کامپوننت از یک پکیج و یک هستهٔ مشترک منتشر می‌شوند؛ پردازش Markdown، امنیت لینک‌ها، ساختار سند و توکن‌های ظاهری میان آن‌ها مشترک است. ورودی Viewer مستقل است و ProseMirror یا ابزارهای ویرایش را بارگذاری نمی‌کند.
+
+```tsx
+import { MarkdownEditor } from "@tamin/markdown/editor";
+import { MarkdownViewer } from "@tamin/markdown/viewer";
+import "@tamin/markdown/styles.css";
+
+<MarkdownEditor defaultValue={markdown} toolbar="compact" />
+<MarkdownViewer value={markdown} theme="auto" dir="auto" />
+```
+
+پکیج را یک‌بار نصب کنید و در هر اپ فقط ورودی Editor یا Viewer را وارد کنید؛ استفادهٔ هم‌زمان از هر دو نیز ممکن است.
 
 ### دستورهای کاربردی
 

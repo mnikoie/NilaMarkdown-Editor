@@ -5,6 +5,9 @@ export default defineConfig({
   timeout: 60_000,
   expect: { timeout: 10_000 },
   retries: 0,
+  // Shiki، KaTeX و چند سند بزرگ هم‌زمان dev-server را با تعداد هستهٔ کامل
+  // اشباع می‌کردند و تست‌های سالم به timeout می‌رسیدند.
+  workers: 4,
   reporter: [["list"]],
   use: {
     ...devices["Desktop Chrome"],
