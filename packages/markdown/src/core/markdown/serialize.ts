@@ -7,6 +7,7 @@ import remarkFrontmatter from "remark-frontmatter";
 import { directiveToMarkdown } from "mdast-util-directive";
 import type { Node as PMNode, Mark } from "prosemirror-model";
 import { schema } from "../schema/index.js";
+import { EMOJI_SHORTNAMES } from "../plugins/emoji.js";
 
 /**
  * جایگزینِ `remark-directive` در مسیرِ نوشتن.
@@ -89,6 +90,15 @@ function applyMarks(text: string, marks: readonly Mark[]): MdastNode {
       case "code":
         node = { type: "inlineCode", value: text };
         break;
+      case "entity":
+        node = {
+          type: "text",
+          value: encodeEntitySentinels(
+            text,
+            m.attrs.entries as { offset: number; decoded: string; source: string }[],
+          ),
+        };
+        break;
       case "strong":
         node = { type: "strong", children: [node] };
         break;
@@ -99,6 +109,7 @@ function applyMarks(text: string, marks: readonly Mark[]): MdastNode {
         node = { type: "delete", children: [node] };
         break;
       case "link":
+        if (m.attrs.autolinkLiteral) break;
         node = m.attrs.identifier
           ? {
               type: "linkReference",
@@ -120,7 +131,7 @@ function applyMarks(text: string, marks: readonly Mark[]): MdastNode {
 }
 
 function order(m: Mark): number {
-  const rank: Record<string, number> = { code: 0, strike: 1, em: 2, strong: 3, link: 4 };
+  const rank: Record<string, number> = { code: 0, entity: 0, strike: 1, em: 2, strong: 3, link: 4 };
   return rank[m.type.name] ?? 5;
 }
 
@@ -151,6 +162,9 @@ function inlineOf(node: PMNode): MdastNode[] {
         break;
       case "hard_break":
         out.push({ type: "break" });
+        break;
+      case "html_inline":
+        out.push({ type: "html", value: child.attrs.value });
         break;
       case "math_inline":
         out.push({ type: "inlineMath", value: child.attrs.value });
@@ -363,23 +377,27 @@ function stringifyWith(tree: MdastNode, overrides: Record<string, unknown>): str
 /** نشانه‌های به‌کاررفته در سند را جمع می‌کند تا بدانیم یک‌دست است یا نه. */
 function collectMarkers(doc: PMNode) {
   const bullets = new Set<string>();
+  const orderedDelimiters = new Set<string>();
   const strongs = new Set<string>();
   const ems = new Set<string>();
   doc.descendants((n) => {
     if (n.type.name === "bullet_list") bullets.add((n.attrs.marker as string) ?? "-");
+    if (n.type.name === "ordered_list") {
+      orderedDelimiters.add((n.attrs.delimiter as string) ?? ".");
+    }
     for (const m of n.marks) {
       if (m.type.name === "strong") strongs.add((m.attrs.marker as string) ?? "**");
       if (m.type.name === "em") ems.add((m.attrs.marker as string) ?? "*");
     }
     return true;
   });
-  return { bullets, strongs, ems };
+  return { bullets, orderedDelimiters, strongs, ems };
 }
 
 /** ورودیِ اصلی: سندِ ProseMirror → مارک‌داون. */
 export function serialize(doc: PMNode): string {
   const tree = toMdastFromDoc(doc);
-  const { bullets, strongs, ems } = collectMarkers(doc);
+  const { bullets, orderedDelimiters, strongs, ems } = collectMarkers(doc);
 
   // وقتی کلِ سند یک نشانه دارد، همان را به remark می‌دهیم. سندِ مخلوط
   // نادر است و در آن حالت به پیش‌فرض برمی‌گردیم (هنوز معتبر است، فقط
@@ -390,10 +408,132 @@ export function serialize(doc: PMNode): string {
     overrides.bullet = b;
     overrides.bulletOther = otherBullet(b);
   }
+  if (orderedDelimiters.size === 1) {
+    overrides.bulletOrdered = [...orderedDelimiters][0];
+  }
   if (strongs.size === 1) overrides.strong = [...strongs][0][0];
   if (ems.size === 1) overrides.emphasis = [...ems][0][0];
 
-  return stringifyWith(tree, overrides)
+  let markdown = stringifyWith(tree, overrides)
     .replace(new RegExp(`^> ${ALERT_SENTINEL}([A-Z]+)$`, "gm"), "> [!$1]")
-    .replace(new RegExp(`^${TOC_SENTINEL}$`, "gm"), "[TOC]");
+    .replace(new RegExp(`^${TOC_SENTINEL}$`, "gm"), "[TOC]")
+    // remark-directive ابتدای shortname را escape می‌کند؛ برای نام‌های
+    // شناخته‌شده این escape لازم نیست و Diff ناخواسته می‌سازد.
+    .replace(/\\:([a-z0-9_+-]+):/gi, (all, name: string) =>
+      EMOJI_SHORTNAMES[name.toLowerCase()] ? `:${name}:` : all);
+
+  markdown = restoreEntitySentinels(markdown);
+
+  markdown = restoreHeadingStyles(markdown, doc);
+  markdown = restoreCodeFences(markdown, doc);
+  markdown = restoreHardBreaks(markdown, doc);
+  markdown = restoreAutolinkLiterals(markdown, doc);
+  return doc.attrs.lineEnding === "\r\n" ? markdown.replace(/\n/g, "\r\n") : markdown;
+}
+
+function restoreHeadingStyles(markdown: string, doc: PMNode): string {
+  const headings: PMNode[] = [];
+  doc.descendants((node) => {
+    if (node.type === schema.nodes.heading) headings.push(node);
+    return true;
+  });
+  let index = 0;
+  return markdown.replace(/^((?: {0,3}>\s*)*)(#{1,6})[ \t]+(.+)$/gm, (line, prefix: string, _hashes: string, content: string) => {
+    const heading = headings[index++];
+    if (!heading || heading.attrs.syntax !== "setext" || Number(heading.attrs.level) > 2) return line;
+    const clean = content.replace(/[ \t]+#+[ \t]*$/, "");
+    const fallback = Number(heading.attrs.level) === 1 ? "=".repeat(Math.max(3, clean.length)) : "-".repeat(Math.max(3, clean.length));
+    const marker = (heading.attrs.setextMarker as string | null) || fallback;
+    return `${prefix}${clean}\n${prefix}${marker}`;
+  });
+}
+
+function restoreCodeFences(markdown: string, doc: PMNode): string {
+  const blocks: PMNode[] = [];
+  doc.descendants((node) => {
+    if (node.type === schema.nodes.code_block) blocks.push(node);
+    return true;
+  });
+  const lines = markdown.split("\n");
+  let blockIndex = 0;
+  let closing: { prefix: string; fence: string } | null = null;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]!;
+    if (closing) {
+      if (new RegExp("^" + escapeRegExp(closing.prefix) + "(?:`{3,}|~{3,})\\s*$").test(line)) {
+        lines[i] = `${closing.prefix}${closing.fence}`;
+        closing = null;
+      }
+      continue;
+    }
+    const match = /^((?: {0,3}>\s*)*)(`{3,}|~{3,})(.*)$/.exec(line);
+    if (!match) continue;
+    const block = blocks[blockIndex++];
+    if (!block) continue;
+    const requested = block.attrs.fence as string | null;
+    if (!requested) continue;
+    const runs = block.textContent.match(new RegExp(`${escapeRegExp(requested)}+`, "g")) ?? [];
+    const longest = Math.max(0, ...runs.map((run) => run.length));
+    const length = Math.max(3, Number(block.attrs.fenceLength) || 3, longest + 1);
+    const fence = requested.repeat(length);
+    lines[i] = `${match[1]}${fence}${match[3]}`;
+    closing = { prefix: match[1]!, fence };
+  }
+  return lines.join("\n");
+}
+
+function restoreHardBreaks(markdown: string, doc: PMNode): string {
+  const markers: string[] = [];
+  doc.descendants((node) => {
+    if (node.type === schema.nodes.hard_break) markers.push(String(node.attrs.marker));
+    return true;
+  });
+  let index = 0;
+  return markdown.replace(/\\\n/g, () => markers[index++] === "spaces" ? "  \n" : "\\\n");
+}
+
+function restoreAutolinkLiterals(markdown: string, doc: PMNode): string {
+  const sources: string[] = [];
+  doc.descendants((node) => {
+    if (!node.isText) return true;
+    for (const mark of node.marks) {
+      if (mark.type === schema.marks.link && mark.attrs.autolinkLiteral && mark.attrs.autolinkSource) {
+        sources.push(String(mark.attrs.autolinkSource));
+      }
+    }
+    return true;
+  });
+  let output = markdown;
+  for (const source of sources) {
+    const escaped = stringifyWith({
+      type: "root",
+      children: [{ type: "paragraph", children: [{ type: "text", value: source }] }],
+    }, {}).trimEnd();
+    output = output.replace(escaped, source);
+  }
+  return output;
+}
+
+function encodeEntitySentinels(
+  value: string,
+  entries: { offset: number; decoded: string; source: string }[],
+): string {
+  let output = value;
+  for (const entry of [...entries].sort((a, b) => b.offset - a.offset)) {
+    const hex = [...entry.source].map((char) => char.charCodeAt(0).toString(16).padStart(2, "0")).join("");
+    output = `${output.slice(0, entry.offset)}TAMINENTITY${hex}END${output.slice(entry.offset + entry.decoded.length)}`;
+  }
+  return output;
+}
+
+function restoreEntitySentinels(markdown: string): string {
+  return markdown.replace(/TAMINENTITY([0-9a-f]+)END/g, (_all, hex: string) => {
+    let source = "";
+    for (let i = 0; i < hex.length; i += 2) source += String.fromCharCode(Number.parseInt(hex.slice(i, i + 2), 16));
+    return source;
+  });
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

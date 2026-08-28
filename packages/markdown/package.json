@@ -29,9 +29,11 @@
     "typecheck": "tsc --noEmit",
     "build:css": "tailwindcss -i src/styles/index.css -o dist/styles.css --minify",
     "bench": "vitest run --config vitest.perf.config.ts",
+    "conformance": "pnpm build && node scripts/conformance.mjs",
     "vendor:themes": "node scripts/vendor-themes.mjs"
   },
   "dependencies": {
+    "decode-named-character-reference": "^1.3.0",
     "mdast-util-directive": "^3.1.0",
     "mdast-util-from-markdown": "^2.0.3",
     "mdast-util-to-markdown": "^2.1.2",

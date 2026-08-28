@@ -14,6 +14,18 @@ import type { FoldingOptions } from "../core/plugins/fold.js";
 import type { MarkCardOptions } from "./MarkCard.js";
 
 export interface Features {
+  /** شکستِ خطِ نرم را در پیش‌نمایش مثل `<br>` نشان بده. */
+  breaks?: boolean;
+  /** نشانی‌های بدون نشانه‌گذاری را خودکار لینک کن. */
+  linkify?: boolean;
+  /** کنترل‌های تعاملیِ Task List. */
+  taskList?: boolean;
+  /** نمایشِ غنیِ پانویس‌ها. */
+  footnotes?: boolean;
+  /** فهرست مطالب زنده برای `[TOC]`. */
+  toc?: boolean;
+  /** نمایش `:shortname:` به‌صورت Emoji بدون تغییر متن Markdown. */
+  emoji?: boolean;
   /**
    * ریاضی با KaTeX. پیش‌فرض **روشن** — سبک است و رشتهٔ اصلی را قفل
    * نمی‌کند (اندازه‌گیری‌شده در مرورگرِ واقعی).
@@ -54,6 +66,7 @@ export interface Features {
 
 export interface NodeViewOptions {
   folding?: FoldingOptions;
+  foldingInteractive?: boolean;
   cardFolding?: MarkCardOptions;
   locale?: "fa" | "en";
 }
@@ -76,7 +89,7 @@ export function createNodeViews(
   features: Features = {},
   options: NodeViewOptions = {},
 ): Record<string, NodeViewConstructor> {
-  const { math = true, mermaid = false, highlight = true, html = "escape" } = features;
+  const { math = true, mermaid = false, highlight = true, toc = true, html = "escape" } = features;
 
   const views: Record<string, NodeViewConstructor> = {
     directive_block: (node, view, getPos) =>
@@ -84,12 +97,16 @@ export function createNodeViews(
         initial: options.folding?.initial,
         mode: options.cardFolding?.mode ?? options.folding?.mode,
         locale: options.locale,
+        interactive: options.foldingInteractive,
       } satisfies MarkCardOptions),
-    table_of_contents: (node, view) => new TableOfContentsView(node, view, options.locale),
     link_definition: (node, view, getPos) => new LinkDefinitionView(node, view, getPos, options.locale),
     directive_inline: (node, view, getPos) =>
       new InlineDirectiveView(node, view, getPos, registry),
   };
+
+  if (toc) {
+    views.table_of_contents = (node, view) => new TableOfContentsView(node, view, options.locale);
+  }
 
   // بلوکِ کد همیشه NodeView دارد — دکمهٔ کپی و برچسبِ زبان مستقل از
   // رنگ‌آمیزی‌اند. `highlight` فقط تعیین می‌کند Shiki بار شود یا نه.

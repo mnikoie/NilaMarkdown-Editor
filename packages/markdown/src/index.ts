@@ -2,6 +2,7 @@
 
 export { schema, nodes, marks } from "./core/schema/index.js";
 export { parse } from "./core/markdown/parse.js";
+export type { ParseOptions } from "./core/markdown/parse.js";
 export { serialize } from "./core/markdown/serialize.js";
 
 export { buildOutline, flattenOutline, nodeAt } from "./core/outline/build.js";
@@ -125,6 +126,7 @@ export { inputRulesPlugin } from "./core/plugins/input-rules.js";
 export { autoPairPlugin } from "./core/plugins/auto-pair.js";
 export type { AutoPairOptions } from "./core/plugins/auto-pair.js";
 export { taskListPlugin } from "./core/plugins/task-list.js";
+export { emojiShortnamePlugin, emojiKey, EMOJI_SHORTNAMES } from "./core/plugins/emoji.js";
 export {
   listFoldPlugin,
   listFoldKey,
@@ -227,6 +229,8 @@ export { FileMenu } from "./react/FileMenu/FileMenu.js";
 export type { FileMenuProps } from "./react/FileMenu/FileMenu.js";
 export { EditMenu } from "./react/EditMenu/EditMenu.js";
 export type { EditMenuProps } from "./react/EditMenu/EditMenu.js";
+export { InsertMenu } from "./react/InsertMenu/InsertMenu.js";
+export type { InsertMenuProps } from "./react/InsertMenu/InsertMenu.js";
 export { ImagePopover } from "./react/ImagePopover/ImagePopover.js";
 export type { ImagePopoverProps } from "./react/ImagePopover/ImagePopover.js";
 export { ReferenceLinkPopover } from "./react/ReferenceLinkPopover/ReferenceLinkPopover.js";
@@ -236,5 +240,6 @@ export type { OutlineTreeProps } from "./react/Outline/OutlineTree.js";
 
 export { MarkdownEditor } from "./react/MarkdownEditor.js";
 export type { MarkdownEditorProps } from "./react/MarkdownEditor.js";
+export type { ContentWidth } from "./react/MarkdownEditor.js";
 export { useEditor } from "./react/useEditor.js";
 export type { UseEditorOptions, EditorHandle } from "./react/useEditor.js";

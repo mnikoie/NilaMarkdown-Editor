@@ -47,6 +47,13 @@ const code: MarkSpec = {
   toDOM: () => ["code", 0],
 };
 
+/** شکلِ اصلیِ Entity را نگه می‌دارد؛ متنِ داخل، کاراکترِ decodeشده است. */
+const entity: MarkSpec = {
+  attrs: { entries: { default: [] } },
+  inclusive: false,
+  toDOM: () => ["span", { "data-entity": "true" }, 0],
+};
+
 const link: MarkSpec = {
   attrs: {
     href: {},
@@ -54,6 +61,10 @@ const link: MarkSpec = {
     /** اگر مقدار داشته باشد، لینک از نوع reference-style است. */
     identifier: { default: null },
     referenceType: { default: null },
+    /** لینکِ خودکار GFM که در سورس بدون `[]()` نوشته شده است. */
+    autolinkLiteral: { default: false },
+    autolinkSource: { default: null },
+    inactive: { default: false },
   },
   inclusive: false,
   parseDOM: [
@@ -62,17 +73,20 @@ const link: MarkSpec = {
       getAttrs: (dom) => ({
         href: (dom as HTMLElement).getAttribute("href"),
         title: (dom as HTMLElement).getAttribute("title"),
+        autolinkLiteral: false,
       }),
     },
   ],
   // ★ `safeHref` اینجا و نه فقط در sanitize: لینکِ `javascript:` ممکن
   // است از مارک‌داونِ عادی بیاید (`[x](javascript:alert(1))`)، نه از
   // HTMLِ خام. پس فیلتر باید سرِ راهِ رندر باشد.
-  toDOM: (m) => [
-    "a",
-    { href: safeHref((m.attrs.href as string) ?? ""), title: m.attrs.title as string },
-    0,
-  ],
+  toDOM: (m) => m.attrs.inactive
+    ? ["span", { "data-autolink": "disabled" }, 0]
+    : [
+        "a",
+        { href: safeHref((m.attrs.href as string) ?? ""), title: m.attrs.title as string },
+        0,
+      ],
 };
 
-export const marks = { strong, em, underline, strike, comment, code, link };
+export const marks = { strong, em, underline, strike, comment, code, entity, link };

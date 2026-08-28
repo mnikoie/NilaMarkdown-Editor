@@ -1,18 +1,22 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
 import { ChevronDown, ChevronLeft, FileText } from "lucide-react";
 import { useMarkdownI18n } from "../i18n.js";
+import { useMenuKeyboard } from "../useMenuKeyboard.js";
 
 export interface FileMenuProps {
   onNew?: () => void;
   onOpen?: () => void;
+  onOpenUrl?: () => void;
   onSave?: () => void;
   onSaveAs?: () => void;
   onExportHtml?: () => void;
   onExportPdf?: () => void;
   onClose?: () => void;
+  /** آیا سند نسبت به آخرین ذخیره تغییر کرده است؟ */
+  dirty?: boolean;
 }
 
 interface Action {
@@ -37,16 +41,19 @@ const isSubmenu = (entry: Entry): entry is Submenu => "items" in entry;
 export function FileMenu({
   onNew,
   onOpen,
+  onOpenUrl,
   onSave,
   onSaveAs,
   onExportHtml,
   onExportPdf,
   onClose,
+  dirty = false,
 }: FileMenuProps) {
   const { t } = useMarkdownI18n();
   const [open, setOpen] = useState(false);
   const [submenu, setSubmenu] = useState<string | null>(null);
-  const rootRef = useRef<HTMLDivElement>(null);
+  const closeMenu = useCallback(() => { setOpen(false); setSubmenu(null); }, []);
+  const { rootRef, triggerRef, onKeyDown } = useMenuKeyboard(open, closeMenu);
 
   useEffect(() => {
     if (!open) return;
@@ -63,6 +70,7 @@ export function FileMenu({
   const entries: Entry[] = [
     { id: "new", label: "سند جدید", shortcut: "Ctrl+N", run: onNew },
     { id: "open", label: "بازکردن…", shortcut: "Ctrl+O", run: onOpen },
+    { id: "open-url", label: "بازکردن از نشانی…", run: onOpenUrl },
     { id: "save", label: "ذخیره", shortcut: "Ctrl+S", run: onSave, separatorBefore: true },
     { id: "save-as", label: "ذخیره با نام…", shortcut: "Ctrl+Shift+S", run: onSaveAs },
     {
@@ -88,8 +96,9 @@ export function FileMenu({
   const keepSelection = (event: ReactMouseEvent) => event.preventDefault();
 
   return (
-    <div ref={rootRef} className="tm-editor-menu">
+    <div ref={rootRef} className="tm-editor-menu" onKeyDown={onKeyDown}>
       <button
+        ref={triggerRef}
         type="button"
         className="tm-menu-trigger"
         aria-haspopup="menu"
@@ -99,6 +108,7 @@ export function FileMenu({
       >
         <FileText size={16} aria-hidden />
         <span>{t("File")}</span>
+        {dirty ? <span className="tm-menu-dirty" title={t("تغییرات ذخیره‌نشده")} aria-label={t("تغییرات ذخیره‌نشده")}>●</span> : null}
         <ChevronDown size={14} aria-hidden />
       </button>
       {open ? (

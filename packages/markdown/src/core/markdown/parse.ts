@@ -5,6 +5,7 @@ import remarkMath from "remark-math";
 import remarkFrontmatter from "remark-frontmatter";
 import remarkDirective from "remark-directive";
 import type { Node as PMNode, Mark } from "prosemirror-model";
+import { decodeNamedCharacterReference } from "decode-named-character-reference";
 import { schema } from "../schema/index.js";
 
 /**
@@ -63,6 +64,12 @@ function tickCount(source: string, node: MdastNode): number {
 interface Ctx {
   source: string;
   definitions: Map<string, { url: string; title: string | null }>;
+  linkify: boolean;
+}
+
+export interface ParseOptions {
+  /** تبدیل خودکار نشانی‌های ساده به لینک. پیش‌فرض روشن است. */
+  linkify?: boolean;
 }
 
 function inlineChildren(nodes: MdastNode[] | undefined, marks: readonly Mark[], ctx: Ctx): PMNode[] {
@@ -96,7 +103,7 @@ function inlineChildren(nodes: MdastNode[] | undefined, marks: readonly Mark[], 
 function inline(node: MdastNode, marks: readonly Mark[], ctx: Ctx): PMNode[] {
   switch (node.type) {
     case "text":
-      return node.value ? [schema.text(node.value, marks as Mark[])] : [];
+      return textWithEntities(node, marks, ctx);
 
     case "strong":
       return inlineChildren(node.children, [
@@ -121,11 +128,21 @@ function inline(node: MdastNode, marks: readonly Mark[], ctx: Ctx): PMNode[] {
         ]),
       ];
 
-    case "link":
+    case "link": {
+      const linkSource = sourceSlice(ctx.source, node).trim();
+      const explicit = /^[<[]/.test(linkSource);
       return inlineChildren(node.children, [
         ...marks,
-        schema.marks.link.create({ url: node.url, href: node.url, title: node.title ?? null }),
+        schema.marks.link.create({
+          url: node.url,
+          href: node.url,
+          title: node.title ?? null,
+          autolinkLiteral: !explicit,
+          autolinkSource: explicit ? null : linkSource,
+          inactive: !explicit && !ctx.linkify,
+        }),
       ], ctx);
+    }
 
     case "linkReference": {
       const identifier = String(node.identifier ?? node.label ?? "");
@@ -151,7 +168,7 @@ function inline(node: MdastNode, marks: readonly Mark[], ctx: Ctx): PMNode[] {
       ];
 
     case "break":
-      return [schema.nodes.hard_break.create()];
+      return [schema.nodes.hard_break.create({ marker: breakMarker(ctx.source, node) })];
 
     case "inlineMath":
       return [schema.nodes.math_inline.create({ value: String(node.value ?? "") })];
@@ -173,8 +190,9 @@ function inline(node: MdastNode, marks: readonly Mark[], ctx: Ctx): PMNode[] {
       ];
 
     case "html":
-      // HTML درون‌خطی: به‌صورتِ متنِ خام نگه داشته می‌شود تا گم نشود.
-      return node.value ? [schema.text(node.value, marks as Mark[])] : [];
+      return node.value
+        ? [schema.nodes.html_inline.create({ value: String(node.value) })]
+        : [];
 
     default:
       // ناشناخته — متنش را نگه دار، حذفش نکن.
@@ -206,9 +224,10 @@ function block(node: MdastNode, ctx: Ctx): PMNode[] {
       // انتهای آخرین گرهِ متنی جدا می‌کنیم و در `attrs.id` می‌گذاریم تا
       // در سریالایز دوباره ساخته شود.
       const { id, children } = extractHeadingId(node.children ?? []);
+      const headingSource = sourceHeadingStyle(ctx.source, node);
       return [
         schema.nodes.heading.create(
-          { level: node.depth ?? 1, id },
+          { level: node.depth ?? 1, id, ...headingSource },
           inlineChildren(children, [], ctx),
         ),
       ];
@@ -230,13 +249,15 @@ function block(node: MdastNode, ctx: Ctx): PMNode[] {
     case "thematicBreak":
       return [schema.nodes.horizontal_rule.create()];
 
-    case "code":
+    case "code": {
+      const fence = sourceFence(ctx.source, node);
       return [
         schema.nodes.code_block.create(
-          { language: node.lang ?? null, meta: node.meta ?? null },
+          { language: node.lang ?? null, meta: node.meta ?? null, ...fence },
           node.value ? [schema.text(String(node.value))] : [],
         ),
       ];
+    }
 
     case "list": {
       const items = (node.children ?? []).map((li) =>
@@ -252,9 +273,10 @@ function block(node: MdastNode, ctx: Ctx): PMNode[] {
         ),
       );
       if (node.ordered) {
+        const delimiter = /^\s*\d+([.)])/.exec(sourceSlice(ctx.source, node))?.[1] ?? ".";
         return [
           schema.nodes.ordered_list.create(
-            { start: (node.start as number) ?? 1, spread: node.spread ?? false },
+            { start: (node.start as number) ?? 1, spread: node.spread ?? false, delimiter },
             items,
           ),
         ];
@@ -403,6 +425,59 @@ function textOf(node: MdastNode): string {
   return (node.children ?? []).map(textOf).join("");
 }
 
+const ENTITY_PATTERN = /&(?:#[xX][0-9a-fA-F]+|#\d+|[A-Za-z][A-Za-z0-9]+);/g;
+
+function decodeEntity(source: string): string | null {
+  if (/^&#[xX]/.test(source)) {
+    const value = Number.parseInt(source.slice(3, -1), 16);
+    return numericEntity(value);
+  }
+  if (/^&#/.test(source)) {
+    const value = Number.parseInt(source.slice(2, -1), 10);
+    return numericEntity(value);
+  }
+  return decodeNamedCharacterReference(source.slice(1, -1)) || null;
+}
+
+function numericEntity(value: number): string | null {
+  if (!Number.isFinite(value)) return null;
+  if (value === 0 || value > 0x10ffff || (value >= 0xd800 && value <= 0xdfff)) return "\uFFFD";
+  return String.fromCodePoint(value);
+}
+
+function textWithEntities(node: MdastNode, marks: readonly Mark[], ctx: Ctx): PMNode[] {
+  const value = String(node.value ?? "");
+  if (!value) return [];
+  const source = sourceSlice(ctx.source, node);
+  const matches = [...source.matchAll(ENTITY_PATTERN)];
+  if (!matches.length) return [schema.text(value, marks as Mark[])];
+
+  let rebuilt = "";
+  let sourceCursor = 0;
+  for (const match of matches) {
+    rebuilt += source.slice(sourceCursor, match.index);
+    const decoded = decodeEntity(match[0]);
+    if (decoded == null) return [schema.text(value, marks as Mark[])];
+    rebuilt += decoded;
+    sourceCursor = (match.index ?? 0) + match[0].length;
+  }
+  rebuilt += source.slice(sourceCursor);
+  if (rebuilt !== value) return [schema.text(value, marks as Mark[])];
+
+  const entries: { offset: number; decoded: string; source: string }[] = [];
+  sourceCursor = 0;
+  let valueCursor = 0;
+  for (const match of matches) {
+    const start = match.index ?? 0;
+    valueCursor += start - sourceCursor;
+    const decoded = decodeEntity(match[0])!;
+    entries.push({ offset: valueCursor, decoded, source: match[0] });
+    valueCursor += decoded.length;
+    sourceCursor = start + match[0].length;
+  }
+  return [schema.text(value, [...marks, schema.marks.entity.create({ entries })])];
+}
+
 const ALERT_TYPES = new Set(["note", "tip", "important", "warning", "caution"]);
 
 /** `> [!NOTE]` را به همان گرهٔ عمومیِ کارت‌های بلوکی تبدیل می‌کند. */
@@ -434,7 +509,7 @@ function alertFromBlockquote(node: MdastNode, ctx: Ctx): { type: string; childre
 }
 
 /** ورودیِ اصلی: مارک‌داون → سندِ ProseMirror. */
-export function parse(md: string): PMNode {
+export function parse(md: string, options: ParseOptions = {}): PMNode {
   const tree = toMdast(md);
   const definitions = new Map<string, { url: string; title: string | null }>();
   for (const child of tree.children ?? []) {
@@ -445,9 +520,36 @@ export function parse(md: string): PMNode {
       title: child.title ? String(child.title) : null,
     });
   }
-  const ctx: Ctx = { source: md, definitions };
+  const ctx: Ctx = { source: md, definitions, linkify: options.linkify !== false };
   const content = blockChildren(tree.children, ctx);
   // سندِ خالی هم باید معتبر باشد — `block+` حداقل یک گره می‌خواهد.
   if (content.length === 0) content.push(schema.nodes.paragraph.create());
-  return schema.nodes.doc.create(null, content);
+  return schema.nodes.doc.create({ lineEnding: md.includes("\r\n") ? "\r\n" : "\n" }, content);
+}
+
+function sourceSlice(source: string, node: MdastNode): string {
+  const position = node.position as { start?: { offset?: number }; end?: { offset?: number } } | undefined;
+  const start = position?.start?.offset;
+  const end = position?.end?.offset;
+  return typeof start === "number" && typeof end === "number" ? source.slice(start, end) : "";
+}
+
+function sourceHeadingStyle(source: string, node: MdastNode): { syntax: "atx" | "setext"; setextMarker: string | null } {
+  const lines = sourceSlice(source, node).split(/\r?\n/);
+  const marker = lines.at(-1)?.trim() ?? "";
+  return /^(?:=+|-+)$/.test(marker)
+    ? { syntax: "setext", setextMarker: marker }
+    : { syntax: "atx", setextMarker: null };
+}
+
+function sourceFence(source: string, node: MdastNode): { fence: string | null; fenceLength: number } {
+  const first = sourceSlice(source, node).split(/\r?\n/, 1)[0] ?? "";
+  const match = /^\s*(`{3,}|~{3,})/.exec(first);
+  return match
+    ? { fence: match[1]![0]!, fenceLength: match[1]!.length }
+    : { fence: null, fenceLength: 3 };
+}
+
+function breakMarker(source: string, node: MdastNode): "spaces" | "backslash" {
+  return sourceSlice(source, node).startsWith("\\") ? "backslash" : "spaces";
 }

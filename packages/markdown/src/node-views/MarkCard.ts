@@ -10,10 +10,8 @@ export interface MarkCardOptions {
   initial?: FoldInitialState;
   mode?: FoldMode | (() => FoldMode);
   locale?: "fa" | "en";
+  interactive?: boolean;
 }
-
-/** کاربر تاشدن را کلاً نمی‌خواهد — کلیکِ هدرِ کارت دیگر تا/باز نمی‌کند. */
-const FOLD_CLICK_DISABLED = true;
 
 const cardViews = new WeakMap<EditorView, Set<MarkCardView>>();
 const foldIdsByView = new WeakMap<EditorView, {
@@ -56,13 +54,14 @@ export class MarkCardView implements NodeView {
   private animationTimer: number | null = null;
   private open: boolean;
   private readonly onSetFold = (event: Event) => {
+    if (this.options.interactive === false) return;
     const open = (event as CustomEvent<{ open?: boolean }>).detail?.open;
     if (typeof open !== "boolean" || this.open === open) return;
     this.open = open;
     this.applyOpen(true);
   };
   private readonly onHeaderMouseDown = (event: MouseEvent) => {
-    if (FOLD_CLICK_DISABLED) return;
+    if (this.options.interactive !== true) return;
     if (event.button !== 0 || !this.toggle) return;
     const target = event.target as HTMLElement | null;
     if (!target?.closest) return;
@@ -72,7 +71,7 @@ export class MarkCardView implements NodeView {
     this.setOpen(!this.open);
   };
   private readonly onHeaderKeyDown = (event: KeyboardEvent) => {
-    if (FOLD_CLICK_DISABLED) return;
+    if (this.options.interactive !== true) return;
     if (event.key !== "Enter" && event.key !== " ") return;
     const target = event.target as HTMLElement | null;
     if (target !== this.header) return;
@@ -90,7 +89,11 @@ export class MarkCardView implements NodeView {
     const name = node.attrs.name as string;
     const def = registry[name];
 
-    this.open = options.initial === "collapsed" ? false : (def?.defaultOpen ?? true);
+    this.open = options.interactive === false
+      ? true
+      : options.initial === "collapsed"
+        ? false
+        : (def?.defaultOpen ?? true);
 
     this.dom = document.createElement("div");
     this.dom.className = "tm-mark";
@@ -135,7 +138,7 @@ export class MarkCardView implements NodeView {
 
     // هر directive بلوکی مالکِ محتوای زیرمجموعهٔ خودش است؛ پس مستقل از
     // تعریفِ سفارشی‌اش یک نودِ درختی و قابلِ بازوبسته‌شدن محسوب می‌شود.
-    if (this.node.childCount > 0) {
+    if (this.node.childCount > 0 && this.options.interactive !== false) {
       this.dom.setAttribute("data-collapsible", "true");
       this.toggle = document.createElement("button");
       this.toggle.type = "button";
@@ -146,12 +149,12 @@ export class MarkCardView implements NodeView {
       chevron.setAttribute("aria-hidden", "true");
       this.toggle.append(chevron);
       this.toggle.addEventListener("mousedown", (e) => {
-        if (FOLD_CLICK_DISABLED) return;
+        if (this.options.interactive !== true) return;
         e.preventDefault();
         this.setOpen(!this.open);
       });
       this.toggle.addEventListener("keydown", (e) => {
-        if (FOLD_CLICK_DISABLED) return;
+        if (this.options.interactive !== true) return;
         if (e.key !== "Enter" && e.key !== " ") return;
         e.preventDefault();
         this.setOpen(!this.open);
@@ -193,7 +196,7 @@ export class MarkCardView implements NodeView {
     if (fold) {
       this.dom.setAttribute("data-fold-id", fold.id);
       this.dom.setAttribute("data-tree-depth", String(fold.depth));
-      this.dom.style.setProperty("--tm-tree-indent", `${fold.depth * 14}px`);
+      this.dom.style.setProperty("--tm-tree-indent", `${fold.depth * 30}px`);
     } else {
       this.dom.removeAttribute("data-fold-id");
       this.dom.removeAttribute("data-tree-depth");
@@ -219,6 +222,7 @@ export class MarkCardView implements NodeView {
   }
 
   private setOpen(open: boolean, preserve = true) {
+    if (this.options.interactive !== true) return;
     if (this.open === open) return;
     const change = () => {
       if (open && this.foldMode() === "accordion") {

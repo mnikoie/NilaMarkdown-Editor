@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
 import { ChevronDown, Eye } from "lucide-react";
 import type { Command } from "prosemirror-state";
@@ -12,6 +12,7 @@ import {
 } from "../../core/plugins/writing-modes.js";
 import type { FoldInitialState, FoldMode } from "../../core/plugins/fold.js";
 import { useMarkdownI18n, type MarkdownLocale } from "../i18n.js";
+import { useMenuKeyboard } from "../useMenuKeyboard.js";
 
 export interface ViewMenuProps {
   view: EditorView | null;
@@ -28,6 +29,7 @@ export interface ViewMenuProps {
   onToggleFullscreen?: () => void;
   zoom: number;
   onZoom: (zoom: number) => void;
+  onOpenSettings?: () => void;
   locale?: MarkdownLocale;
   onLocaleChange?: (locale: MarkdownLocale) => void;
   foldInitial?: FoldInitialState;
@@ -63,6 +65,7 @@ export function ViewMenu({
   onToggleFullscreen,
   zoom,
   onZoom,
+  onOpenSettings,
   locale = "fa",
   onLocaleChange,
   foldInitial = "collapsed",
@@ -74,7 +77,8 @@ export function ViewMenu({
 }: ViewMenuProps) {
   const { t } = useMarkdownI18n();
   const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
+  const closeMenu = useCallback(() => setOpen(false), []);
+  const { rootRef, triggerRef, onKeyDown } = useMenuKeyboard(open, closeMenu);
 
   useEffect(() => {
     if (!open) return;
@@ -151,6 +155,7 @@ export function ViewMenu({
     },
     { id: "zoom-in", label: "بزرگ‌نمایی", shortcut: "Ctrl+Shift+=", run: () => onZoom(zoom + 10) },
     { id: "zoom-out", label: "کوچک‌نمایی", shortcut: "Ctrl+Shift+-", run: () => onZoom(zoom - 10) },
+    ...(onOpenSettings ? [{ id: "settings", label: "تنظیمات…", run: onOpenSettings, separatorBefore: true } satisfies Action] : []),
     {
       id: "locale-fa",
       label: "فارسی",
@@ -159,25 +164,37 @@ export function ViewMenu({
       separatorBefore: true,
     },
     { id: "locale-en", label: "انگلیسی", run: () => onLocaleChange?.("en"), checked: () => locale === "en" },
-    {
-      id: "fold-all",
-      label: "بستن همهٔ بخش‌ها",
-      run: () => onFoldAll?.(),
-      separatorBefore: true,
-    },
-    { id: "unfold-all", label: "بازکردن همهٔ بخش‌ها", run: () => onUnfoldAll?.() },
-    {
-      id: "fold-initial",
-      label: "شروع با همهٔ بخش‌ها بسته",
-      run: () => onFoldInitialChange?.(foldInitial === "collapsed" ? "expanded" : "collapsed"),
-      checked: () => foldInitial === "collapsed",
-    },
-    {
-      id: "fold-accordion",
-      label: "در هر سطح فقط یک بخش باز باشد",
-      run: () => onFoldModeChange?.(foldMode === "accordion" ? "multiple" : "accordion"),
-      checked: () => foldMode === "accordion",
-    },
+    ...(onFoldAll && onUnfoldAll
+      ? [
+          {
+            id: "fold-all",
+            label: "بستن همهٔ بخش‌ها",
+            run: onFoldAll,
+            separatorBefore: true,
+          } satisfies Action,
+          { id: "unfold-all", label: "بازکردن همهٔ بخش‌ها", run: onUnfoldAll } satisfies Action,
+        ]
+      : []),
+    ...(onFoldInitialChange
+      ? [
+          {
+            id: "fold-initial",
+            label: "شروع با همهٔ بخش‌ها بسته",
+            run: () => onFoldInitialChange(foldInitial === "collapsed" ? "expanded" : "collapsed"),
+            checked: () => foldInitial === "collapsed",
+          } satisfies Action,
+        ]
+      : []),
+    ...(onFoldModeChange
+      ? [
+          {
+            id: "fold-accordion",
+            label: "در هر سطح فقط یک بخش باز باشد",
+            run: () => onFoldModeChange(foldMode === "accordion" ? "multiple" : "accordion"),
+            checked: () => foldMode === "accordion",
+          } satisfies Action,
+        ]
+      : []),
   ];
 
   const run = (action: Action) => {
@@ -192,8 +209,9 @@ export function ViewMenu({
   const keepSelection = (event: ReactMouseEvent) => event.preventDefault();
 
   return (
-    <div ref={rootRef} className="tm-editor-menu">
+    <div ref={rootRef} className="tm-editor-menu" onKeyDown={onKeyDown}>
       <button
+        ref={triggerRef}
         type="button"
         className="tm-menu-trigger"
         aria-haspopup="menu"
@@ -213,7 +231,7 @@ export function ViewMenu({
               {action.separatorBefore ? <span role="separator" className="tm-menu-separator" /> : null}
               <button
                 type="button"
-                role={action.checked ? "menuitemcheckbox" : "menuitem"}
+                role={action.id.startsWith("locale-") ? "menuitemradio" : action.checked ? "menuitemcheckbox" : "menuitem"}
                 aria-checked={action.checked?.(view!)}
                 onMouseDown={keepSelection}
                 onClick={() => run(action)}

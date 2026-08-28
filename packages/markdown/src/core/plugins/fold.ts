@@ -64,6 +64,8 @@ export interface FoldOptions {
   initial?: string[] | "all";
   mode?: FoldMode;
   locale?: "fa" | "en";
+  /** عمقِ دیداری را نگه می‌دارد، اما کنترل‌ها و رفتارِ تاشدن را خاموش می‌کند. */
+  interactive?: boolean;
   /** هر بار که حالت عوض شد صدا می‌شود — برای ذخیره در localStorage. */
   onChange?: (folded: string[]) => void;
 }
@@ -163,9 +165,8 @@ function foldHandle(node: OutlineNode, locale: "fa" | "en"): Decoration {
 }
 
 function headingForId(view: import("prosemirror-view").EditorView, id: string): HTMLElement | null {
-  const handle = [...view.dom.querySelectorAll<HTMLElement>(".tm-inline-fold")]
-    .find((item) => item.dataset.foldId === id);
-  return handle?.parentElement ?? null;
+  return [...view.dom.querySelectorAll<HTMLElement>(".tm-heading-accordion[data-fold-id]")]
+    .find((item) => item.dataset.foldId === id) ?? null;
 }
 
 /** حالتِ باز/بسته روی گرهِ سرفصل — این یکی درست diff می‌شود. */
@@ -181,15 +182,21 @@ function outlineDepths(nodes: OutlineNode[]): Map<string, number> {
   return result;
 }
 
-function foldState(node: OutlineNode, isFolded: boolean, size: number, depth: number): Decoration {
+function foldState(
+  node: OutlineNode,
+  isFolded: boolean,
+  size: number,
+  depth: number,
+  interactive: boolean,
+): Decoration {
   return Decoration.node(node.from, node.from + size, {
     class: "tm-heading-accordion",
     "data-fold-id": node.id,
-    "data-foldable": "true",
+    "data-foldable": String(interactive),
     "data-folded": String(isFolded),
     "data-tree-depth": String(depth),
-    style: `--tm-tree-indent: ${depth * 14}px`,
-    "aria-expanded": String(!isFolded),
+    style: `--tm-tree-indent: ${depth * 30}px`,
+    ...(interactive ? { "aria-expanded": String(!isFolded) } : {}),
   });
 }
 
@@ -198,6 +205,7 @@ function buildDecorations(
   folded: Set<string>,
   registry: MarkRegistry,
   locale: "fa" | "en",
+  interactive: boolean,
 ): DecorationSet {
   const { doc, selection } = state;
   const tree = buildOutline(doc, registry);
@@ -221,8 +229,16 @@ function buildDecorations(
     const resolved = doc.nodeAt(node.from);
     // بخشِ خالی مثلث نمی‌گیرد — دکمه‌ای که کاری نمی‌کند بدتر از نبودنش است.
     if (!resolved || end <= node.from + resolved.nodeSize) continue;
-    decos.push(foldHandle(node, locale));
-    decos.push(foldState(node, folded.has(node.id), resolved.nodeSize, depths.get(node.id) ?? 0));
+    if (interactive) decos.push(foldHandle(node, locale));
+    decos.push(
+      foldState(
+        node,
+        interactive && folded.has(node.id),
+        resolved.nodeSize,
+        depths.get(node.id) ?? 0,
+        interactive,
+      ),
+    );
   }
 
   // Markdown بخش‌ها را به‌صورت sibling نگه می‌دارد. برای اینکه محتوای
@@ -248,7 +264,7 @@ function buildDecorations(
     decos.push(Decoration.node(pos, pos + child.nodeSize, {
       class: "tm-section-content",
       "data-section-depth": String(ownerDepth + 1),
-      style: `--tm-section-indent: ${(ownerDepth + 1) * 14}px`,
+      style: `--tm-section-indent: ${(ownerDepth + 1) * 30}px`,
     }));
   });
 
@@ -283,12 +299,11 @@ function buildDecorations(
   return DecorationSet.create(doc, decos);
 }
 
-/** کاربر تاشدن را کلاً نمی‌خواهد — کلیکِ عنوان دیگر تا/باز نمی‌کند. */
-const FOLD_CLICK_DISABLED = true;
-
 export function foldPlugin(options: FoldOptions = {}): Plugin<FoldState> {
   const registry = options.registry ?? BUILTIN_MARKS;
   const locale = options.locale ?? "fa";
+  const foldingEnabled = options.interactive !== false;
+  const clickEnabled = options.interactive === true;
 
   const allIds = (doc: PMNode) => flattenOutline(buildOutline(doc, registry)).map((node) => node.id);
 
@@ -328,19 +343,25 @@ export function foldPlugin(options: FoldOptions = {}): Plugin<FoldState> {
 
     state: {
       init(_config, state) {
-        const folded = new Set(options.initial === "all" ? allIds(state.doc) : (options.initial ?? []));
-        const mode = options.mode ?? "accordion";
+        const folded = new Set<string>(
+          !foldingEnabled
+            ? []
+            : options.initial === "all"
+              ? allIds(state.doc)
+              : (options.initial ?? []),
+        );
+        const mode = foldingEnabled ? (options.mode ?? "accordion") : "multiple";
         return {
           folded,
           mode,
           openedAt: new Map(),
           sequence: 0,
-          decorations: buildDecorations(state, folded, registry, locale),
+          decorations: buildDecorations(state, folded, registry, locale, foldingEnabled),
         };
       },
 
       apply(tr, prev, _oldState, newState) {
-        const meta = tr.getMeta(foldKey) as FoldMeta | undefined;
+        const meta = foldingEnabled ? (tr.getMeta(foldKey) as FoldMeta | undefined) : undefined;
         let folded = prev.folded;
         let mode = prev.mode;
         let openedAt = prev.openedAt;
@@ -399,7 +420,7 @@ export function foldPlugin(options: FoldOptions = {}): Plugin<FoldState> {
           mode,
           openedAt,
           sequence,
-          decorations: buildDecorations(newState, folded, registry, locale),
+          decorations: buildDecorations(newState, folded, registry, locale, foldingEnabled),
         };
       },
     },
@@ -420,12 +441,10 @@ export function foldPlugin(options: FoldOptions = {}): Plugin<FoldState> {
        * `mousedown` قبل از هر بازسازی می‌رسد.
        */
       handleDOMEvents: {
-        // ★ کاربر تاشدن را کلاً نمی‌خواهد — کلیک روی سرفصل هم دیگر
-        //   نباید بخش را تا/باز کند، نه فقط آکاردئونِ خودکار.
-        //   FOLD_CLICK_DISABLED پرچمِ تک‌جا است تا بازگرداندنِ این
-        //   تصمیم فقط لغوِ همان مقدار باشد؛ منطقِ اصلی دست‌نخورده ماند.
+        // در حالتِ غیرتعاملی، عنوان فقط عمقِ دیداری می‌گیرد و کلیک روی آن
+        // هیچ تغییری در نمایشِ سند ایجاد نمی‌کند.
         mousedown(view, event) {
-          if (FOLD_CLICK_DISABLED) return false;
+          if (!clickEnabled) return false;
           const target = event.target as HTMLElement;
           if (event.button !== 0) return false;
           // کنترل‌های واقعیِ درونِ سرفصل نباید با کلیک، بخش را تا کنند.
@@ -531,7 +550,7 @@ export function foldPlugin(options: FoldOptions = {}): Plugin<FoldState> {
           frame.dataset.depth = String(depths.get(node.id) ?? 0);
           frame.style.insetBlockStart = `${Math.round(top - hostRect.top)}px`;
           frame.style.blockSize = `${height}px`;
-          frame.style.insetInlineStart = `${(depths.get(node.id) ?? 0) * 14}px`;
+          frame.style.insetInlineStart = `${(depths.get(node.id) ?? 0) * 30}px`;
           layer.append(frame);
         }
       };

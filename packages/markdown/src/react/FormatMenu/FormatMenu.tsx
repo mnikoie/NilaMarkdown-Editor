@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
 import { ALargeSmall, ChevronDown, ChevronLeft } from "lucide-react";
 import { toggleMark } from "prosemirror-commands";
@@ -11,6 +11,7 @@ import { getActiveLink, unsetLink } from "../../core/commands/link.js";
 import { safeHref } from "../../core/security.js";
 import { useMarkdownI18n } from "../i18n.js";
 import { schema } from "../../core/schema/index.js";
+import { useMenuKeyboard } from "../useMenuKeyboard.js";
 
 export interface FormatMenuProps {
   view: EditorView | null;
@@ -76,7 +77,8 @@ export function FormatMenu({
   const { t } = useMarkdownI18n();
   const [open, setOpen] = useState(false);
   const [submenu, setSubmenu] = useState<string | null>(null);
-  const rootRef = useRef<HTMLDivElement>(null);
+  const closeMenu = useCallback(() => { setOpen(false); setSubmenu(null); }, []);
+  const { rootRef, triggerRef, onKeyDown } = useMenuKeyboard(open, closeMenu);
 
   useEffect(() => {
     if (!open) return;
@@ -135,16 +137,10 @@ export function FormatMenu({
       checked: (editor) => markActive(editor, schema.marks.comment),
     },
     {
-      id: "hyperlink",
-      label: "لینک (Hyperlink)",
-      shortcut: "Ctrl+K",
-      run: () => onEditLink?.(),
-      separatorBefore: true,
-    },
-    {
       id: "hyperlink-actions",
-      label: "کارهای لینک",
+      label: "ویرایش پیوند موجود",
       enabled: hasLink,
+      separatorBefore: true,
       items: [
         {
           id: "link-open",
@@ -174,23 +170,6 @@ export function FormatMenu({
           label: "حذف لینک",
           command: unsetLink,
           separatorBefore: true,
-        },
-      ],
-    },
-    {
-      id: "image",
-      label: "تصویر",
-      items: [
-        {
-          id: "image-url",
-          label: "درج تصویر از نشانی",
-          shortcut: "Ctrl+Shift+I",
-          run: () => onInsertImage?.(),
-        },
-        {
-          id: "image-local",
-          label: "درج تصویر محلی…",
-          run: () => onInsertLocalImage?.(),
         },
       ],
     },
@@ -225,8 +204,9 @@ export function FormatMenu({
   const keepSelection = (event: ReactMouseEvent) => event.preventDefault();
 
   return (
-    <div ref={rootRef} className="tm-editor-menu">
+    <div ref={rootRef} className="tm-editor-menu" onKeyDown={onKeyDown}>
       <button
+        ref={triggerRef}
         type="button"
         className="tm-menu-trigger"
         aria-haspopup="menu"

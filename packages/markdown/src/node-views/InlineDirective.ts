@@ -99,19 +99,10 @@ export class InlineDirectiveView implements NodeView {
     tip.setAttribute("role", "tooltip");
     tip.dir = "rtl";
 
-    // متنِ خودِ ارجاع — همان چیزی که داخلِ `[…]` نوشته شده.
-    const body = (this.node.textContent ?? "").trim();
-    if (body) {
-      const p = document.createElement("p");
-      p.className = "tm-ref-tip-body";
-      p.textContent = body;
-      tip.append(p);
-    }
-
     const dl = document.createElement("dl");
     dl.className = "tm-ref-tip-attrs";
     // ترتیبِ ثابت و معنادار؛ صفاتِ ناشناخته بعد از اینها می‌آیند.
-    const order = ["نوع", "هدف", "شماره", "مصوب", "مورخ", "مرجع"];
+    const order = ["نوع", "هدف", "مصوب", "مورخ", "شماره", "مرجع"];
     const seen = new Set<string>();
     const put = (k: string) => {
       const v = attrs[k];

@@ -1,47 +1,27 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
 import { ChevronDown, ChevronLeft, Pilcrow } from "lucide-react";
 import type { Command } from "prosemirror-state";
 import type { EditorView } from "prosemirror-view";
 import { setBlockType } from "prosemirror-commands";
 import {
-  addColumnAfter,
-  addColumnBefore,
-  addRowAfter,
-  addRowBefore,
-  currentTable,
-  deleteColumn,
-  deleteRow,
-  deleteTable,
-  insertTable,
-  moveColumnVisual,
-  moveRow,
-} from "../../core/commands/table.js";
-import {
   changeHeadingLevel,
   indentListItem,
-  insertAlert,
-  insertFootnote,
-  insertHorizontalRule,
-  insertMathBlock,
   insertParagraphAfter,
   insertParagraphBefore,
-  insertTableOfContents,
-  insertYamlFrontMatter,
   outdentListItem,
   setParagraph,
   toggleBlockquote,
   toggleBulletList,
   toggleOrderedList,
 } from "../../core/commands/paragraph.js";
-import { autoIndentCode, codeContent } from "../../core/commands/code.js";
 import { setTaskStatus, toggleTaskList } from "../../core/commands/task-list.js";
 import { foldAllListNodes, unfoldAllListNodes } from "../../core/plugins/list-fold.js";
 import { schema } from "../../core/schema/index.js";
-import { serialize } from "../../core/markdown/serialize.js";
 import { useMarkdownI18n } from "../i18n.js";
+import { useMenuKeyboard } from "../useMenuKeyboard.js";
 
 export interface ParagraphMenuProps {
   view: EditorView | null;
@@ -75,16 +55,7 @@ function isSubmenu(entry: Entry): entry is Submenu {
   return "items" in entry;
 }
 
-async function copyText(text: string, onNotice?: (message: string) => void) {
-  try {
-    await navigator.clipboard.writeText(text);
-    onNotice?.("کپی شد.");
-  } catch {
-    onNotice?.("دسترسی به کلیپ‌بورد ممکن نشد.");
-  }
-}
-
-function entries(onReference?: () => void, onNotice?: (message: string) => void): Entry[] {
+function entries(): Entry[] {
   const headings: Action[] = Array.from({ length: 6 }, (_, index) => ({
     id: `heading-${index + 1}`,
     label: `عنوان ${index + 1}`,
@@ -107,75 +78,6 @@ function entries(onReference?: () => void, onNotice?: (message: string) => void)
       label: "کاهش سطح عنوان",
       shortcut: "Ctrl+-",
       command: changeHeadingLevel("decrease"),
-    },
-    {
-      id: "table-menu",
-      label: "جدول",
-      separatorBefore: true,
-      items: [
-        { id: "table-insert", label: "درج جدول", shortcut: "Ctrl+T", command: insertTable(3, 3) },
-        { id: "row-before", label: "افزودن ردیف قبل", command: addRowBefore, separatorBefore: true },
-        { id: "row-after", label: "افزودن ردیف بعد", shortcut: "Ctrl+Enter", command: addRowAfter },
-        { id: "col-before", label: "افزودن ستون قبل", command: addColumnBefore, separatorBefore: true },
-        { id: "col-after", label: "افزودن ستون بعد", command: addColumnAfter },
-        { id: "row-up", label: "انتقال ردیف به بالا", command: moveRow(-1), separatorBefore: true },
-        { id: "row-down", label: "انتقال ردیف به پایین", command: moveRow(1) },
-        { id: "col-left", label: "انتقال ستون به چپ", shortcut: "Alt+←", command: moveColumnVisual("left") },
-        { id: "col-right", label: "انتقال ستون به راست", shortcut: "Alt+→", command: moveColumnVisual("right") },
-        { id: "row-delete", label: "حذف ردیف", command: deleteRow, separatorBefore: true },
-        { id: "col-delete", label: "حذف ستون", command: deleteColumn },
-        {
-          id: "table-copy",
-          label: "کپی جدول",
-          separatorBefore: true,
-          run: async (view) => {
-            const table = currentTable(view.state);
-            if (!table) return;
-            const doc = schema.nodes.doc.create(null, [table, schema.nodes.paragraph.create()]);
-            await copyText(serialize(doc).trim(), onNotice);
-          },
-        },
-        {
-          id: "table-pretty",
-          label: "مرتب‌سازی منبع جدول",
-          run: () => onNotice?.("جدول ساختاری است و منبع آن هنگام ذخیره خودکار مرتب می‌شود."),
-        },
-        { id: "table-delete", label: "حذف جدول", command: deleteTable, separatorBefore: true },
-      ],
-    },
-    { id: "math", label: "بلوک ریاضی", shortcut: "Ctrl+Shift+M", command: insertMathBlock() },
-    {
-      id: "code-block",
-      label: "بلوک کد",
-      shortcut: "Ctrl+Shift+K",
-      command: setBlockType(schema.nodes.code_block),
-    },
-    {
-      id: "code-tools",
-      label: "ابزارهای کد",
-      items: [
-        {
-          id: "code-copy",
-          label: "کپی محتوای کد",
-          run: async (view) => {
-            const text = codeContent(view.state);
-            if (text !== null) await copyText(text, onNotice);
-          },
-        },
-        { id: "code-indent-selection", label: "مرتب‌سازی کد انتخاب‌شده", command: autoIndentCode("selection") },
-        { id: "code-indent-all", label: "مرتب‌سازی کل بلوک کد", command: autoIndentCode("block") },
-      ],
-    },
-    {
-      id: "alerts",
-      label: "هشدارها",
-      items: [
-        { id: "alert-note", label: "یادداشت (Note)", command: insertAlert("note") },
-        { id: "alert-tip", label: "نکته (Tip)", command: insertAlert("tip") },
-        { id: "alert-important", label: "مهم (Important)", command: insertAlert("important") },
-        { id: "alert-warning", label: "هشدار (Warning)", command: insertAlert("warning") },
-        { id: "alert-caution", label: "احتیاط (Caution)", command: insertAlert("caution") },
-      ],
     },
     {
       id: "quote",
@@ -213,30 +115,16 @@ function entries(onReference?: () => void, onNotice?: (message: string) => void)
       separatorBefore: true,
     },
     { id: "paragraph-after", label: "درج پاراگراف بعد", command: insertParagraphAfter },
-    {
-      id: "reference",
-      label: "ارجاع لینک",
-      separatorBefore: true,
-      run: () => onReference?.(),
-    },
-    { id: "footnote", label: "پانویس", command: insertFootnote },
-    {
-      id: "hr",
-      label: "خط افقی",
-      command: insertHorizontalRule(),
-      separatorBefore: true,
-    },
-    { id: "toc", label: "فهرست مطالب", command: insertTableOfContents() },
-    { id: "yaml", label: "YAML Front Matter", command: insertYamlFrontMatter },
   ];
 }
 
-export function ParagraphMenu({ view, onInsertReferenceLink, onNotice, onSourceAction }: ParagraphMenuProps) {
+export function ParagraphMenu({ view, onSourceAction }: ParagraphMenuProps) {
   const { t } = useMarkdownI18n();
   const [open, setOpen] = useState(false);
   const [submenu, setSubmenu] = useState<string | null>(null);
-  const rootRef = useRef<HTMLDivElement>(null);
-  const menuEntries = entries(onInsertReferenceLink, onNotice);
+  const closeMenu = () => { setOpen(false); setSubmenu(null); };
+  const { rootRef, triggerRef, onKeyDown } = useMenuKeyboard(open, closeMenu);
+  const menuEntries = entries();
 
   useEffect(() => {
     if (!open) return;
@@ -269,18 +157,9 @@ export function ParagraphMenu({ view, onInsertReferenceLink, onNotice, onSourceA
   const keepSelection = (event: ReactMouseEvent) => event.preventDefault();
 
   return (
-    <div
-      ref={rootRef}
-      className="tm-editor-menu"
-      onKeyDown={(event) => {
-        if (event.key === "Escape") {
-          event.preventDefault();
-          setOpen(false);
-          setSubmenu(null);
-        }
-      }}
-    >
+    <div ref={rootRef} className="tm-editor-menu" onKeyDown={onKeyDown}>
       <button
+        ref={triggerRef}
         type="button"
         className="tm-menu-trigger"
         aria-haspopup="menu"

@@ -11,7 +11,10 @@ import { isSafeImageSrc } from "../security.js";
  * === md` می‌شکند.
  */
 
-const doc: NodeSpec = { content: "front_matter? block+" };
+const doc: NodeSpec = {
+  content: "front_matter? block+",
+  attrs: { lineEnding: { default: "\n" } },
+};
 
 const paragraph: NodeSpec = {
   content: "inline*",
@@ -30,6 +33,8 @@ const heading: NodeSpec = {
      *  هنگامِ سریالایز هم نوشته نمی‌شود. لنگرِ خودکار فقط در حافظه ساخته
      *  می‌شود، نه در متن. */
     id: { default: null },
+    syntax: { default: "atx" },
+    setextMarker: { default: null },
     dir: { default: null },
   },
   content: "inline*",
@@ -149,7 +154,12 @@ const table_of_contents: NodeSpec = {
 };
 
 const code_block: NodeSpec = {
-  attrs: { language: { default: null }, meta: { default: null } },
+  attrs: {
+    language: { default: null },
+    meta: { default: null },
+    fence: { default: null },
+    fenceLength: { default: 3 },
+  },
   content: "text*",
   marks: "",
   group: "block",
@@ -176,7 +186,7 @@ const bullet_list: NodeSpec = {
 const ordered_list: NodeSpec = {
   content: "list_item+",
   group: "block",
-  attrs: { start: { default: 1 }, spread: { default: false } },
+  attrs: { start: { default: 1 }, spread: { default: false }, delimiter: { default: "." } },
   parseDOM: [{ tag: "ol" }],
   toDOM: (n) => ["ol", { start: n.attrs.start as number }, 0],
 };
@@ -219,11 +229,21 @@ const image: NodeSpec = {
 };
 
 const hard_break: NodeSpec = {
+  attrs: { marker: { default: "backslash" } },
   inline: true,
   group: "inline",
   selectable: false,
   parseDOM: [{ tag: "br" }],
   toDOM: () => ["br"],
+};
+
+/** HTML درون‌خطیِ خام؛ جدا از متن نگه داشته می‌شود تا escape نشود. */
+const html_inline: NodeSpec = {
+  attrs: { value: { default: "" } },
+  inline: true,
+  group: "inline",
+  atom: true,
+  toDOM: (n) => ["span", { class: "tm-html-inline", "data-html": n.attrs.value as string }, n.attrs.value as string],
 };
 
 /** HTML خام — دست‌نخورده نگه داشته می‌شود. رندرش تصمیمِ لایهٔ بالاتر است. */
@@ -318,6 +338,7 @@ export const nodes = {
   list_item,
   image,
   hard_break,
+  html_inline,
   html_block,
   math_block,
   math_inline,

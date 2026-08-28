@@ -68,6 +68,7 @@ function inlineHtml(node: PMNode, options: Required<Pick<ExportHtmlOptions, "htm
             text = "";
             break;
           case "link": {
+            if (mark.attrs.inactive) break;
             const href = escapeHtml(safeHref((mark.attrs.href as string) ?? ""));
             const title = mark.attrs.title ? ` title="${escapeHtml(mark.attrs.title as string)}"` : "";
             // لینکِ خارجی: `rel` امن — بندِ ۱۱.
@@ -93,6 +94,12 @@ function inlineHtml(node: PMNode, options: Required<Pick<ExportHtmlOptions, "htm
       }
       case "hard_break":
         out += "<br>";
+        break;
+      case "html_inline":
+        // HTML درون‌خطی همان سیاستِ HTML بلوکی را دارد. در حالت پیش‌فرض
+        // به متن امن تبدیل می‌شود و فقط انتخاب صریح sanitize/raw آن را
+        // به HTML قابل‌رندر تبدیل می‌کند.
+        out += processHtml((child.attrs.value as string) ?? "", options.html);
         break;
       case "math_inline":
         // KaTeX در خروجی نیست؛ فرمولِ خام با نشانه.

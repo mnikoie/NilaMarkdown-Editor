@@ -1,11 +1,11 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 import type { OutlineNode } from "../../core/outline/types.js";
 import { flattenOutline } from "../../core/outline/build.js";
 import { useMarkdownI18n } from "../i18n.js";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, ChevronsUp, ListTree, Search, X } from "lucide-react";
 
 /**
  * پنلِ درختِ ساختار.
@@ -26,6 +26,8 @@ export interface OutlineTreeProps {
   folded?: ReadonlySet<string>;
   onNavigate?: (node: OutlineNode) => void;
   onToggleFold?: (node: OutlineNode) => void;
+  onCollapseAll?: () => void;
+  onClose?: () => void;
   className?: string;
 }
 
@@ -35,16 +37,33 @@ export function OutlineTree({
   folded,
   onNavigate,
   onToggleFold,
+  onCollapseAll,
+  onClose,
   className,
 }: OutlineTreeProps) {
-  const { t } = useMarkdownI18n();
+  const { locale, number, t } = useMarkdownI18n();
   const flat = useMemo(() => flattenOutline(nodes), [nodes]);
   const [focusId, setFocusId] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const normalizedQuery = query.trim().toLocaleLowerCase(locale === "fa" ? "fa" : "en");
+  const displayNodes = useMemo(
+    () => (normalizedQuery ? filterOutline(nodes, normalizedQuery, locale) : nodes),
+    [nodes, normalizedQuery, locale],
+  );
+  const displayFlat = useMemo(() => flattenOutline(displayNodes), [displayNodes]);
+  const matchCount = useMemo(
+    () =>
+      normalizedQuery
+        ? flat.filter((node) => normalize(node.title, locale).includes(normalizedQuery)).length
+        : flat.length,
+    [flat, normalizedQuery, locale],
+  );
 
   /** گره‌هایی که واقعاً دیده می‌شوند — فرزندِ گرهِ بسته دیده نمی‌شود. */
   const visible = useMemo(() => {
-    if (!folded || folded.size === 0) return flat;
+    if (normalizedQuery || !folded || folded.size === 0) return displayFlat;
     const out: OutlineNode[] = [];
     const walk = (list: OutlineNode[]) => {
       for (const n of list) {
@@ -52,11 +71,18 @@ export function OutlineTree({
         if (!folded.has(n.id)) walk(n.children);
       }
     };
-    walk(nodes);
+    walk(displayNodes);
     return out;
-  }, [nodes, flat, folded]);
+  }, [displayNodes, displayFlat, folded, normalizedQuery]);
 
   const current = focusId ?? activeId ?? visible[0]?.id ?? null;
+
+  useEffect(() => {
+    if (!activeId || normalizedQuery) return;
+    containerRef.current
+      ?.querySelector<HTMLElement>(`[data-outline-id="${CSS.escape(activeId)}"]`)
+      ?.scrollIntoView({ block: "nearest" });
+  }, [activeId, normalizedQuery]);
 
   const move = useCallback(
     (delta: number) => {
@@ -119,6 +145,13 @@ export function OutlineTree({
   if (nodes.length === 0) {
     return (
       <div className={`tm-outline ${className ?? ""}`}>
+        <OutlineHeader
+          query={query}
+          count={0}
+          onQueryChange={setQuery}
+          onCollapseAll={onCollapseAll}
+          onClose={onClose}
+        />
         <p className="tm-outline-empty">{t("هنوز سرفصلی نیست.")}</p>
       </div>
     );
@@ -126,23 +159,101 @@ export function OutlineTree({
 
   return (
     <div
-      ref={containerRef}
-      role="tree"
-      aria-label={t("ساختارِ سند")}
       className={`tm-outline ${className ?? ""}`}
-      onKeyDown={onKeyDown}
     >
-      <Branch
-        nodes={nodes}
-        depth={1}
-        activeId={activeId}
-        currentId={current}
-        folded={folded}
-        onNavigate={onNavigate}
-        onToggleFold={onToggleFold}
+      <OutlineHeader
+        query={query}
+        count={matchCount}
+        onQueryChange={setQuery}
+        onCollapseAll={onCollapseAll}
+        onClose={onClose}
       />
+      <div
+        ref={containerRef}
+        role="tree"
+        aria-label={t("ساختارِ سند")}
+        className="tm-outline-scroll"
+        onKeyDown={onKeyDown}
+      >
+        {displayNodes.length ? (
+          <Branch
+            nodes={displayNodes}
+            depth={1}
+            activeId={activeId}
+            currentId={current}
+            folded={normalizedQuery ? undefined : folded}
+            query={normalizedQuery}
+            locale={locale}
+            onNavigate={onNavigate}
+            onToggleFold={onToggleFold}
+          />
+        ) : (
+          <p className="tm-outline-empty">{t("نتیجه‌ای پیدا نشد.")}</p>
+        )}
+      </div>
+      <div className="tm-outline-count" aria-live="polite">
+        {normalizedQuery ? `${number(matchCount)} ${t("نتیجه")}` : `${number(flat.length)} ${t("عنوان")}`}
+      </div>
     </div>
   );
+}
+
+interface OutlineHeaderProps {
+  query: string;
+  count: number;
+  onQueryChange: (value: string) => void;
+  onCollapseAll?: () => void;
+  onClose?: () => void;
+}
+
+function OutlineHeader({ query, count, onQueryChange, onCollapseAll, onClose }: OutlineHeaderProps) {
+  const { number, t } = useMarkdownI18n();
+  return (
+    <header className="tm-outline-header">
+      <div className="tm-outline-heading">
+        <span className="tm-outline-heading-icon" aria-hidden="true"><ListTree size={17} /></span>
+        <strong>{t("ساختار سند")}</strong>
+        <span className="tm-outline-total">{number(count)}</span>
+        <span className="tm-outline-heading-actions">
+          {onCollapseAll ? (
+            <button type="button" className="tm-outline-action" aria-label={t("بستن همهٔ شاخه‌ها")} title={t("بستن همهٔ شاخه‌ها")} onClick={onCollapseAll}>
+              <ChevronsUp size={16} aria-hidden />
+            </button>
+          ) : null}
+          {onClose ? (
+            <button type="button" className="tm-outline-action" aria-label={t("بستن پنل ساختار")} title={t("بستن پنل ساختار")} onClick={onClose}>
+              <X size={17} aria-hidden />
+            </button>
+          ) : null}
+        </span>
+      </div>
+      <label className="tm-outline-search">
+        <Search size={15} aria-hidden />
+        <input
+          type="search"
+          value={query}
+          onChange={(event) => onQueryChange(event.currentTarget.value)}
+          placeholder={t("جست‌وجو در ساختار…")}
+          aria-label={t("جست‌وجو در ساختار")}
+        />
+      </label>
+    </header>
+  );
+}
+
+function normalize(value: string, locale: "fa" | "en") {
+  return value.trim().toLocaleLowerCase(locale === "fa" ? "fa" : "en");
+}
+
+function filterOutline(nodes: OutlineNode[], query: string, locale: "fa" | "en"): OutlineNode[] {
+  const out: OutlineNode[] = [];
+  for (const node of nodes) {
+    const children = filterOutline(node.children, query, locale);
+    if (normalize(node.title, locale).includes(query) || children.length) {
+      out.push({ ...node, children });
+    }
+  }
+  return out;
 }
 
 interface BranchProps {
@@ -151,12 +262,13 @@ interface BranchProps {
   activeId: string | null;
   currentId: string | null;
   folded?: ReadonlySet<string>;
+  query?: string;
+  locale: "fa" | "en";
   onNavigate?: (node: OutlineNode) => void;
   onToggleFold?: (node: OutlineNode) => void;
 }
 
-function Branch({ nodes, depth, activeId, currentId, folded, onNavigate, onToggleFold }: BranchProps) {
-  const { locale } = useMarkdownI18n();
+function Branch({ nodes, depth, activeId, currentId, folded, query = "", locale, onNavigate, onToggleFold }: BranchProps) {
   return (
     <ul role="group" className="tm-outline-children">
       {nodes.map((node) => {
@@ -197,7 +309,9 @@ function Branch({ nodes, depth, activeId, currentId, folded, onNavigate, onToggl
                 <span className="tm-fold-spacer" aria-hidden="true" />
               )}
 
-              <span className="tm-outline-title">{node.title}</span>
+              <span className="tm-outline-title" title={node.title}>
+                <HighlightedTitle title={node.title} query={query} locale={locale} />
+              </span>
 
               {node.status && node.status !== "نامعلوم" ? (
                 <span className="tm-outline-badge">{node.status}</span>
@@ -211,6 +325,8 @@ function Branch({ nodes, depth, activeId, currentId, folded, onNavigate, onToggl
                 activeId={activeId}
                 currentId={currentId}
                 folded={folded}
+                query={query}
+                locale={locale}
                 onNavigate={onNavigate}
                 onToggleFold={onToggleFold}
               />
@@ -219,5 +335,19 @@ function Branch({ nodes, depth, activeId, currentId, folded, onNavigate, onToggl
         );
       })}
     </ul>
+  );
+}
+
+function HighlightedTitle({ title, query, locale }: { title: string; query: string; locale: "fa" | "en" }) {
+  if (!query) return title;
+  const normalizedTitle = normalize(title, locale);
+  const index = normalizedTitle.indexOf(query);
+  if (index < 0) return title;
+  return (
+    <>
+      {title.slice(0, index)}
+      <mark>{title.slice(index, index + query.length)}</mark>
+      {title.slice(index + query.length)}
+    </>
   );
 }

@@ -21,6 +21,7 @@ import { autoPairPlugin } from "../core/plugins/auto-pair.js";
 import { taskListPlugin } from "../core/plugins/task-list.js";
 import { listFoldPlugin } from "../core/plugins/list-fold.js";
 import { textDirectionPlugin, type TextDirection } from "../core/plugins/text-direction.js";
+import { emojiShortnamePlugin } from "../core/plugins/emoji.js";
 import { createNodeViews } from "../node-views/index.js";
 import type { Features } from "../node-views/index.js";
 import { buildOutline } from "../core/outline/build.js";
@@ -37,7 +38,7 @@ export interface UseEditorOptions {
   readOnly?: boolean;
   directives?: MarkRegistry;
   foldedIds?: string[];
-  folding?: FoldingOptions;
+  folding?: FoldingOptions | false;
   locale?: "fa" | "en";
   dir?: TextDirection;
   onFoldChange?: (ids: string[]) => void;
@@ -148,6 +149,7 @@ export function useEditor(options: UseEditorOptions): {
   // آکاردئون خاموش — کارتِ دایرکتیو هم باید هم‌سطح‌ها را نبندد.
   const foldModeRef = useRef<"accordion" | "multiple">("multiple");
   foldModeRef.current = "multiple";
+  const foldingInteractive = folding !== false;
 
   const ref = (node: HTMLElement | null) => {
     mountRef.current = node;
@@ -157,7 +159,7 @@ export function useEditor(options: UseEditorOptions): {
     const mount = mountRef.current;
     if (!mount) return;
 
-    const doc = parse(lastEmitted.current);
+    const doc = parse(lastEmitted.current, { linkify: features?.linkify !== false });
     const state = EditorState.create({
       doc,
       schema,
@@ -197,6 +199,7 @@ export function useEditor(options: UseEditorOptions): {
           // reconcileAccordion با هر setMode می‌تواند هم‌سطح‌ها را ببندد.
           mode: "multiple",
           locale,
+          interactive: foldingInteractive ? undefined : false,
           onChange: (ids) => onFoldChangeRef.current?.(ids),
         }),
         searchPlugin(),
@@ -206,13 +209,18 @@ export function useEditor(options: UseEditorOptions): {
         // و اولی که `true` برگرداند رویداد را مصرف می‌کند. با ترتیبِ
         // برعکس، رهاکردنِ عکس فقط مکان‌نما را جابه‌جا می‌کرد.
         pasteImagePlugin(imagesRef.current ?? {}),
-        taskListPlugin({ locale }),
+        ...(features?.taskList === false ? [] : [taskListPlugin({ locale })]),
+        ...(features?.emoji ? [emojiShortnamePlugin()] : []),
         // ★ همان تصمیم: لیست‌های تودرتو هم باز شروع می‌شوند.
-        listFoldPlugin({
-          initial: "expanded",
-          mode: "multiple",
-          locale,
-        }),
+        ...(foldingInteractive
+          ? [
+              listFoldPlugin({
+                initial: "expanded",
+                mode: "multiple",
+                locale,
+              }),
+            ]
+          : []),
         tableResizingPlugin(),
         tableEditingPlugin(),
         dropCursor(),
@@ -226,7 +234,11 @@ export function useEditor(options: UseEditorOptions): {
       nodeViews: createNodeViews(directives, features, {
         // ★ همان تصمیم: کارتِ دایرکتیو هم باز شروع می‌شود، صرف‌نظر
         //   از `folding.initial`ِ ورودی.
-        folding: { ...folding, initial: "expanded" },
+        folding: {
+          ...(folding === false ? {} : folding),
+          initial: "expanded",
+        },
+        foldingInteractive: foldingInteractive ? undefined : false,
         cardFolding: { mode: () => foldModeRef.current },
         locale,
       }),
@@ -266,7 +278,7 @@ export function useEditor(options: UseEditorOptions): {
     };
     // `value` عمداً در وابستگی‌ها نیست — تغییرش سند را بازسازی نمی‌کند.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [directives, debounceMs, readOnly, features, focusMode, typewriterMode, locale, dir, folding?.initial]);
+  }, [directives, debounceMs, readOnly, features, focusMode, typewriterMode, locale, dir, foldingInteractive]);
 
   /** حالتِ کنترل‌شده — فقط وقتی `value` از بیرون واقعاً فرق کرده. */
   useEffect(() => {
@@ -274,10 +286,13 @@ export function useEditor(options: UseEditorOptions): {
     if (!view || value === undefined) return;
     if (value === lastEmitted.current) return; // قاعدهٔ ۲
 
-    const doc = parse(value);
+    const doc = parse(value, { linkify: features?.linkify !== false });
     lastEmitted.current = value;
     view.dispatch(
-      view.state.tr.replaceWith(0, view.state.doc.content.size, doc.content).setMeta("addToHistory", false),
+      view.state.tr
+        .replaceWith(0, view.state.doc.content.size, doc.content)
+        .setDocAttribute("lineEnding", doc.attrs.lineEnding)
+        .setMeta("addToHistory", false),
     );
   }, [value]);
 
@@ -291,9 +306,13 @@ export function useEditor(options: UseEditorOptions): {
     setMarkdown: (md: string) => {
       const view = viewRef.current;
       if (!view) return;
-      const doc = parse(md);
+      const doc = parse(md, { linkify: features?.linkify !== false });
       lastEmitted.current = md;
-      view.dispatch(view.state.tr.replaceWith(0, view.state.doc.content.size, doc.content));
+      view.dispatch(
+        view.state.tr
+          .replaceWith(0, view.state.doc.content.size, doc.content)
+          .setDocAttribute("lineEnding", doc.attrs.lineEnding),
+      );
     },
     focus: () => viewRef.current?.focus(),
   };

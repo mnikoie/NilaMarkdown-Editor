@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
 import { ChevronDown, ChevronLeft, Pencil } from "lucide-react";
 import { DOMSerializer } from "prosemirror-model";
@@ -14,12 +14,14 @@ import {
   selectedMarkdown,
   selectedText,
 } from "../../core/commands/edit.js";
-import { moveRow } from "../../core/commands/table.js";
 import { schema } from "../../core/schema/index.js";
 import { useMarkdownI18n } from "../i18n.js";
+import { useMenuKeyboard } from "../useMenuKeyboard.js";
 
 export interface EditMenuProps {
   view: EditorView | null;
+  /** اجرای عملیات متن خام در حالت Source. */
+  onSourceAction?: (id: string) => void;
   onFind?: () => void;
   onReplace?: () => void;
   onNotice?: (message: string) => void;
@@ -63,11 +65,12 @@ function selectedHtml(view: EditorView): string {
 }
 
 /** منوی Edit با فرمان‌های قابل‌انتقال از Typora. */
-export function EditMenu({ view, onFind, onReplace, onNotice }: EditMenuProps) {
+export function EditMenu({ view, onSourceAction, onFind, onReplace, onNotice }: EditMenuProps) {
   const { t } = useMarkdownI18n();
   const [open, setOpen] = useState(false);
   const [submenu, setSubmenu] = useState<string | null>(null);
-  const rootRef = useRef<HTMLDivElement>(null);
+  const closeMenu = useCallback(() => { setOpen(false); setSubmenu(null); }, []);
+  const { rootRef, triggerRef, onKeyDown } = useMenuKeyboard(open, closeMenu);
 
   useEffect(() => {
     if (!open) return;
@@ -83,11 +86,11 @@ export function EditMenu({ view, onFind, onReplace, onNotice }: EditMenuProps) {
 
   const hasSelection = (editor: EditorView) => !editor.state.selection.empty;
   const entries: Entry[] = [
-    { id: "undo", label: "واگرد", shortcut: "Ctrl+Z", command: undo },
-    { id: "redo", label: "ازنو", shortcut: "Ctrl+Y", command: redo },
+    { id: "undo", label: "برگرداندن (Undo)", shortcut: "Ctrl+Z", command: undo },
+    { id: "redo", label: "انجام دوباره (Redo)", shortcut: "Ctrl+Y", command: redo },
     {
       id: "cut",
-      label: "برش",
+      label: "برش (Cut)",
       shortcut: "Ctrl+X",
       enabled: hasSelection,
       run: async (editor) => {
@@ -99,7 +102,7 @@ export function EditMenu({ view, onFind, onReplace, onNotice }: EditMenuProps) {
     },
     {
       id: "copy",
-      label: "کپی",
+      label: "کپی (Copy)",
       shortcut: "Ctrl+C",
       enabled: hasSelection,
       run: (editor) => writeClipboard(selectedText(editor.state), onNotice),
@@ -131,7 +134,7 @@ export function EditMenu({ view, onFind, onReplace, onNotice }: EditMenuProps) {
     },
     {
       id: "paste-plain",
-      label: "چسباندن به‌صورت متن ساده",
+      label: "چسباندن بدون قالب‌بندی",
       shortcut: "Ctrl+Shift+V",
       run: async (editor) => {
         try {
@@ -143,9 +146,7 @@ export function EditMenu({ view, onFind, onReplace, onNotice }: EditMenuProps) {
       },
     },
     { id: "select-all", label: "انتخاب همه", shortcut: "Ctrl+A", command: selectAll, separatorBefore: true },
-    { id: "move-row-up", label: "انتقال ردیف به بالا", shortcut: "Alt+↑", command: moveRow(-1), separatorBefore: true },
-    { id: "move-row-down", label: "انتقال ردیف به پایین", shortcut: "Alt+↓", command: moveRow(1) },
-    { id: "duplicate", label: "تکثیر", command: duplicateSelectionOrBlock },
+    { id: "duplicate", label: "ساخت نسخه مشابه", command: duplicateSelectionOrBlock, separatorBefore: true },
     { id: "delete", label: "حذف", command: deleteSelectionOrBlock },
     {
       id: "find-replace",
@@ -159,10 +160,16 @@ export function EditMenu({ view, onFind, onReplace, onNotice }: EditMenuProps) {
   ];
 
   const enabled = (action: Action) =>
-    Boolean(view) && (!action.enabled || Boolean(view && action.enabled(view))) &&
-    (!action.command || Boolean(view && action.command(view.state, undefined, view)));
+    Boolean(onSourceAction) || (Boolean(view) && (!action.enabled || Boolean(view && action.enabled(view))) &&
+    (!action.command || Boolean(view && action.command(view.state, undefined, view))));
 
   const run = (action: Action) => {
+    if (onSourceAction) {
+      onSourceAction(action.id);
+      setOpen(false);
+      setSubmenu(null);
+      return;
+    }
     if (!view || !enabled(action)) return;
     if (action.command) action.command(view.state, view.dispatch, view);
     else void action.run?.(view);
@@ -173,13 +180,14 @@ export function EditMenu({ view, onFind, onReplace, onNotice }: EditMenuProps) {
   const keepSelection = (event: ReactMouseEvent) => event.preventDefault();
 
   return (
-    <div ref={rootRef} className="tm-editor-menu">
+    <div ref={rootRef} className="tm-editor-menu" onKeyDown={onKeyDown}>
       <button
+        ref={triggerRef}
         type="button"
         className="tm-menu-trigger"
         aria-haspopup="menu"
         aria-expanded={open}
-        disabled={!view}
+        disabled={!view && !onSourceAction}
         onMouseDown={keepSelection}
         onClick={() => setOpen((value) => !value)}
       >

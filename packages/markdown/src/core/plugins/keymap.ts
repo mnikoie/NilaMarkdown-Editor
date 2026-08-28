@@ -104,7 +104,7 @@ export function keymapPlugin(options: KeymapOptions = {}): Plugin {
     "Mod-0": setParagraph,
     "Mod-=": changeHeadingLevel("increase"),
     "Mod--": changeHeadingLevel("decrease"),
-    "Mod-t": insertTable(3, 3),
+    "Mod-Alt-t": insertTable(3, 3),
     "Mod-Shift-m": insertMathBlock(),
     "Mod-Shift-q": toggleBlockquote,
     "Alt-ArrowLeft": moveColumnVisual("left"),

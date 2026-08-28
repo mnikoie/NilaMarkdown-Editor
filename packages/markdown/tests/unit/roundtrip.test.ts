@@ -18,6 +18,8 @@ const fixtures: Record<string, string> = {
 
   عنوان: "# عنوانِ یک\n\n## عنوانِ دو\n",
 
+  عنوانِ_Setext: "عنوانِ یک\n==========\n\nعنوانِ دو\n----------\n",
+
   عنوانِ_با_لنگر: "# فصل چهارم: نحوه ارزیابی {#fasl-4}\n",
 
   // `{#x}` وسطِ جمله لنگر نیست، متنِ عادی است و نباید جدا شود.
@@ -29,11 +31,19 @@ const fixtures: Record<string, string> = {
 
   فهرستِ_شماره‌دار: "1. یک\n2. دو\n",
 
+  فهرستِ_شماره‌دار_پرانتزی: "1) یک\n2) دو\n",
+
   چک‌لیست: "* [ ] نکرده\n* [x] کرده\n",
 
   نقلِ_قول: "> نقلِ قول\n",
 
   بلوکِ_کد: "```ts\nconst a = 1;\n```\n",
+
+  بلوکِ_کد_با_تیلدا: "~~~~ts\nconst ticks = ```;\n~~~~\n",
+
+  شکستِ_سخت_با_فاصله: "خط اول  \nخط دوم\n",
+
+  شکستِ_سخت_با_بک‌اسلش: "خط اول\\\nخط دوم\n",
 
   جداکننده: "---\n",
 
@@ -79,6 +89,22 @@ const fixtures: Record<string, string> = {
   front_matter: "---\nعنوان: تست\n---\n\nمحتوا\n",
 
   html_خام: "<div class=\"x\">محتوا</div>\n",
+
+  html_درون_خطی: "متنِ <span class=\"x\">آزمایشی</span> عادی\n",
+
+  entity_نام‌دار: "حق نشر &copy; و فاصله&nbsp;حفظ می‌شود.\n",
+
+  entity_عددی: "حروف &#169; و &#x1F600; حفظ می‌شوند.\n",
+
+  entity_قالب‌دار: "**حق نشر &copy; محفوظ است.**\n",
+
+  افزونه‌های_HTML_درون‌خطی: "<abbr title=\"HyperText Markup Language\">HTML</abbr> و <mark>مهم</mark> و <ins>افزوده</ins> و H<sub>2</sub>O و x<sup>2</sup>\n",
+
+  فهرست_تعریف_HTML: "<dl><dt>واژه</dt><dd>تعریف</dd></dl>\n",
+
+  متن_CJK: "日本語の文と中文段落 و فارسی\n",
+
+  پایان_خط_CRLF: "خط اول\r\n\r\nخط دوم\r\n",
 };
 
 describe("رفت‌وبرگشت — serialize(parse(md)) === md", () => {
@@ -111,6 +137,25 @@ describe("نیم‌فاصله", () => {
   it("در رفت‌وبرگشت گم نمی‌شود", () => {
     const md = "می‌شود\n";
     expect(serialize(parse(md))).toContain("‌");
+  });
+});
+
+describe("تنظیم Linkify", () => {
+  it("نشانی ساده را فقط در حالت روشن به لینک تبدیل می‌کند و سورس ثابت می‌ماند", () => {
+    const md = "https://example.com\n";
+    const linked = parse(md);
+    const plain = parse(md, { linkify: false });
+    const linkedMark = linked.firstChild?.firstChild?.marks.find((mark) => mark.type.name === "link");
+    const plainMark = plain.firstChild?.firstChild?.marks.find((mark) => mark.type.name === "link");
+    expect(linkedMark?.attrs.inactive).toBe(false);
+    expect(plainMark?.attrs.inactive).toBe(true);
+    expect(serialize(linked)).toBe(md);
+    expect(serialize(plain)).toBe(md);
+  });
+
+  it("لینک صریح حتی با Linkify خاموش لینک می‌ماند", () => {
+    const doc = parse("[سایت](https://example.com)\n", { linkify: false });
+    expect(doc.firstChild?.firstChild?.marks.some((mark) => mark.type.name === "link")).toBe(true);
   });
 });
 
