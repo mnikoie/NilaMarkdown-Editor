@@ -132,7 +132,7 @@
 .markdown-workspace {
   height: 100dvh;
   overflow: hidden;
-  background: var(--background);
+  background: var(--tm-document-bg, var(--background));
 }
 
 .markdown-workspace .tm-demo-editor {
@@ -202,7 +202,7 @@
   top: 0;
   z-index: 5;
   padding-block: 0.5rem;
-  background: color-mix(in srgb, var(--background) 92%, transparent);
+  background: color-mix(in srgb, var(--tm-document-bg) 92%, transparent);
   backdrop-filter: blur(8px);
 }
 
@@ -216,7 +216,7 @@
   margin: 0;
   padding-inline: 0.75rem;
   box-sizing: border-box;
-  background: var(--background);
+  background: var(--tm-document-bg);
 }
 
 @media (max-width: 52rem) {

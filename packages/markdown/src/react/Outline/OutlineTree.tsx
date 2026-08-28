@@ -273,7 +273,11 @@ function Branch({ nodes, depth, activeId, currentId, folded, query = "", locale,
     <ul role="group" className="tm-outline-children">
       {nodes.map((node) => {
         const hasChildren = node.children.length > 0;
-        const isFoldable = node.foldable;
+        // ★ node.foldable شاملِ «متنِ بدنه دارد» هم می‌شود (برای فلشِ
+        //   خودِ سند) — اینجا فقط فرزندِ ساختاری در پنل باید فلش بگیرد،
+        //   وگرنه گره‌های بدونِ زیرمجموعه (مثلِ «فرایند وصول») هم فلشِ
+        //   بی‌فایده می‌گرفتند.
+        const isFoldable = hasChildren;
         const isFolded = folded?.has(node.id) ?? false;
         return (
           <li key={node.id} role="none">

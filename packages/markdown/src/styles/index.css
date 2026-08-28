@@ -1526,10 +1526,39 @@
 
     .tm-editor-controls {
       align-items: stretch;
+      gap: 0.125rem;
+      padding-block: 0.25rem;
     }
 
+    /* ★ روی موبایل، برچسبِ متنی حذف می‌شود؛ بدونِ کوچک‌کردنِ خودِ
+     * دکمه، ردیفِ منو یک دیوارِ کادرهای بزرگ می‌ماند و خیلی توذوق
+     * می‌زند. اینجا فقط آیکن+فلش کوچک با حاشیهٔ حذف‌شده، شبیهِ یک
+     * نوارِ آیکنِ یکپارچه، نه مجموعه‌ای از دکمه‌های جدا. */
     .tm-menu-trigger span {
       display: none;
+    }
+
+    .tm-menu-trigger {
+      block-size: 2rem;
+      min-block-size: 2rem;
+      padding-inline: 0.5rem;
+      border-color: transparent;
+      background: transparent;
+      gap: 0;
+    }
+
+    .tm-menu-trigger:hover:not(:disabled),
+    .tm-menu-trigger[aria-expanded="true"] {
+      background: var(--tm-code-bg);
+      border-color: transparent;
+    }
+
+    .tm-top-menu-row {
+      gap: 0;
+    }
+
+    .tm-editor-controls .tm-toolbar {
+      padding-block: 0.25rem;
     }
   }
 
