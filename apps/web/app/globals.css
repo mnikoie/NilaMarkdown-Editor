@@ -272,26 +272,26 @@
 
 @media (prefers-color-scheme: dark) {
   .markdown-workspace:not(:has(.tm-root[data-theme="light"])) {
-    --tm-document-bg: #1c1a16;
-    --tm-doc-border: #3a352c;
-    --tm-doc-border-strong: #4a4438;
-    --tm-doc-sidebar-bg: #221f1a;
-    --tm-doc-shadow: rgb(0 0 0 / 0.2);
-    --tm-doc-shadow-strong: rgb(0 0 0 / 0.32);
-    --tm-doc-fg: #e8e3d8;
-    --tm-doc-muted: #c2bcae;
-    --tm-doc-marker: #c2bcae;
+    --tm-document-bg: #000000;
+    --tm-doc-border: #2a2a2a;
+    --tm-doc-border-strong: #3a3a3a;
+    --tm-doc-sidebar-bg: #0a0a0a;
+    --tm-doc-shadow: rgb(0 0 0 / 0.4);
+    --tm-doc-shadow-strong: rgb(0 0 0 / 0.55);
+    --tm-doc-fg: #e6e6e6;
+    --tm-doc-muted: #b8b8b8;
+    --tm-doc-marker: #b8b8b8;
     --tm-doc-h1: #e08b8b;
     --tm-doc-h2: #d9b876;
     --tm-doc-h3: #8fcf9c;
     --tm-doc-h3-marker: rgb(143 207 156 / 75%);
     --tm-doc-h4: #a8b0ba;
-    --tm-doc-note-bg: #2c2318;
+    --tm-doc-note-bg: #1a1a1a;
     --tm-doc-note-accent: #e0955a;
-    --tm-doc-note-quote-border: #6b6357;
-    --tm-doc-ref-bg: #1e2636;
+    --tm-doc-note-quote-border: #4a4a4a;
+    --tm-doc-ref-bg: #12161f;
     --tm-doc-ref-fg: #8fa8d9;
-    --tm-doc-ref-hover-bg: #283349;
+    --tm-doc-ref-hover-bg: #1a2130;
   }
 }
 
