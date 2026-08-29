@@ -26,5 +26,6 @@ export type { OutlineTreeProps } from "./react/Outline/OutlineTree.js";
 
 export { MarkdownViewer } from "./react/MarkdownViewer.js";
 export type { MarkdownViewerProps } from "./react/MarkdownViewer.js";
+export type { ViewerFeatures } from "./react/viewer/ViewerEnhancements.js";
 export { extractViewerHeadings, parseViewerMarkdown } from "./core/viewer/ast.js";
 export type { ViewerAstNode, ViewerHeading } from "./core/viewer/ast.js";

@@ -146,10 +146,11 @@ export function useEditor(options: UseEditorOptions): {
   // بازمی‌ساخت و مکان‌نما را می‌پراند.
   const imagesRef = useRef(images);
   imagesRef.current = images;
-  // آکاردئون خاموش — کارتِ دایرکتیو هم باید هم‌سطح‌ها را نبندد.
-  const foldModeRef = useRef<"accordion" | "multiple">("multiple");
-  foldModeRef.current = "multiple";
   const foldingInteractive = folding !== false;
+  const foldingInitial = folding !== false ? (folding?.initial ?? "collapsed") : "expanded";
+  const foldingMode = folding !== false ? (folding?.mode ?? "accordion") : "multiple";
+  const foldModeRef = useRef<"accordion" | "multiple">(foldingMode);
+  foldModeRef.current = foldingMode;
 
   const ref = (node: HTMLElement | null) => {
     mountRef.current = node;
@@ -187,19 +188,12 @@ export function useEditor(options: UseEditorOptions): {
         }),
         inputRulesPlugin(directives),
         autoPairPlugin(),
-        // ★ کاربر تاشدن را کلاً نمی‌خواهد — هیچ گره‌ای نباید بسته
-        //   شروع شود، صرف‌نظر از ورودیِ `folding`/`foldedIds`ِ مصرف‌کننده.
-        //   دکمهٔ فلش هم در index.css با display:none پنهان است تا
-        //   کاربر نتواند دوباره ببندد؛ خودِ پلاگین دست‌نخورده می‌ماند
-        //   تا برگرداندنِ این تصمیم فقط لغوِ همین دو خط باشد.
         foldPlugin({
           registry: directives,
-          initial: [],
-          // آکاردئون هم خاموش — فقط initial کافی نبود چون
-          // reconcileAccordion با هر setMode می‌تواند هم‌سطح‌ها را ببندد.
-          mode: "multiple",
+          initial: foldedIds ?? (foldingInitial === "collapsed" ? "all" : []),
+          mode: foldingMode,
           locale,
-          interactive: foldingInteractive ? undefined : false,
+          interactive: foldingInteractive,
           onChange: (ids) => onFoldChangeRef.current?.(ids),
         }),
         searchPlugin(),
@@ -211,12 +205,11 @@ export function useEditor(options: UseEditorOptions): {
         pasteImagePlugin(imagesRef.current ?? {}),
         ...(features?.taskList === false ? [] : [taskListPlugin({ locale })]),
         ...(features?.emoji ? [emojiShortnamePlugin()] : []),
-        // ★ همان تصمیم: لیست‌های تودرتو هم باز شروع می‌شوند.
         ...(foldingInteractive
           ? [
               listFoldPlugin({
-                initial: "expanded",
-                mode: "multiple",
+                initial: foldingInitial,
+                mode: foldingMode,
                 locale,
               }),
             ]
@@ -232,12 +225,7 @@ export function useEditor(options: UseEditorOptions): {
       state,
       editable: () => !readOnly,
       nodeViews: createNodeViews(directives, features, {
-        // ★ همان تصمیم: کارتِ دایرکتیو هم باز شروع می‌شود، صرف‌نظر
-        //   از `folding.initial`ِ ورودی.
-        folding: {
-          ...(folding === false ? {} : folding),
-          initial: "expanded",
-        },
+        folding: folding === false ? { initial: "expanded", mode: "multiple" } : folding,
         foldingInteractive: foldingInteractive ? undefined : false,
         cardFolding: { mode: () => foldModeRef.current },
         locale,

@@ -11,7 +11,7 @@
 
 مونوریپوی `TaminLibrary` — کتابخانهٔ اسنادِ تأمین اجتماعی.
 
-کارِ فعلی روی **یک پکیج** است: `packages/markdown` (`@tamin/markdown`).
+کارِ فعلی روی **یک پکیج** است: `packages/markdown` (`nila-markdown`).
 یک ویرایشگر و نمایشگرِ Markdown برای React، با تجربهٔ کاربریِ Typora،
 مخصوصِ اسنادِ فارسیِ راست‌به‌چپ (فصل، ماده، تبصره).
 
@@ -99,13 +99,13 @@ apps/web/app/markdown/page.tsx   ← صفحهٔ نمایشی (محصول نیس�
 
 ```bash
 # تستِ واحد
-pnpm --filter @tamin/markdown test
+pnpm --filter nila-markdown test
 
 # بیلدِ پکیج — بعد از هر تغییر لازم است تا در مرورگر دیده شود
-pnpm --filter @tamin/markdown build
+pnpm --filter nila-markdown build
 
 # تایپ‌چک
-pnpm --filter @tamin/markdown typecheck
+pnpm --filter nila-markdown typecheck
 
 # تستِ سرتاسری (سرور باید بالا باشد — بخشِ ۶ را بخوان)
 npx playwright test
@@ -134,7 +134,7 @@ Get-NetTCPConnection -LocalPort 3100 -State Listen -ErrorAction SilentlyContinue
   ForEach-Object { Stop-Process -Id $_ -Force }
 
 # ۲. از نو بساز
-pnpm --filter '@tamin/markdown' build
+pnpm --filter 'nila-markdown' build
 Remove-Item -Recurse -Force apps/web/.next
 pnpm --filter web build
 
@@ -212,8 +212,8 @@ resolve نمی‌شود و هر چانکِ کناری جا می‌ماند. در
 
 تا این‌ها را انجام ندهی، کارِ بعدی سخت می‌شود:
 
-- [ ] `pnpm --filter @tamin/markdown typecheck` پاک
-- [ ] `pnpm --filter @tamin/markdown test` سبز (۳۵۲ تست)
+- [ ] `pnpm --filter nila-markdown typecheck` پاک
+- [ ] `pnpm --filter nila-markdown test` سبز (۳۵۲ تست)
 - [ ] `npx playwright test` سبز روی **بیلدِ تولیدی** (۷۵ تست)
 - [ ] اگر تاشدن را عوض کردی → ماتریسِ پنج‌مرورگری (۱۲۵ اجرا)
 - [ ] اگر تصمیمِ معماری گرفتی → `docs/decisions/0033-…`

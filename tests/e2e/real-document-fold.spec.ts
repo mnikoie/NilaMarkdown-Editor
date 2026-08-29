@@ -15,7 +15,7 @@ test.describe("فایل واقعیِ بخشنامهٔ ۶۲۲۸۵۳۶۰", () => {
   test.setTimeout(360_000);
 
   async function loadRealDocument(page: Page) {
-    await page.goto("/markdown");
+    await page.goto("/markdown?folding=true");
     await page.waitForSelector(".tm-editor", { timeout: 25_000 });
     await page.locator('input[type="file"][accept*="text/markdown"]').setInputFiles(REAL_DOCUMENT!);
     await expect(page.locator(".tm-editor h1").first()).toContainText("بخشنامه تنقیح و تلخیص اجرائیات");

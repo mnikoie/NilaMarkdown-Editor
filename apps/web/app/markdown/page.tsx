@@ -106,8 +106,13 @@ graph TD;
 export default async function MarkdownDemoPage({
   searchParams,
 }: {
-  searchParams: Promise<{ fixture?: string }>;
+  searchParams: Promise<{ fixture?: string; folding?: string }>;
 }) {
-  const { fixture } = await searchParams;
-  return <MarkdownDemoClient markdown={fixture === "demo" ? SANAD : ""} />;
+  const { fixture, folding } = await searchParams;
+  return (
+    <MarkdownDemoClient
+      markdown={fixture === "demo" ? SANAD : ""}
+      enableFolding={folding === "true"}
+    />
+  );
 }

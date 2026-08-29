@@ -1,4 +1,4 @@
-# `@tamin/markdown`
+# `nila-markdown`
 
 ویرایشگر و نمایشگرِ Markdown با پیش‌نمایشِ زنده، درختِ سلسله‌مراتب و
 مارک‌های سفارشی — با پشتیبانیِ جدیِ فارسی و راست‌به‌چپ.
@@ -51,16 +51,14 @@
 | **خمیرکردن و رهاکردنِ تصویر** | ✅ | ۱۰ تست + ۲ e2e |
 | **تایپوگرافیِ متن** (سرفصل، فهرست، نقلِ‌قول) | ✅ | ۱۰ e2e |
 
-مجموع: **۳۵۲ تستِ واحد + ۷۵ تستِ سرتاسری** (Chromium واقعی، روی بیلدِ
-تولیدی). مجموعهٔ تاشدن علاوه بر آن با **۱۲۵ اجرای مرورگری** روی Chromium،
-Chrome، Edge، Firefox و WebKit آزموده می‌شود. اندازه‌ها با بیلدِ واقعی
-سنجیده شده‌اند:
+مجموع: **۳۹۸ تستِ واحد** به‌همراه مجموعهٔ تست‌های سرتاسری در Chromium
+واقعی و روی بیلدِ تولیدی. اندازه‌ها با بیلدِ واقعی سنجیده شده‌اند:
 
 | خروجی | gzip | کِی دانلود می‌شود |
 |---|---|---|
-| `@tamin/markdown/viewer` (بی ProseMirror، با chunk مشترک) | ۸٫۲ کیلوبایت | با import |
-| `@tamin/markdown` (با chunk مشترک) | ۶۵٫۲ کیلوبایت | با import |
-| `styles.css` | ۵٫۶ کیلوبایت | با import |
+| `nila-markdown/viewer` (بی ProseMirror، همراه chunk مشترک) | ۱۸٫۸ کیلوبایت | با import |
+| `nila-markdown` (همراه chunk مشترک) | ۹۰٫۲ کیلوبایت | با import |
+| `styles.css` | ۹٫۳ کیلوبایت | با import |
 | `worker.js` (رنگ‌آمیزی) | ۱۴۹٫۴ کیلوبایت | **فقط اگر سند بلوکِ کد داشته باشد** — در رشتهٔ پس‌زمینه |
 
 ★ حجمِ worker روی **بارِ اولِ صفحه اثر ندارد**: نه در باندلِ اصلی است و
@@ -68,10 +66,49 @@ Chrome، Edge، Firefox و WebKit آزموده می‌شود. اندازه‌ه�
 
 ## نصب و استفاده
 
+```bash
+pnpm add nila-markdown react react-dom
+```
+
+### نمایشگرِ مستقل و فقط‌خواندنی
+
+Viewer و Editor از همان parser، مدلِ سند، لایهٔ امنیت، ساختار و CSS مشترک
+استفاده می‌کنند؛ بنابراین اصلاحاتِ هسته در هر دو اعمال می‌شود. ورودیِ Viewer
+جداست و ProseMirror و ابزارهای ویرایش را وارد برنامه نمی‌کند.
+
 ```tsx
 "use client";
-import { MarkdownEditor } from "@tamin/markdown";
-import "@tamin/markdown/styles.css";
+import { MarkdownViewer } from "nila-markdown/viewer";
+import "nila-markdown/styles.css";
+import "katex/dist/katex.min.css"; // فقط در صورت استفاده از فرمول
+
+<MarkdownViewer
+  value={markdown}
+  locale="fa"
+  dir="auto"
+  theme="auto"
+  features={{ math: true, highlight: true, mermaid: true }}
+/>
+```
+
+قابلیت‌های `math`، `highlight` و `mermaid` پیش‌فرض روشن‌اند و جداگانه
+قابل خاموش‌کردن هستند. در برنامهٔ میزبان، برای قابلیت‌های مورد استفاده
+وابستگی‌های اختیاری را نصب کنید:
+
+```bash
+pnpm add katex shiki mermaid
+```
+
+اگر وابستگیِ اختیاری موجود نباشد یا رندر شکست بخورد، Viewer به‌جای حذف
+محتوا، سورسِ خوانا را نگه می‌دارد. نمودارها با تنظیمات سخت‌گیرانه و SVG
+پاک‌سازی‌شده رندر می‌شوند. بلوک‌های کد نیز دکمهٔ کپی دارند.
+
+### ویرایشگر
+
+```tsx
+"use client";
+import { MarkdownEditor } from "nila-markdown";
+import "nila-markdown/styles.css";
 
 // ⚠️ فقط اگر ریاضی می‌خواهید — CSSِ KaTeX **جدا** است:
 import "katex/dist/katex.min.css";
@@ -92,14 +129,14 @@ import "katex/dist/katex.min.css";
 یا فقط لایهٔ منطق، بی UI:
 
 ```ts
-import { parse, serialize, buildOutline } from "@tamin/markdown";
+import { parse, serialize, buildOutline } from "nila-markdown";
 
 const doc = parse(markdown);
 const tree = buildOutline(doc);
 const back = serialize(doc); // === markdown
 ```
 
-در Next.js: `transpilePackages: ["@tamin/markdown"]` در `next.config.ts`.
+در Next.js: `transpilePackages: ["nila-markdown"]` در `next.config.ts`.
 نمونهٔ کامل در `apps/web/app/markdown/page.tsx`.
 
 مصرف‌کننده **لازم نیست Tailwind داشته باشد** — `styles.css` از قبل
@@ -187,7 +224,7 @@ const tree = buildOutline(doc, marks);
 ### تاشدن
 
 ```ts
-import { foldPlugin, toggleFold, foldAll } from "@tamin/markdown";
+import { foldPlugin, toggleFold, foldAll } from "nila-markdown";
 
 foldPlugin({ initial: savedIds, onChange: (ids) => localStorage.setItem(…) });
 ```
@@ -312,7 +349,7 @@ IndexedDB، بررسی مجدد `queryPermission/requestPermission` و سیاس�
 ## خروجیِ PDF
 
 ```ts
-import { exportPdf } from "@tamin/markdown";
+import { exportPdf } from "nila-markdown";
 await exportPdf(doc, { title: "بخشنامه", toc: true, pageSize: "A4" });
 ```
 
@@ -431,7 +468,7 @@ CSSِ چاپ این‌ها را رعایت می‌کند: رنگِ کارت‌ه
 پس از درجِ جدول، مکان‌نما مستقیم داخلِ سلولِ اول است.
 
 ```ts
-import { insertTable, addRowAfter, setColumnAlign } from "@tamin/markdown";
+import { insertTable, addRowAfter, setColumnAlign } from "nila-markdown";
 insertTable(3, 3)(view.state, view.dispatch);
 ```
 
@@ -577,7 +614,7 @@ Move To، File Location، Delete File، Preferences و Close—در کامپون
 ## خروجیِ HTML
 
 ```ts
-import { exportHtml } from "@tamin/markdown";
+import { exportHtml } from "nila-markdown";
 
 const html = exportHtml(doc, { title: "بخشنامه", toc: true });
 ```
@@ -655,7 +692,7 @@ XSS واقعاً خطرناک می‌شود، چون فایل ممکن است د
 | `computeStats` | ۴ میلی‌ثانیه |
 
 ```bash
-pnpm --filter @tamin/markdown bench
+pnpm --filter nila-markdown bench
 ```
 
 ⚠️ این اعداد **بی مرورگر**اند — فقط هزینهٔ پردازش، نه رندر. `onChange` با
@@ -708,11 +745,11 @@ debounce ۳۰۰ میلی‌ثانیه‌ای صدا می‌شود، پس ۳۱ م
 ## توسعه
 
 ```bash
-pnpm --filter @tamin/markdown test
+pnpm --filter nila-markdown test
 ```
 
 ```bash
-pnpm --filter @tamin/markdown build
+pnpm --filter nila-markdown build
 ```
 
 تستِ سرتاسری (سرورِ `apps/web` باید بالا باشد):
@@ -723,14 +760,14 @@ npx playwright test
 
 ⚠️ **سه تلهٔ محیطی که وقت می‌گیرند:**
 
-۱. **هر بار پکیج را عوض کنی، `pnpm --filter @tamin/markdown build` لازم
+۱. **هر بار پکیج را عوض کنی، `pnpm --filter nila-markdown build` لازم
    است** تا در مرورگر دیده شود.
 
 ۲. **سرورِ قدیمی را بکش، وگرنه بیلدِ کهنه را سرو می‌کند.** این بارها
    باعث شد ساعت‌ها دنبالِ باگی بگردیم که وجود نداشت. برای بیلدِ تولیدی:
 
    ```bash
-   pnpm --filter @tamin/markdown build && pnpm --filter web build
+   pnpm --filter nila-markdown build && pnpm --filter web build
    ```
 
    و بعد سرور را **از نو** بالا بیاور.

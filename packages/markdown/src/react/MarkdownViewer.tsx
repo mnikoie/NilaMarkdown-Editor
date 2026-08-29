@@ -10,6 +10,11 @@ import {
   type ViewerAstNode,
   type ViewerHeading,
 } from "../core/viewer/ast.js";
+import {
+  ViewerCodeBlock,
+  ViewerMath,
+  type ViewerFeatures,
+} from "./viewer/ViewerEnhancements.js";
 
 export interface MarkdownViewerProps {
   value: string;
@@ -19,6 +24,8 @@ export interface MarkdownViewerProps {
   openLinksInNewTab?: boolean;
   emptyMessage?: string;
   directives?: MarkRegistry;
+  locale?: "fa" | "en";
+  features?: ViewerFeatures;
   onOutlineChange?: (headings: ViewerHeading[]) => void;
 }
 
@@ -30,6 +37,8 @@ export function MarkdownViewer({
   openLinksInNewTab = true,
   emptyMessage = "فایلی برای نمایش باز نشده است.",
   directives = BUILTIN_MARKS,
+  locale = "fa",
+  features,
   onOutlineChange,
 }: MarkdownViewerProps) {
   const parsed = useMemo(() => extractHeadingData(value), [value]);
@@ -54,6 +63,13 @@ export function MarkdownViewer({
     headingIds: parsed.headingIds,
     openLinksInNewTab,
     directives,
+    locale,
+    theme,
+    features: {
+      math: features?.math !== false,
+      highlight: features?.highlight !== false,
+      mermaid: features?.mermaid !== false,
+    },
   };
 
   return (
@@ -70,6 +86,9 @@ interface RenderContext {
   headingIds: Map<ViewerAstNode, string>;
   openLinksInNewTab: boolean;
   directives: MarkRegistry;
+  locale: "fa" | "en";
+  theme: "light" | "dark" | "auto";
+  features: Required<ViewerFeatures>;
 }
 
 function renderChildren(nodes: ViewerAstNode[] | undefined, context: RenderContext, key: string): ReactNode[] {
@@ -105,12 +124,7 @@ function renderNode(node: ViewerAstNode, context: RenderContext, key: string): R
     case "inlineCode":
       return <code key={key}>{node.value ?? ""}</code>;
     case "code":
-      return (
-        <figure className="tm-viewer-code" key={key}>
-          {node.lang ? <figcaption>{node.lang}</figcaption> : null}
-          <pre dir="ltr"><code>{node.value ?? ""}</code></pre>
-        </figure>
-      );
+      return <ViewerCodeBlock key={key} code={node.value ?? ""} lang={node.lang} features={context.features} theme={context.theme} locale={context.locale} />;
     case "blockquote":
       return <blockquote key={key}>{children}</blockquote>;
     case "break":
@@ -154,9 +168,9 @@ function renderNode(node: ViewerAstNode, context: RenderContext, key: string): R
     case "html":
       return <code key={key} className="tm-viewer-raw-html">{node.value ?? ""}</code>;
     case "inlineMath":
-      return <code key={key} className="tm-viewer-math">{node.value ?? ""}</code>;
+      return <ViewerMath key={key} tex={node.value ?? ""} displayMode={false} enabled={context.features.math} />;
     case "math":
-      return <pre key={key} className="tm-viewer-math" dir="ltr"><code>{node.value ?? ""}</code></pre>;
+      return <ViewerMath key={key} tex={node.value ?? ""} displayMode enabled={context.features.math} />;
     case "table":
       return <div className="tm-viewer-table-wrap" key={key}><table>{renderTable(node, context, key)}</table></div>;
     case "textDirective": {

@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { MarkdownEditor, type MarkRegistry, BUILTIN_MARKS } from "@tamin/markdown";
-import "@tamin/markdown/styles.css";
+import { MarkdownEditor, type MarkRegistry, BUILTIN_MARKS } from "nila-markdown";
+import "nila-markdown/styles.css";
 import "katex/dist/katex.min.css";
 
 const MARKS: MarkRegistry = {
@@ -22,7 +22,13 @@ const MARKS: MarkRegistry = {
   },
 };
 
-export function MarkdownDemoClient({ markdown: initialMarkdown }: { markdown: string }) {
+export function MarkdownDemoClient({
+  markdown: initialMarkdown,
+  enableFolding = false,
+}: {
+  markdown: string;
+  enableFolding?: boolean;
+}) {
   const [markdown, setMarkdown] = useState(initialMarkdown);
 
   return (
@@ -31,7 +37,7 @@ export function MarkdownDemoClient({ markdown: initialMarkdown }: { markdown: st
         defaultValue={initialMarkdown}
         onChange={setMarkdown}
         directives={MARKS}
-        folding={false}
+        folding={enableFolding ? { initial: "collapsed", mode: "accordion" } : false}
         outline
         outlineWidth={300}
         toolbar="compact"

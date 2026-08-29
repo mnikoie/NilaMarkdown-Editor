@@ -1,4 +1,4 @@
-# پرامپتِ ساختِ `@tamin/markdown`
+# پرامپتِ ساختِ `nila-markdown`
 
 > این سند برای کسی نوشته شده که قرار است این پکیج را بسازد — چه آدم، چه
 > عاملِ هوش مصنوعی. هدفش این است که تصمیم‌های سخت **از قبل** گرفته شده باشند
@@ -26,8 +26,8 @@
 ### دو نقطهٔ ورود
 
 ```ts
-import { MarkdownEditor } from "@tamin/markdown";        // ویرایشگرِ کامل
-import { MarkdownViewer } from "@tamin/markdown/viewer";  // فقط نمایش
+import { MarkdownEditor } from "nila-markdown";        // ویرایشگرِ کامل
+import { MarkdownViewer } from "nila-markdown/viewer";  // فقط نمایش
 ```
 
 `viewer` باید **مستقل** باشد: کسی که فقط نمایش می‌خواهد نباید یک بایت از کدِ
@@ -38,8 +38,8 @@ import { MarkdownViewer } from "@tamin/markdown/viewer";  // فقط نمایش
 
 | ورودی | سقف |
 |---|---|
-| `@tamin/markdown/viewer` | ۴۰ کیلوبایت |
-| `@tamin/markdown` | ۱۵۰ کیلوبایت |
+| `nila-markdown/viewer` | ۴۰ کیلوبایت |
+| `nila-markdown` | ۱۵۰ کیلوبایت |
 | KaTeX و Mermaid و Shiki | خارج از این عدد — با `import()` تنبل بار می‌شوند |
 
 ---
@@ -81,7 +81,7 @@ front matter افزونهٔ پخته دارد و همان درختِ mdast را 
 می‌سازد. مصرف‌کننده فقط این را import می‌کند:
 
 ```ts
-import "@tamin/markdown/styles.css";
+import "nila-markdown/styles.css";
 ```
 
 و **لازم نیست Tailwind داشته باشد**. این تنها راهی است که هم راحتیِ نوشتن را

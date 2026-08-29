@@ -75,4 +75,22 @@ describe("MarkdownViewer", () => {
     render(<MarkdownViewer value={"  \n"} emptyMessage="سندی نیست" />);
     expect(screen.getByText("سندی نیست")).toBeTruthy();
   });
+
+  it("فرمول را با KaTeX رندر می‌کند و MathML دسترس‌پذیر می‌سازد", async () => {
+    const { container } = render(<MarkdownViewer value={"فرمول $E = mc^2$ است."} />);
+    await waitFor(() => expect(container.querySelector(".katex-mathml")).not.toBeNull());
+    expect(container.querySelector(".tm-viewer-math-inline")?.getAttribute("data-rendered")).toBe("true");
+  });
+
+  it("ویژگی‌های سنگین قابل خاموش‌کردن‌اند و سورس هیچ‌وقت گم نمی‌شود", () => {
+    const { container } = render(
+      <MarkdownViewer
+        value={"```mermaid\ngraph LR; A-->B;\n```\n\n$$\nx^2\n$$"}
+        features={{ mermaid: false, highlight: false, math: false }}
+      />,
+    );
+    expect(container.textContent).toContain("graph LR; A-->B;");
+    expect(container.textContent).toContain("$$x^2$$");
+    expect(container.querySelector(".tm-viewer-code")?.getAttribute("data-highlighted")).toBe("false");
+  });
 });

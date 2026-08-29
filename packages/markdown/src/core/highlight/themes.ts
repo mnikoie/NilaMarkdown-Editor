@@ -1,4 +1,4 @@
-// ساخته‌شده — دست نزنید. `pnpm --filter @tamin/markdown vendor:themes`
+// ساخته‌شده — دست نزنید. `pnpm --filter nila-markdown vendor:themes`
 //
 // دو تمِ Shiki، درون‌خط. دلیلش در `scripts/vendor-themes.mjs` و
 // `tsup.config.ts` نوشته شده: worker باید خودکفا باشد و

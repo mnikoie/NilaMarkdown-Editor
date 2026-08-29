@@ -11,8 +11,6 @@ import { test, expect } from "@playwright/test";
 test.beforeEach(async ({ page }) => {
   await page.goto("/markdown?fixture=demo");
   await page.waitForSelector(".tm-editor", { timeout: 25000 });
-  await page.getByRole("button", { name: "نمایش", exact: true }).click();
-  await page.getByRole("menuitem", { name: "بازکردن همهٔ بخش‌ها" }).click();
 });
 
 test("★ رشتهٔ اصلی در حینِ رنگ‌آمیزی قفل نمی‌شود", async ({ page }) => {

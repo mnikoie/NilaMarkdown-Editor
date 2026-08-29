@@ -12,7 +12,7 @@ Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinu
 Start-Sleep -Seconds 1
 
 if (-not $SkipBuild) {
-  pnpm --filter '@tamin/markdown' build
+  pnpm --filter 'nila-markdown' build
   if ($LASTEXITCODE -ne 0) { exit 1 }
   pnpm --filter web build
   if ($LASTEXITCODE -ne 0) { exit 1 }

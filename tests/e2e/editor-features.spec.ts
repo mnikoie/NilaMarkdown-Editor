@@ -11,10 +11,6 @@ import { readFile } from "node:fs/promises";
 test.beforeEach(async ({ page }) => {
   await page.goto("/markdown?fixture=demo");
   await page.waitForSelector(".tm-editor", { timeout: 25000 });
-  await page.getByRole("button", { name: "نمایش", exact: true }).click();
-  const unfoldAll = page.getByRole("menuitem", { name: "بازکردن همهٔ بخش‌ها" });
-  if (await unfoldAll.count()) await unfoldAll.click();
-  else await page.keyboard.press("Escape");
 });
 
 test("★ تمام‌صفحه با دکمهٔ نوارِ ابزار", async ({ page }) => {
@@ -211,26 +207,32 @@ test("★ منوی Paragraph گزینه‌های Typora را دسته‌بندی
   expect(toolbarBox).not.toBeNull();
   expect(paragraphBox!.y + paragraphBox!.height).toBeLessThanOrEqual(toolbarBox!.y);
 
-  // نوار سریع دیگر compact نیست و ابزارهای بلوکیِ پرکاربرد را هم دارد.
-  await expect(toolbar.getByRole("button", { name: /عنوانِ ۱/ })).toBeVisible();
-  await expect(toolbar.getByRole("button", { name: /فهرستِ نقطه‌ای/ })).toBeVisible();
-  await expect(toolbar.getByRole("button", { name: "جدول" })).toBeVisible();
+  // اپ عمداً نوارِ سریع compact دارد؛ ابزارهای بلوکی در منوی Paragraph‌اند.
+  await expect(toolbar.getByRole("button", { name: /پررنگ/ })).toBeVisible();
+  await expect(toolbar.getByRole("button", { name: /عنوانِ ۱/ })).toHaveCount(0);
+  await expect(toolbar.getByRole("button", { name: /فهرستِ نقطه‌ای/ })).toHaveCount(0);
 
   await paragraphTrigger.click();
   const menu = page.getByRole("menu", { name: "پاراگراف" });
   await expect(menu).toBeVisible();
   await expect(menu.getByRole("menuitem", { name: "عنوان 6" })).toBeVisible();
-  await expect(menu.getByRole("menuitem", { name: "بلوک ریاضی" })).toBeVisible();
-  await expect(menu.getByRole("menuitem", { name: "پانویس" })).toBeVisible();
-  await expect(menu.getByRole("menuitem", { name: "فهرست مطالب" })).toBeVisible();
+  await expect(menu.getByRole("menuitem", { name: "فهرست شماره‌دار" })).toBeVisible();
+  await page.keyboard.press("Escape");
 
-  await menu.getByRole("menuitem", { name: "هشدارها" }).click();
-  const alerts = page.getByRole("menu", { name: "هشدارها" });
+  // عناصرِ درج‌شدنی در منوی مستقلِ «درج» قرار دارند.
+  await page.getByRole("button", { name: "درج", exact: true }).click();
+  const insert = page.getByRole("menu", { name: "درج" });
+  await expect(insert.getByRole("menuitem", { name: /فرمول ریاضی/ })).toBeVisible();
+  await expect(insert.getByRole("menuitem", { name: "پانویس" })).toBeVisible();
+  await expect(insert.getByRole("menuitem", { name: "فهرست مطالب" })).toBeVisible();
+
+  await insert.getByRole("menuitem", { name: "کادر اطلاع‌رسانی" }).click();
+  const alerts = page.getByRole("menu", { name: "کادر اطلاع‌رسانی" });
   await expect(alerts.getByRole("menuitem", { name: "یادداشت (Note)" })).toBeVisible();
   await expect(alerts.getByRole("menuitem", { name: "احتیاط (Caution)" })).toBeVisible();
 });
 
-test("★ منوی Format قالب‌های Typora و درج تصویر را اجرا می‌کند", async ({ page }) => {
+test("★ منوی Format قالب‌های Typora و منوی Insert درج تصویر را اجرا می‌کند", async ({ page }) => {
   const paragraph = page.locator(".tm-editor p", { hasText: "پررنگ" }).first();
   await paragraph.click();
   await page.evaluate(() => {
@@ -252,9 +254,9 @@ test("★ منوی Format قالب‌های Typora و درج تصویر را ا�
   await format.getByRole("menuitemcheckbox", { name: /زیرخط/ }).click();
   await expect(paragraph.locator("u")).toHaveCount(1);
 
-  await page.getByRole("button", { name: "قالب" }).click();
+  await page.getByRole("button", { name: "درج", exact: true }).click();
   await page.getByRole("menuitem", { name: "تصویر" }).click();
-  await page.getByRole("menuitem", { name: /درج تصویر از نشانی/ }).click();
+  await page.getByRole("menuitem", { name: /از نشانی اینترنتی/ }).click();
   const form = page.getByRole("form", { name: "درجِ تصویر" });
   await form.getByRole("textbox", { name: "متن جایگزین" }).fill("نمونه");
   await form.getByRole("textbox", { name: "نشانی تصویر" }).fill("https://example.com/a.png");
@@ -379,11 +381,11 @@ test("★ منوی Edit تکثیر، undo و پنلِ جایگزینی را اج
   await page.getByRole("button", { name: "ویرایش" }).click();
   const editMenu = page.getByRole("menu", { name: "ویرایش" });
   await expect(editMenu.getByRole("menuitem", { name: "کپی به‌عنوان" })).toBeVisible();
-  await editMenu.getByRole("menuitem", { name: "تکثیر" }).click();
+  await editMenu.getByRole("menuitem", { name: "ساخت نسخه مشابه" }).click();
   await expect(page.locator(".tm-editor p", { hasText: "این بخشنامه در اجرای" })).toHaveCount(initialCount + 1);
 
   await page.getByRole("button", { name: "ویرایش" }).click();
-  await page.getByRole("menuitem", { name: "واگرد" }).click();
+  await page.getByRole("menuitem", { name: /برگرداندن/ }).click();
   await expect(page.locator(".tm-editor p", { hasText: "این بخشنامه در اجرای" })).toHaveCount(initialCount);
 
   await page.getByRole("button", { name: "ویرایش" }).click();
@@ -394,11 +396,11 @@ test("★ منوی Edit تکثیر، undo و پنلِ جایگزینی را اج
   await expect(searchPanel.getByRole("textbox", { name: "متنِ جایگزین" })).toBeVisible();
 });
 
-test("★ ارجاع لینک از منوی Paragraph ساخته می‌شود", async ({ page }) => {
+test("★ ارجاع لینک از منوی Insert ساخته می‌شود", async ({ page }) => {
   const paragraph = page.locator(".tm-editor p", { hasText: "پررنگ" }).first();
   await paragraph.click();
-  await page.getByRole("button", { name: "پاراگراف" }).click();
-  await page.getByRole("menuitem", { name: "ارجاع لینک" }).click();
+  await page.getByRole("button", { name: "درج", exact: true }).click();
+  await page.getByRole("menuitem", { name: /پیوند ارجاعی/ }).click();
 
   const form = page.getByRole("form", { name: "درجِ ارجاعِ لینک" });
   await expect(form).toBeVisible();
@@ -410,6 +412,10 @@ test("★ ارجاع لینک از منوی Paragraph ساخته می‌شود",
 });
 
 test("★ هر فهرستِ تودرتو مثل نودِ والد باز و بسته می‌شود", async ({ page }) => {
+  await page.goto("/markdown?fixture=demo&folding=true");
+  await page.waitForSelector(".tm-editor");
+  await page.getByRole("button", { name: "نمایش", exact: true }).click();
+  await page.getByRole("menuitem", { name: "بازکردن همهٔ بخش‌ها" }).click();
   const toggle = page.locator(".tm-list-fold-toggle").first();
   await expect(toggle).toBeVisible();
   await expect(toggle).toHaveAttribute("aria-expanded", "true");

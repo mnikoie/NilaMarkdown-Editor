@@ -35,11 +35,6 @@ async function placeCursorInParagraph(page: import("@playwright/test").Page, con
 test.beforeEach(async ({ page }) => {
   await page.goto("/markdown?fixture=demo");
   await page.waitForSelector(".tm-editor", { timeout: 25000 });
-  const viewMenu = page.getByRole("button", { name: "نمایش", exact: true });
-  await viewMenu.click();
-  const unfoldAll = page.getByRole("menuitem", { name: "بازکردن همهٔ بخش‌ها" });
-  if (await unfoldAll.count()) await unfoldAll.click();
-  else await viewMenu.click();
 });
 
 test("صفحه بی خطا بار می‌شود و ساختار درست است", async ({ page }) => {
@@ -107,7 +102,8 @@ test("★ منوهای قالب، پاراگراف و سریع در Source Markd
   await expect(source).toHaveValue("## **متن**");
 
   await source.selectText();
-  await page.getByRole("button", { name: "فهرستِ نقطه‌ای (Ctrl+Shift+8)" }).click();
+  await paragraph.click();
+  await page.getByRole("menuitem", { name: "فهرست نقطه‌ای" }).click();
   await expect(source).toHaveValue("- ## **متن**");
 });
 
@@ -134,10 +130,16 @@ test("★ Mermaid خاموش → کد دیده می‌شود، محتوا گم �
   await expect(d.locator("code")).toContainText("graph TD");
 });
 
-test("★ تاشدن از پنلِ ساختار", async ({ page }) => {
+test("★ بستن شاخهٔ پنل ساختار، متن سند را دست‌کاری نمی‌کند", async ({ page }) => {
   await expect(page.locator(".tm-folded-hidden")).toHaveCount(0);
-  await page.locator(".tm-outline .tm-fold-toggle").first().click();
-  expect(await page.locator(".tm-folded-hidden").count()).toBeGreaterThan(0);
+  const toggle = page.locator(".tm-outline .tm-fold-toggle").first();
+  if ((await toggle.getAttribute("aria-expanded")) === "false") await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+  const before = await page.locator(".tm-outline-item:visible").count();
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-expanded", "false");
+  expect(await page.locator(".tm-outline-item:visible").count()).toBeLessThan(before);
+  await expect(page.locator(".tm-folded-hidden")).toHaveCount(0);
   await expect(page.locator(".tm-fold-summary")).toHaveCount(0);
 });
 

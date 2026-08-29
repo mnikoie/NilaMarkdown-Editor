@@ -363,14 +363,10 @@
     display: none;
   }
 
-  /* ★ کاربر تاشدنِ عنوان‌ها و کارتِ دایرکتیو را کلاً نمی‌خواهد؛ ولی
-   * تاشدنِ لیستِ تودرتو تصمیمِ جداست و کاربر صریحاً خواسته مثلِ قبل
-   * بماند — پس `.tm-list-fold-toggle` اینجا نیست. مقدارِ `initial` در
-   * useEditor.ts هم اجباراً «باز» شده — این‌جا فقط تضمینِ دومِ دیداری
-   * است. `!important` چون این دکمه‌ها چند قاعدهٔ hover/focus/[data-folded]
-   * دارند که باید همه بی‌اثر شوند. */
-  .tm-inline-fold,
-  .tm-mark .tm-fold-toggle {
+  /* خاموش‌کردن folding باید کنترل‌های متن را هم حذف کند؛ در حالت فعال
+   * همان CSS و رفتار عمومی پکیج برقرار است. */
+  .tm-root[data-folding="disabled"] .tm-inline-fold,
+  .tm-root[data-folding="disabled"] .tm-mark .tm-fold-toggle {
     display: none !important;
   }
 
@@ -630,7 +626,9 @@
     min-block-size: 100%;
     block-size: 100%;
     box-sizing: border-box;
-    font-family: var(--tm-font-mono);
+    /* Source برای اسناد فارسی باید همان Vazirmatn خوانای محیط ویرایش را
+     * داشته باشد؛ بلوک‌های کدِ داخل سند همچنان monospace می‌مانند. */
+    font-family: var(--tm-font-body);
     font-size: 0.9375rem;
     line-height: 1.7;
     color: var(--tm-fg);
@@ -2692,6 +2690,8 @@
     --tm-viewer-code: var(--tm-code-bg, #eef3f8);
     color: var(--tm-viewer-fg);
     background: var(--tm-viewer-bg);
+    /* `.tm-root` برای پوستهٔ Editor فلکس است؛ Viewer یک سندِ بلوکی است. */
+    display: block;
     font-family: var(--tm-font-body, Vazirmatn, system-ui, sans-serif);
     font-size: var(--tm-font-size, 16px);
     line-height: var(--tm-line-height, 1.9);
@@ -2710,7 +2710,7 @@
     margin-block: 1.6em 0.55em;
     color: var(--tm-viewer-fg);
     line-height: 1.45;
-    scroll-margin-block-start: 5rem;
+    scroll-margin-block-start: 1rem;
   }
 
   .tm-viewer h1 {
@@ -2775,15 +2775,125 @@
   }
 
   .tm-viewer-code figcaption {
-    width: max-content;
-    margin-block-end: -0.45rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
     border: 1px solid var(--tm-viewer-border);
     border-block-end: 0;
     border-radius: 0.45rem 0.45rem 0 0;
     background: var(--tm-viewer-code);
     color: var(--tm-viewer-muted);
-    padding: 0.15rem 0.55rem;
+    padding: 0.25rem 0.55rem;
     font: 0.75rem var(--tm-font-mono, ui-monospace, monospace);
+  }
+
+  .tm-viewer-code figcaption button {
+    border: 0;
+    border-radius: 0.3rem;
+    background: transparent;
+    color: inherit;
+    padding: 0.2rem 0.4rem;
+    font: inherit;
+    cursor: pointer;
+  }
+
+  .tm-viewer-code figcaption button:hover,
+  .tm-viewer-code figcaption button:focus-visible {
+    background: color-mix(in oklab, var(--tm-viewer-accent) 14%, transparent);
+    color: var(--tm-viewer-accent);
+  }
+
+  .tm-viewer-code > pre,
+  .tm-viewer-highlight > pre {
+    margin-block-start: 0;
+    border-start-start-radius: 0;
+    border-start-end-radius: 0;
+  }
+
+  .tm-viewer-highlight .shiki {
+    overflow: auto;
+    margin: 0;
+    border: 1px solid var(--tm-viewer-border);
+    border-radius: 0 0 0.65rem 0.65rem;
+    padding: 1rem;
+  }
+
+  .tm-root[data-theme="dark"] .tm-viewer-highlight .shiki {
+    background-color: var(--shiki-dark-bg) !important;
+  }
+
+  .tm-root[data-theme="dark"] .tm-viewer-highlight .shiki span {
+    color: var(--shiki-dark) !important;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .tm-root[data-theme="auto"] .tm-viewer-highlight .shiki {
+      background-color: var(--shiki-dark-bg) !important;
+    }
+
+    .tm-root[data-theme="auto"] .tm-viewer-highlight .shiki span {
+      color: var(--shiki-dark) !important;
+    }
+  }
+
+  .tm-viewer-math-inline,
+  .tm-viewer-math-block {
+    direction: ltr;
+  }
+
+  .tm-viewer-math-block {
+    overflow-x: auto;
+    margin-block: 1rem;
+    padding-block: 0.35rem;
+    text-align: center;
+  }
+
+  .tm-viewer-math-inline[data-rendered="false"],
+  .tm-viewer-math-block[data-rendered="false"] {
+    border-radius: 0.3rem;
+    background: var(--tm-viewer-code);
+    color: var(--tm-viewer-muted);
+    padding: 0.1rem 0.35rem;
+    font-family: var(--tm-font-mono, ui-monospace, monospace);
+  }
+
+  .tm-viewer-mermaid {
+    overflow: hidden;
+    margin-block: 1rem;
+    border: 1px solid var(--tm-viewer-border);
+    border-radius: 0.65rem;
+    background: var(--tm-viewer-code);
+  }
+
+  .tm-viewer-mermaid > figcaption,
+  .tm-viewer-mermaid > p,
+  .tm-viewer-mermaid summary {
+    color: var(--tm-viewer-muted);
+    padding: 0.45rem 0.75rem;
+    font-size: 0.82rem;
+  }
+
+  .tm-viewer-mermaid-svg {
+    overflow: auto;
+    background: var(--tm-viewer-bg);
+    padding: 1rem;
+    text-align: center;
+  }
+
+  .tm-viewer-mermaid-svg svg {
+    max-width: 100%;
+    height: auto;
+  }
+
+  .tm-viewer-mermaid details {
+    border-block-start: 1px solid var(--tm-viewer-border);
+  }
+
+  .tm-viewer-mermaid details pre {
+    margin: 0;
+    border: 0;
+    border-radius: 0;
   }
 
   .tm-viewer blockquote {

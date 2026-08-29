@@ -10,7 +10,7 @@
 فرمان بازتولید:
 
 ```bash
-pnpm --filter @tamin/markdown conformance
+pnpm --filter nila-markdown conformance
 ```
 
 اسکریپت نسخهٔ دقیق منبع‌ها را pin کرده، پکیج را build می‌کند و همهٔ مثال‌ها

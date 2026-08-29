@@ -472,7 +472,7 @@
   margin-inline-end: 0 !important;
 }
 
-.markdown-workspace .tm-editor .tm-section-content:not(.tm-mark) {
+.markdown-workspace .tm-editor .tm-section-content:not(.tm-mark):not(ul):not(ol):not(blockquote):not(pre):not(table):not(.tm-footnote-def):not(.tm-code):not(.tm-math-block) {
   padding: 0;
   border: 0;
 }
@@ -595,8 +595,9 @@
   margin-inline-start: 60px !important;
 }
 
-/* در متنِ اصلی هیچ کنترل، فلش یا حالتِ پنهانی برای سلسله‌مراتب وجود ندارد. */
-.markdown-workspace .tm-editor :is(.tm-inline-fold, .tm-list-fold-toggle, .tm-fold-toggle) {
+/* در اجرای معمول نرم‌افزار folding خاموش است؛ fixture تست و مصرف‌کننده‌ای
+ * که آن را روشن می‌کند نباید با این قاعده از کار بیفتد. */
+.markdown-workspace .tm-root[data-folding="disabled"] .tm-editor :is(.tm-inline-fold, .tm-list-fold-toggle, .tm-fold-toggle) {
   display: none !important;
 }
 
@@ -783,6 +784,74 @@
   color: var(--viewer-accent);
 }
 
+.viewer-navbar button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.viewer-searchbar {
+  position: absolute;
+  inset-block-start: 4.25rem;
+  inset-inline-end: 1rem;
+  z-index: 12;
+  display: flex;
+  width: min(34rem, calc(100vw - 2rem));
+  min-height: 3rem;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid var(--viewer-border);
+  border-radius: 0.65rem;
+  background: var(--viewer-surface);
+  padding: 0.4rem;
+  box-shadow: 0 0.8rem 2.4rem rgb(0 0 0 / 0.32);
+}
+
+.viewer-searchbar input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  background: transparent;
+  color: var(--viewer-fg);
+  padding: 0.35rem;
+  font: inherit;
+  outline: none;
+}
+
+.viewer-searchbar input::placeholder {
+  color: var(--viewer-muted);
+}
+
+.viewer-searchbar output {
+  min-width: 4.5rem;
+  color: var(--viewer-muted);
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+.viewer-searchbar button {
+  display: grid;
+  inline-size: 2rem;
+  block-size: 2rem;
+  flex: none;
+  place-items: center;
+  border: 0;
+  border-radius: 0.4rem;
+  background: transparent;
+  color: var(--viewer-fg);
+  cursor: pointer;
+}
+
+.viewer-searchbar button:hover:not(:disabled) {
+  background: var(--viewer-raised);
+  color: var(--viewer-accent);
+}
+
+.viewer-searchbar button:disabled {
+  color: var(--viewer-muted);
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .viewer-layout {
   display: grid;
   min-height: 0;
@@ -860,10 +929,30 @@
 }
 
 .viewer-document-scroll {
+  position: relative;
   min-width: 0;
   overflow-y: auto;
   background: var(--viewer-bg);
   scroll-padding-block-start: 1rem;
+}
+
+.viewer-search-fallback {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.viewer-search-fallback > span {
+  position: absolute;
+  border-radius: 0.15rem;
+  background: rgb(255 224 102 / 72%);
+  box-shadow: 0 0 0 1px rgb(141 105 0 / 22%);
+}
+
+.viewer-search-fallback > span[data-active="true"] {
+  background: rgb(255 140 0 / 78%);
+  box-shadow: 0 0 0 2px rgb(255 140 0 / 35%);
 }
 
 .viewer-document {
@@ -941,5 +1030,29 @@
   .viewer-document {
     width: 100%;
     padding-block-start: 2rem;
+  }
+}
+
+@media print {
+  .viewer-navbar,
+  .viewer-outline,
+  .viewer-searchbar,
+  .viewer-notice {
+    display: none !important;
+  }
+
+  .viewer-workspace,
+  .viewer-layout,
+  .viewer-document-scroll {
+    display: block;
+    height: auto;
+    overflow: visible;
+    background: #ffffff;
+    color: #000000;
+  }
+
+  .viewer-document {
+    width: 100%;
+    padding: 0;
   }
 }

@@ -53,9 +53,9 @@ On Windows, double-click `NilaMarkdown.bat` to build and run the production vers
 Both components are released from the same package and share one Markdown parser, security layer, outline logic, and design tokens. Importing the viewer entry does not load ProseMirror or the editing tools.
 
 ```tsx
-import { MarkdownEditor } from "@tamin/markdown/editor";
-import { MarkdownViewer } from "@tamin/markdown/viewer";
-import "@tamin/markdown/styles.css";
+import { MarkdownEditor } from "nila-markdown/editor";
+import { MarkdownViewer } from "nila-markdown/viewer";
+import "nila-markdown/styles.css";
 
 // Editor only
 <MarkdownEditor defaultValue={markdown} toolbar="compact" />
@@ -130,9 +130,9 @@ pnpm dev
 هر دو کامپوننت از یک پکیج و یک هستهٔ مشترک منتشر می‌شوند؛ پردازش Markdown، امنیت لینک‌ها، ساختار سند و توکن‌های ظاهری میان آن‌ها مشترک است. ورودی Viewer مستقل است و ProseMirror یا ابزارهای ویرایش را بارگذاری نمی‌کند.
 
 ```tsx
-import { MarkdownEditor } from "@tamin/markdown/editor";
-import { MarkdownViewer } from "@tamin/markdown/viewer";
-import "@tamin/markdown/styles.css";
+import { MarkdownEditor } from "nila-markdown/editor";
+import { MarkdownViewer } from "nila-markdown/viewer";
+import "nila-markdown/styles.css";
 
 <MarkdownEditor defaultValue={markdown} toolbar="compact" />
 <MarkdownViewer value={markdown} theme="auto" dir="auto" />

@@ -217,7 +217,7 @@ export interface MarkdownEditorProps {
  *
  * در Next.js حتماً `"use client"` لازم دارد و باید CSS را import کنی:
  * ```ts
- * import "@tamin/markdown/styles.css";
+ * import "nila-markdown/styles.css";
  * ```
  */
 export function MarkdownEditor({
@@ -292,17 +292,15 @@ export function MarkdownEditor({
   const [customThemeColors, setCustomThemeColors] = useState<CustomThemeColors>({ accent: "", background: "", foreground: "" });
   const [filePreferences, setFilePreferences] = useState<FilePreferences>(DEFAULT_FILE_PREFERENCES);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  // ★ کاربر تاشدن را کلاً نمی‌خواهد — صرف‌نظر از `folding.initial`ِ
-  //   ورودیِ مصرف‌کننده، همیشه باز شروع می‌شود. دکمهٔ فلش هم در
-  //   index.css پنهان است تا کاربر نتواند دوباره ببندد.
+  const configuredFolding = typeof folding === "object" ? folding : undefined;
+  // پوسته می‌تواند با `folding={false}` قابلیت را کامل خاموش کند؛ اگر
+  // تنظیم صریح داده شد، کامپوننت مستقل باید همان را رعایت کند.
   const [foldInitial, setFoldInitial] = useState<NonNullable<FoldingOptions["initial"]>>(
-    "expanded",
+    configuredFolding?.initial ?? "collapsed",
   );
-  // ★ کاربر آکاردئون را کلاً نمی‌خواهد — «multiple» یعنی بازکردنِ یک
-  //   گره هم‌سطح‌هایش را نمی‌بندد. با mode="accordion" حتی وقتی
-  //   folded خالی است، reconcileAccordion (که setFoldMode صدایش
-  //   می‌زند) هم‌سطح‌های باز را به‌جز اولی می‌بست.
-  const [foldMode, setFoldModeState] = useState<NonNullable<FoldingOptions["mode"]>>("multiple");
+  const [foldMode, setFoldModeState] = useState<NonNullable<FoldingOptions["mode"]>>(
+    configuredFolding?.mode ?? "accordion",
+  );
   const [folded, setFolded] = useState<ReadonlySet<string>>(() => new Set(foldedIds ?? []));
   const [mode, setMode] = useState<"live" | "source">("live");
   /** پیامِ کوتاه به کاربر — خطای آپلود یا شکستِ چاپ. */
@@ -457,11 +455,6 @@ export function MarkdownEditor({
       setNotice(translate(activeLocale, "فایل تنظیمات معتبر نیست."));
     }
   }, [activeFeatures, activeLocale, changeContentWidth, changeCustomThemeColors, changeFeatures, changeFilePreferences, changeTheme, onLocaleChange]);
-  // ★ عمداً به `folding?.initial` گوش نمی‌دهد — همیشه باز.
-  useEffect(() => setFoldInitial("expanded"), []);
-  // ★ عمداً به `folding?.mode` گوش نمی‌دهد — آکاردئون کلاً خاموش است.
-  useEffect(() => setFoldModeState("multiple"), []);
-
   const t = useCallback((text: string) => translate(activeLocale, text), [activeLocale]);
   const effectiveDir = dir === "auto" ? (activeLocale === "fa" ? "rtl" : "ltr") : dir;
 
@@ -1390,6 +1383,7 @@ export function MarkdownEditor({
       className={`tm-root ${className ?? ""}`}
       data-theme={resolvedTheme}
       data-mode={mode}
+      data-folding={foldingInteractive ? "enabled" : "disabled"}
       data-fullscreen={fs.active ? (fs.soft ? "soft" : "real") : undefined}
       dir={effectiveDir}
       lang={activeLocale}

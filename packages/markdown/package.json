@@ -1,7 +1,29 @@
 {
-  "name": "@tamin/markdown",
+  "name": "nila-markdown",
   "version": "0.1.0",
   "description": "ویرایشگر و نمایشگرِ Markdown با پیش‌نمایشِ زنده، درختِ سلسله‌مراتب و مارک‌های سفارشی",
+  "keywords": [
+    "markdown",
+    "editor",
+    "viewer",
+    "react",
+    "rtl",
+    "persian",
+    "typescript"
+  ],
+  "author": {
+    "name": "Mohammad Ali Nikoei",
+    "email": "m.nikoie2005@gmail.com"
+  },
+  "homepage": "https://github.com/mnikoie/NilaMarkdown-Editor#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mnikoie/NilaMarkdown-Editor.git",
+    "directory": "packages/markdown"
+  },
+  "bugs": {
+    "url": "https://github.com/mnikoie/NilaMarkdown-Editor/issues"
+  },
   "type": "module",
   "sideEffects": [
     "*.css"

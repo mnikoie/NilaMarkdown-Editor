@@ -6,7 +6,7 @@
 
 ```
 packages/
-  markdown/        @tamin/markdown        ویرایشگر و نمایشگرِ Markdown
+  markdown/        nila-markdown        ویرایشگر و نمایشگرِ Markdown
   ui/              @workspace/ui          کامپوننت‌های داخلی
   shared-types/    @workspace/shared-types
   api-client/      @workspace/api-client
@@ -82,7 +82,7 @@ packages/<name>/
 ## مصرف داخلِ همین مونوریپو
 
 ```jsonc
-"dependencies": { "@tamin/markdown": "workspace:*" }
+"dependencies": { "nila-markdown": "workspace:*" }
 ```
 
 `workspace:*` یعنی «از پوشهٔ کناری بردار». pnpm موقعِ انتشار خودش آن را به

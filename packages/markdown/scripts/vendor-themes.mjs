@@ -10,7 +10,7 @@
  * پس همان دو فایل یک‌بار در زمانِ بیلد خوانده و درون‌خط می‌شوند: ~۲۵
  * کیلوبایتِ خام به‌جای ۱٫۵ مگابایت.
  *
- * اجرا: `pnpm --filter @tamin/markdown vendor:themes`
+ * اجرا: `pnpm --filter nila-markdown vendor:themes`
  */
 import { writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
@@ -30,7 +30,7 @@ for (const name of NAMES) {
   out[name] = mod.default;
 }
 
-const banner = `// ساخته‌شده — دست نزنید. \`pnpm --filter @tamin/markdown vendor:themes\`
+const banner = `// ساخته‌شده — دست نزنید. \`pnpm --filter nila-markdown vendor:themes\`
 //
 // دو تمِ Shiki، درون‌خط. دلیلش در \`scripts/vendor-themes.mjs\` و
 // \`tsup.config.ts\` نوشته شده: worker باید خودکفا باشد و

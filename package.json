@@ -7,9 +7,9 @@
   },
   "scripts": {
     "dev": "pnpm --filter web dev",
-    "build": "pnpm --filter @tamin/markdown build && pnpm --filter web build",
-    "test": "pnpm --filter @tamin/markdown test",
-    "typecheck": "pnpm --filter @tamin/markdown typecheck",
+    "build": "pnpm --filter nila-markdown build && pnpm --filter web build",
+    "test": "pnpm --filter nila-markdown test",
+    "typecheck": "pnpm --filter nila-markdown typecheck",
     "test:e2e": "playwright test"
   },
   "keywords": [
