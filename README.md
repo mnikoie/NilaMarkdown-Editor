@@ -162,3 +162,10 @@ pnpm test:e2e     # اجرای تست‌های سرتاسری Playwright
 ---
 
 Created and maintained by [M. Nikoie](https://github.com/mnikoie).
+
+
+## Feedback / بازخورد
+
+Questions, bug reports and suggestions are welcome in [Issues](https://github.com/mnikoie/NilaMarkdown-Editor/issues). Include your operating system or browser version, steps to reproduce the problem, and the expected and actual result. Reports in Persian and English are welcome. Please remove private data before attaching sample files or logs.
+
+برای گزارش مشکل یا پیشنهاد، از بخش Issues استفاده کنید و مراحل بروز مشکل، نسخهٔ سیستم‌عامل یا مرورگر و نتیجهٔ مورد انتظار را بنویسید. گزارش فارسی و انگلیسی پذیرفته می‌شود؛ داده‌های خصوصی را از فایل نمونه و لاگ حذف کنید.
